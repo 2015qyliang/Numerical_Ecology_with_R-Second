@@ -1,0 +1,115 @@
+<font face="Œ¢»Ì—≈∫⁄">
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# µ⁄¡˘’¬£∫µ‰–Õ≈≈–Ú
+
+±æ’¬ƒ⁄»›ºÚΩÈ£∫
+
+- 6.1 Objectives
+- 6.2 Canonical Ordination Overview
+- 6.3 Redundancy Analysis (RDA)
+- 6.4 Canonical Correspondence Analysis (CCA)
+- 6.5 Linear Discriminant Analysis (LDA)
+- 6.6 Other Asymmetric Analyses
+- 6.7 Symmetric Analysis of Two (or More) Data Sets
+- 6.8 Canonical Correlation Analysis (CCorA)
+- 6.9 Co-inertia Analysis (CoIA)
+- 6.10 Multiple Factor Analysis (MFA)
+- 6.11 Relating Species Traits and Environment
+- 6.12 Conclusion
+
+## 6.1 Objectives
+
+## 6.2 Canonical Ordination Overview
+
+## 6.3 Redundancy Analysis (RDA)
+
+### 6.3.1 Introduction
+
+### 6.3.2 RDA of the Doubs River Data
+
+#### 6.3.2.1 Preparation of the Data
+
+#### 6.3.2.2 RDA Using vegan
+
+#### 6.3.2.3 Retrieving, Interpreting and Plotting Results From a vegan RDA Output Object
+
+#### 6.3.2.4 Permutation Tests of RDA Results
+
+#### 6.3.2.5 Partial RDA
+
+#### 6.3.2.6 Selection of Explanatory Variables
+
+#### 6.3.2.7 Environmental Reconstruction: Projecting New Sites in an RDA to Estimate the Values of Explanatory Variables
+
+#### 6.3.2.8 Variation Partitioning
+
+#### 6.3.2.9 RDA as a Tool for Multivariate ANOVA
+
+#### 6.3.2.10 Nonlinear Relationships in RDA
+
+### 6.3.3 Distance-Based Redundancy Analysis (db-RDA)
+
+### 6.3.4 A Hand-Written RDA Function
+
+## 6.4 Canonical Correspondence Analysis (CCA)
+
+### 6.4.1 Introduction
+
+### 6.4.2 CCA of the Doubs River Data
+
+#### 6.4.2.1 CCA Using vegan
+
+#### 6.4.2.2 CCA Triplot
+
+#### 6.4.2.3 Permutation Tests in CCA, Forward Selection and Parsimonious CCA
+
+#### 6.4.2.4 Three-Dimensional Interactive Plots
+
+## 6.5 Linear Discriminant Analysis (LDA)
+
+### 6.5.1 Introduction
+
+### 6.5.2 Discriminant Analysis Using lda()
+
+## 6.6 Other Asymmetric Analyses
+
+### 6.6.1 Principal Response Curves (PRC)
+
+### 6.6.2 Co-correspondence Analysis (CoCA)
+
+## 6.7 Symmetric Analysis of Two (or More) Data Sets
+
+## 6.8 Canonical Correlation Analysis (CCorA)
+
+### 6.8.1 Introduction
+
+### 6.8.2 Canonical Correlation Analysis Using CCorA()
+
+## 6.9 Co-inertia Analysis (CoIA)
+
+### 6.9.1 Introduction
+
+### 6.9.2 Co-inertia Analysis Using Function coinertia() of ade4
+
+## 6.10 Multiple Factor Analysis (MFA)
+
+### 6.10.1 Introduction
+
+### 6.10.2 Multiple Factor Analysis Using FactoMineR
+
+## 6.11 Relating Species Traits and Environment
+
+### 6.11.1 The Fourth-Corner Method
+
+### 6.11.2 RLQ Analysis
+
+### 6.11.3 Application in R
+
+## 6.12 Conclusion
+
+
+</font>
