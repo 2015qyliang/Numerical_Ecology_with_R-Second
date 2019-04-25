@@ -15,3 +15,9 @@
 ### 译者：梁其云
 
 * 2019 年春于山东·威海 转译
+
+### 其他相关资源
+
+- https://www.davidzeleny.net/anadat-r/doku.php/en:numecolr
+- https://github.com/JoeyBernhardt/NumericalEcology
+- https://github.com/CMET-UGent/CMETNGS/tree/master/R
