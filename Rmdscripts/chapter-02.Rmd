@@ -48,7 +48,8 @@ library(RgoogleMaps)
 library(googleVis) 
 library(labdsv)
 
-# 注意所需要的分析脚本和原数据的路径 与 已设置的工作路劲   
+# 注意所需要的分析脚本和原数据的路径 与 已设置的工作路劲 
+# https://github.com/CMET-UGent/CMETNGS/tree/master/R
 source("Functions/panelutils.R") # 调用分析脚本文件
 
 load("Data/Doubs.RData") # 导入处于工作路径中的 Doubs 河流数据集
