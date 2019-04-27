@@ -75,15 +75,20 @@
 - 4. 层次与非层次
 
 *在层次方法中, 初级类群会成为更大,更高级的类群. 很多时候, 层次方法可以产生非重叠的相互独立的类群分支. *
-
+*非层次方法中(比如 k-均值)产生的单个划分区与其他的类群分区之间没有层次关系. *
 
 - 5. 概率与非概率
 
+*概率方法以这样的方式定义组: 组内关联矩阵具有给定的齐次概率. 概率方法有时被用来定义物种组合*
+
 - 6. 约束性与非约束性
 
+*无约束性聚类依赖于单个数据集的信息, 而约束性聚类使用两个矩阵: 一个是已聚类的, 另一个包含一组解释变量, 这些解释变量对第一个矩阵的数据分组或分割的位置提供约束(或指导). *
 
+很多聚类分析可能会涉及上述多种方法的整合使用. 
 
-
+层次聚类结果通常表示为树状图或类似的树型图. 
+非分层过程产生一组对象(或多个变量), 这些对象或变量可以在进一步的分析, 显示为最终结果(例如物种协会), 或者当项目有空间成分时, 将其绘制在研究区域上. 
 
 ```{r}
 # 解决警告信息的显示问题
@@ -122,8 +127,7 @@ source("Functions/boxplerk.R")
 source("Functions/boxplert.R")
 # test.a.R
 #source("Functions/test.a.R") # https://github.com/JoeyBernhardt/NumericalEcology
-source ('https://raw.githubusercontent.com/zdealveindy/anadat-r/master/scripts/NumEcolR1/test.a.R')
-
+source('https://raw.githubusercontent.com/zdealveindy/anadat-r/master/scripts/NumEcolR1/test.a.R')
 
 grpdist <- function(X) { # 自定义函数 - 由分类数据中计算二元相异矩阵
   require(cluster) # 导入分析包
@@ -142,8 +146,6 @@ head(env) # 查看数据 - 环境信息
 head(spa) # 查看数据
 head(latlong) # 查看数据 - 地理位置信息（经纬度）
 ```
-
-
 
 ---
 
