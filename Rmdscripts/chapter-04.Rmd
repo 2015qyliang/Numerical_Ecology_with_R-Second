@@ -1,130 +1,1947 @@
-<font face="΢���ź�">
+<font face="微软雅黑">
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+---
+
+# **第四章：聚类分析**
+
+---
+
+本章内容简介：
+
+- 4.1 目的
+- 4.2 聚类分析概论
+- 4.3 层次聚类（基于连接）
+- 4.4 平均聚合聚类  
+- 4.5 Ward最小方差聚类
+- 4.6 柔性聚类
+- 4.7 层次聚类结果的解释与比较
+- 4.8 非层次聚类
+- 4.9 比较环境数据
+- 4.10 物种组合
+- 4.11 指示性物种
+- 4.12 多元回归树 (MRT): 约束性聚类
+- 4.13 单元聚类方法 - MRT
+- 4.14 连续性聚类
+- 4.15 模糊聚类
+- 4.16 结论
+
+---
+
+## 4.1 目的
+
+前两章的探索性数据分析和关联分析是生态学相关数据进行深度分析的预处理过程.
+通过本章对聚类分析的学习,以期达到以下几个目标:
+
+- 学会如何选择恰当的聚类方法并学会如何使用该方法进行计算
+- 使用不同的聚类方法分析 Doubs 河流数据集,从而确定位点数据集和鱼类物种数据集的聚类分析结果
+- 探究性分析两种约束性聚类方法(由外部数据集约束的强有力的聚类分析方法)
+
+---
+
+## 4.2 聚类分析概论
+
+聚类分析的主要目的是重新认识环境相关数据的不连续数据或者离散型数据(比如物种分类学信息数据集等),但是我们在科研中经常遇到的多是连续型生态学数据集. 
+为进一步挖掘相关数据集的信息,需要进行某种程度上的数据处理,但是生态学相关的科研人员希望可以通过简单明了地操作步骤对生态学相关数据集进行可视化, 通过一步式的分析步骤获取相关数据集聚类分析的类型学结果, 从而形象地对数据进行分析并有利于后续进一步的数据挖掘. 
+在某些案例中, 经常将类型学分析结果与独立分类的分析结果进行比较. 
+本章所介绍的聚类分析方法将用于检测对象之间是否相似到可以形成一类或者划归成一组, 进而明确组间的区分界限. 
+
+聚类分析包括对对象进行分区处理(R mode 下的'描述项'). 
+硬分区是将集合划分为子集，因此每个对象或描述项都是该分区的有且只是一个子集, 比如某个物种不能同时属于两个不同的属(分类学定义): 也就是成员之间的关系是是与否, 有或无这种'非黑即白'的二进制关系(非 0 即 1 ). 
+有些像模糊聚类分析的方式, 在正常的生态学数据分析中很少使用, 在该方法的理论中, 成员之间的关系可以是连续型的( 0 ~ 1 之间)或者说是不同程度(不同亲疏, 不同远近)的关系. 
+根据聚类分析的模型, 其结果可以是当个聚类分区或者是一系列的层次分区. 
+**除了约束性聚类分析之外, 由于聚类分析不检验任何先验假设, 因此它不是严格意义上的一种统计方法. **
+然而可以使用事后方式检验聚类结果的鲁棒性. 
+通过聚类分析可以挖掘出隐藏在数据中的某些特性, 科研人员可以结合相关的生态学背景确定哪些信息可以继续进行挖掘并解释其生物学意义.
+
+这里需要强调的是: 诸多聚类分析都是从关联矩阵数据开始的, 因此这也折射出对数据进行分析时选择恰当的关联系数的重要性. 
+
+聚类方法因其各异的算法而不同(算法 - 通过有限的数据处理有效的解决问题), 下面简单介绍几种常用的聚类方法:
+
+- 1. 连续(顺序)算法/同步算法 
+
+*大多数聚类算法都是连续的, 在所有对象找到它们的位置之前, 都是重复给定的过程. 频率较低的同步算法只需一步就能找到解决方案. *
+
+- 2. 聚合与分解
+
+*在顺序(连续)算法中, 聚合过程以不连续的对象集合开始, 这些对象被连续地组成更大的集合类群, 直到获得单个的集合类群. *
+*相反, 分解方法从收集开始: 将整个集合类群对象视为一个单独的组, 并将其划分为子组, 依此类推, 直到对象完全分离为止. *
+*在任何一种情况下, 由用户根据研究中问题决定应该保留哪个中间分区*
+
+- 3. 单元与多元
+
+*分解方法的使用可以是单元的， 也可以是多元的. *
+*单元方法在分区过程中的每一步都使用单个描述项, 然而多元分析则使用所有的描述项; 在很多多元分析过程中, 所有的描述项被整合成了一个关联矩阵. *
+
+- 4. 层次与非层次
+
+*在层次方法中, 初级类群会成为更大,更高级的类群. 很多时候, 层次方法可以产生非重叠的相互独立的类群分支. *
+
+
+- 5. 概率与非概率
+
+- 6. 约束性与非约束性
+
+
+
+
+
+```{r}
+# 解决警告信息的显示问题
+# Warning: Input string not available in this locale
+Sys.setlocale('LC_ALL','C')
+
+# 导入分析包
+library(ade4)
+library(adespatial)
+library(vegan)
+library(gclus)
+library(cluster)
+library(pvclust) 
+library(RColorBrewer)
+library(labdsv)
+library(rioja)
+library(indicspecies)
+library(mvpart) # https://cran.r-project.org/src/contrib/Archive/mvpart/
+library(MVPARTwrap) # https://cran.r-project.org/src/contrib/Archive/MVPARTwrap/
+library(dendextend)
+library(vegclust)
+library(colorspace)
+library(agricolae)
+library(picante)
+library(igraph) # 物种共现网络分析使用
+library(rgexf) # 物种共现网络分析使用
+
+# 导入分析脚本
+# https://github.com/CMET-UGent/CMETNGS/tree/master/R
+source("Functions/drawmap.R")
+source("Functions/drawmap3.R")
+source("Functions/hcoplot.R")
+source("Functions/coldiss.R")
+source("Functions/bartlett.perm.R")
+source("Functions/boxplerk.R")
+source("Functions/boxplert.R")
+# test.a.R
+#source("Functions/test.a.R") # https://github.com/JoeyBernhardt/NumericalEcology
+source ('https://raw.githubusercontent.com/zdealveindy/anadat-r/master/scripts/NumEcolR1/test.a.R')
+
+
+grpdist <- function(X) { # 自定义函数 - 由分类数据中计算二元相异矩阵
+  require(cluster) # 导入分析包
+  gr <- as.data.frame(as.factor(X))
+  distgr <- daisy(gr, "gower") # 计算数据集中观察值之间的所有成对差异（距离）| 测度方法 - Gower's distance
+  distgr
+  }
+
+load("Data/Doubs.Rdata") # 导入 Doubs 河流数据集
+spe <- spe[-8, ] # 删除位点 8 的数据（删除对象的一条记录）
+env <- env[-8, ] # 删除位点 8 的数据（删除对象的一条记录）
+spa <- spa[-8, ] # 删除位点 8 的数据（删除对象的一条记录）
+latlong <- latlong[-8, ] # 删除位点 8 的数据（删除对象的一条记录）
+head(spe) # 查看数据
+head(env) # 查看数据 - 环境信息
+head(spa) # 查看数据
+head(latlong) # 查看数据 - 地理位置信息（经纬度）
 ```
 
-# �����£��������
 
-�������ݼ�飺
 
-- 4.1 Objectives
-- 4.2 Clustering Overview
-- 4.3 Hierarchical Clustering Based on Links
-- 4.4 Average Agglomerative Clustering
-- 4.5 Ward’s Minimum Variance Clustering
-- 4.6 Flexible Clustering
-- 4.7 Interpreting and Comparing Hierarchical Clustering Results
-- 4.8 Non-hierarchical Clustering
-- 4.9 Comparison with Environmental Data
-- 4.10 Species Assemblages
-- 4.11 Indicator Species
-- 4.12 Multivariate Regression Trees (MRT): Constrained Clustering
-- 4.13 MRT as a Monothetic Clustering Method
-- 4.14 Sequential Clustering
+---
 
-## 4.1 Objectives
+## 4.3 Hierarchical Clustering Based on Links - 层次聚类（基于连接）
 
-## 4.2 Clustering Overview
+### 4.3.1 Single Linkage Agglomerative Clustering - 单连接聚合聚类分析
 
-## 4.3 Hierarchical Clustering Based on Links
 
-### 4.3.1 Single Linkage Agglomerative Clustering
+```{r}
+# 两步 - 计算位点间的弦距离矩阵
+spe.norm <- decostand(spe, "normalize") # 数据变换 - 标准化, 边距平方和为 1
+spe.ch <- vegdist(spe.norm, "euc")
+# 一步计算弦距离
+spe.ch <- dist.ldc(spe, "chord")
+head(spe.ch)
+# 将位点名称附加到距离矩阵中
+attr(spe.ch, "Labels") <- rownames(spe)
+head(spe.ch) # 前后进行对比
+spe.ch.single <- hclust(spe.ch, method = "single") # 单连接聚合聚类分析（层次聚类）
+plot(spe.ch.single, # 使用默认选项绘制树形图
+  labels = rownames(spe), 
+  main = "Chord - Single linkage"
+  )
+```
 
-### 4.3.2 Complete Linkage Agglomerative Clustering
 
-## 4.4 Average Agglomerative Clustering
 
-## 4.5 Ward’s Minimum Variance Clustering
+### 4.3.2 Complete Linkage Agglomerative Clustering - 完全连接聚合聚类分析
 
-## 4.6 Flexible Clustering
+```{r}
+spe.ch.complete <- hclust(spe.ch, method = "complete") # 完全连接聚合聚类分析（层次聚类）
+plot(spe.ch.complete, # 使用默认选项绘制树形图
+  labels = rownames(spe), 
+  main = "Chord - Complete linkage")
+```
 
-## 4.7 Interpreting and Comparing Hierarchical Clustering Results
 
-### 4.7.1 Introduction
 
-### 4.7.2 Cophenetic Correlation
+---
 
-### 4.7.3 Looking for Interpretable Clusters
+## 4.4 Average Agglomerative Clustering - 平均聚合聚类分析
 
-#### 4.7.3.1 Graph of the Fusion Level Values
+```{r}
+# Unweighted pair-group method using arithmetic averages -- UPGMA
+# 使用算术平均值的未加权对组方法 
+spe.ch.UPGMA <- hclust(spe.ch, method = "average") # 算数平均数聚合聚类
+plot(spe.ch.UPGMA,  # 使用默认选项绘制树形图
+  labels = rownames(spe), 
+  main = "Chord - UPGMA")
+spe.ch.centroid <- hclust(spe.ch, method = "centroid") # 质心聚合聚类
+plot(spe.ch.centroid, 
+  labels = rownames(spe), 
+  main = "Chord - Centroid")
 
-#### 4.7.3.2 Compare Two Dendrograms to Highlight Common Subtrees
 
-#### 4.7.3.3 Multiscale Bootstrap Resampling
 
-#### 4.7.3.4 Average Silhouette Widths
+```
 
-#### 4.7.3.5 Comparison Between the Dissimilarity Matrix and Binary Matrices Representing Partitions
 
-#### 4.7.3.6 Species Fidelity Analysis
 
-#### 4.7.3.7 Silhouette Plot of the Final Partition
+---
 
-#### 4.7.3.8 Final Dendrogram with Graphical Options
+## 4.5 Ward’s Minimum Variance Clustering - Ward最小方差聚类
 
-#### 4.7.3.9 Spatial Plot of the Clustering Result
 
-#### 4.7.3.10 Heat Map and Ordered Community Table
+```{r}
+spe.ch.ward <- hclust(spe.ch, method = "ward.D2") # Ward最小方差聚类
+plot(spe.ch.ward,  # 使用默认选项绘制树形图
+  labels = rownames(spe), 
+  main = "Chord - Ward")
+```
 
-## 4.8 Non-hierarchical Clustering
 
-### 4.8.1 k-means Partitioning
 
-#### 4.8.1.1 k-means with Random Starts
+---
 
-#### 4.8.1.2 Use of k-means Partitioning to Optimize an Independently Obtained Classification
+## 4.6 Flexible Clustering - 柔性聚类
 
-### 4.8.2 Partitioning Around Medoids (PAM)
+```{r}
+# 
+spe.ch.beta1 <- agnes(spe.ch, method = "flexible",par.method = 0.55) # 柔性聚类 - beta = -0.1
+spe.ch.beta2 <- agnes(spe.ch, method = "flexible",par.method = 0.625) # 柔性聚类 - beta = -0.25
+spe.ch.beta3 <- agnes(spe.ch, method = "flexible",par.method = 0.75) # 柔性聚类 - beta = -0.5
+class(spe.ch.beta1) # 查看类别 | 后面更改类别
+spe.ch.beta1 <- as.hclust(spe.ch.beta1)
+class(spe.ch.beta1)
+spe.ch.beta2 <- as.hclust(spe.ch.beta2)
+spe.ch.beta3 <- as.hclust(spe.ch.beta3)
+plot(spe.ch.beta1, # 使用默认选项绘制树形图
+  labels = rownames(spe), 
+  main = "Chord - Beta-flexible (beta=-0.1)")
+plot(spe.ch.beta2, # 使用默认选项绘制树形图
+  labels = rownames(spe), 
+  main = "Chord - Beta-flexible (beta=-0.25)")
+plot(spe.ch.beta3, # 使用默认选项绘制树形图
+  labels = rownames(spe), 
+  main = "Chord - Beta-flexible (beta=-0.5)")
+```
 
-## 4.9 Comparison with Environmental Data
-4.9.1 Comparing a Typology with External Data (ANOVA Approach)
-4.9.2 Comparing Two Typologies (Contingency Table Approach)
 
-## 4.10 Species Assemblages
 
-### 4.10.1 Simple Statistics on Group Contents
+---
 
-### 4.10.2 Kendall’s W Coefficient of Concordance
+## 4.7 Interpreting and Comparing Hierarchical Clustering Results - 层次聚类结果的解释与比较
 
-### 4.10.3 Species Assemblages in Presence-Absence Data
+### 4.7.1 简介
 
-### 4.10.4 Species Co-occurrence Network
+### 4.7.2 Cophenetic Correlation - 同表象相关
 
-## 4.11 Indicator Species
+```{r}
 
-### 4.11.1 Introduction
+spe.ch.single.coph <- cophenetic(spe.ch.single) # 单连接聚类（层次聚类） - Single linkage clustering
+cor(spe.ch, spe.ch.single.coph) # 相关性分析 - 默认方法'pearson'
+spe.ch.comp.coph <- cophenetic(spe.ch.complete) # 完全连接聚类（层次聚类） - Complete linkage clustering
+cor(spe.ch, spe.ch.comp.coph) # 相关性分析 - 默认方法'pearson'
+spe.ch.UPGMA.coph <- cophenetic(spe.ch.UPGMA) # 均值连接聚类 - Average clustering
+cor(spe.ch, spe.ch.UPGMA.coph) # 相关性分析 - 默认方法'pearson'
+spe.ch.ward.coph <- cophenetic(spe.ch.ward) # Ward聚类
+cor(spe.ch, spe.ch.ward.coph) # 相关性分析 - 默认方法'pearson'
+```
 
-### 4.11.2 IndVal: Species Indicator Values
+为了说明不相似矩阵和从各种方法获得的一组共生矩阵之间的关系，可以绘制 Shepard-like 图
 
-### 4.11.3 Correlation-Type Indices
+```{r}
+# Shepard-like diagrams - 绘制原始的相异性与共生距离
+plot(
+  spe.ch,
+  spe.ch.single.coph,
+  xlab = "Chord distance",
+  ylab = "Cophenetic distance",
+  xlim = c(0, sqrt(2)),
+  ylim = c(0, sqrt(2)),
+  main = c("Single linkage", 
+           paste("Cophenetic correlation =", 
+                 round(cor(spe.ch, spe.ch.single.coph), 3)
+                 )
+           )
+  )
+abline(0, 1) # 为当前图表添加一条或多条直线 - 截距和斜率
+lines(lowess(spe.ch, spe.ch.single.coph), col = "red")
 
-## 4.12 Multivariate Regression Trees (MRT): Constrained Clustering
+plot(
+  spe.ch,
+  spe.ch.comp.coph,
+  xlab = "Chord distance",
+  ylab = "Cophenetic distance",
+  xlim = c(0, sqrt(2)),
+  ylim = c(0, sqrt(2)),
+  main = c("Complete linkage", 
+           paste("Cophenetic correlation =",
+                 round(cor(spe.ch, spe.ch.comp.coph), 3)
+                 )
+           )
+  )
+abline(0, 1)# 为当前图表添加一条或多条直线 - 截距和斜率
+lines(lowess(spe.ch, spe.ch.comp.coph), col = "red")
 
-### 4.12.1 Introduction
+plot(
+  spe.ch,
+  spe.ch.UPGMA.coph,
+  xlab = "Chord distance",
+  ylab = "Cophenetic distance",
+  xlim = c(0, sqrt(2)),
+  ylim = c(0, sqrt(2)),
+  main = c("UPGMA", 
+           paste("Cophenetic correlation =",
+                 round(cor(spe.ch,spe.ch.UPGMA.coph), 3)
+                 )
+           )
+  )
+abline(0, 1)  # 为当前图表添加一条或多条直线 - 截距和斜率
+lines(lowess(spe.ch, spe.ch.UPGMA.coph), col = "red")
 
-### 4.12.2 Computation (Principle)
+plot(
+  spe.ch, # X 
+  spe.ch.ward.coph, # Y
+  xlab = "Chord distance",
+  ylab = "Cophenetic distance",
+  xlim = c(0, sqrt(2)),
+  ylim = c(0, max(spe.ch.ward$height)),
+  main = c("Ward", paste("Cophenetic correlation =", 
+                         round( cor(spe.ch, spe.ch.ward.coph), 3)
+                         )
+           )
+  )
+abline(0, 1)  # 为当前图表添加一条或多条直线 - 截距和斜率
+lines(lowess(spe.ch, spe.ch.ward.coph), col = "red")
 
-#### 4.12.2.1 Constrained Partitioning of the Data
+(gow.dist.single <- sum((spe.ch - spe.ch.single.coph) ^ 2)) # Gower (1983) distance
+(gow.dist.comp <- sum((spe.ch - spe.ch.comp.coph) ^ 2)) # Gower (1983) distance
+(gow.dist.UPGMA <- sum((spe.ch - spe.ch.UPGMA.coph) ^ 2)) # Gower (1983) distance
+(gow.dist.ward <- sum((spe.ch - spe.ch.ward.coph) ^ 2)) # Gower (1983) distance
+```
 
-#### 4.12.2.2 Cross-Validation of the Partitions and Pruning of the Tree
 
-#### 4.12.2.3 MRT Procedure
+### 4.7.3 Looking for Interpretable Clusters - 寻找可解释的聚类簇
 
-### 4.12.3 Application Using Packages mvpart and MVPARTwrap
 
-### 4.12.4 Combining MRT and IndVal
 
-## 4.13 MRT as a Monothetic Clustering Method
 
-## 4.14 Sequential Clustering
+#### 4.7.3.1 Graph of the Fusion Level Values - 融合水平值图
 
-## 4.15 A Very Different Approach: Fuzzy Clustering
+```{r}
+# par(mfrow = c(3, 2))
 
-### 4.15.1 Fuzzy c-means Using Package cluster’s Function fanny()
+plot(spe.ch.single$height, # 单连接聚合聚类（层次聚类）
+     nrow(spe):2, 
+     type="S", # 阶梯绘图 - S 先垂直后水平，s 则相反
+     main="Fusion levels - Chord - Single",
+     ylab="k (number of clusters)",
+     xlab="h (node height)", 
+     col="grey")
+text(spe.ch.single$height, 
+     nrow(spe):2, 
+     nrow(spe):2,
+     col="red", 
+     cex=0.5) # 标签字体大小
 
-### 4.15.2 Noise Clustering Using the vegclust() Function
+plot(
+  spe.ch.complete$height, # 完全连接聚合聚类（层次聚类）
+  nrow(spe):2,
+  type = "S", # 阶梯绘图 - S 先垂直后水平，s 则相反
+  main = "Fusion levels - Chord - Complete",
+  ylab = "k (number of clusters)",
+  xlab = "h (node height)",
+  col = "grey")
+text(spe.ch.complete$height,
+     nrow(spe):2,
+     nrow(spe):2,
+     col = "red",
+     cex = 0.5) # 标签字体大小
 
-## 4.16 Conclusion
+plot(
+  spe.ch.UPGMA$height, # 算数平均数的非 - 非加权聚类
+  nrow(spe):2,
+  type = "S", # 阶梯绘图 - S 先垂直后水平，s 则相反
+  main = "Fusion levels - Chord - UPGMA",
+  ylab = "k (number of clusters)",
+  xlab = "h (node height)",
+  col = "grey")
+text(spe.ch.UPGMA$height,
+     nrow(spe):2,
+     nrow(spe):2,
+     col = "red",
+     cex = 0.5) # 标签字体大小
+
+plot(
+  spe.ch.ward$height, # Ward聚类
+  nrow(spe):2,
+  type = "S", # 阶梯绘图 - S 先垂直后水平，s 则相反
+  main = "Fusion levels - Chord - Ward",
+  ylab = "k (number of clusters)",
+  xlab = "h (node height)",
+  col = "grey")
+text(spe.ch.ward$height,
+     nrow(spe):2,
+     nrow(spe):2,
+     col = "red",
+     cex = 0.5) # 标签字体大小
+
+plot(
+  spe.ch.beta2$height, # 柔性聚类 - beta = -0.25
+  nrow(spe):2,
+  type = "S", # 阶梯绘图 - S 先垂直后水平，s 则相反
+  main = "Fusion levels - Chord - Beta-flexible",
+  ylab = "k (number of clusters)",
+  xlab = "h (node height)",
+  col = "grey")
+text(spe.ch.beta2$height,
+     nrow(spe):2,
+     nrow(spe):2,
+     col = "red",
+     cex = 0.5) # 标签字体大小
+
+```
+
+
+```{r}
+k <- 4  # 设置分组数量
+# 剪切树形图
+spech.single.g <- cutree(spe.ch.single, k = k)
+spech.complete.g <- cutree(spe.ch.complete, k = k)
+spech.UPGMA.g <- cutree(spe.ch.UPGMA, k = k)
+spech.ward.g <- cutree(spe.ch.ward, k = k)
+spech.beta.g <- cutree(spe.ch.beta2, k = k)
+
+# class(spe.ch.single)
+# [1] "hclust"
+# class(spech.single.g)
+# [1] "integer"
+
+# 通过列联表进行比较分析
+# 使用交叉分类因子来构建每个因子水平组合的计数的列联表
+table(spech.single.g, spech.complete.g) # Single vs complete linkage
+table(spech.single.g, spech.UPGMA.g) # Single linkage vs UPGMA
+table(spech.single.g, spech.ward.g) # Single linkage vs Ward
+table(spech.complete.g, spech.UPGMA.g) # Complete linkage vs UPGMA
+table(spech.complete.g, spech.ward.g) # Complete linkage vs Ward
+table(spech.UPGMA.g, spech.ward.g) # UPGMA vs Ward
+table(spech.beta.g, spech.ward.g) # beta-flexible vs Ward
+```
+
+
+
+
+#### 4.7.3.2 Compare Two Dendrograms to Highlight Common Subtrees - 比较两个树形图以凸显出公共子树
+
+```{r}
+# 凸显公共子树
+# 进行对象类别的转换
+class(spe.ch.ward) # 查看类别，与后面进行比较
+dend1 <- as.dendrogram(spe.ch.ward) # 重新定义类别 - 树形图
+class(dend1) # 查看类别
+dend2 <- as.dendrogram(spe.ch.complete)
+dend12 <- dendlist(dend1, dend2) # 合并多个树状图
+tanglegram( #绘制并排树的缠结图
+  untangle(dend12), # 解开树形图
+  sort = T, # 默认 False ；排序的目的是什么？
+  common_subtrees_color_branches = TRUE,
+  main_left = "Ward method", # 左侧树形标题
+  main_right = "Complete linkage" # 右侧树形标题
+  )
+```
+
+
+
+#### 4.7.3.3 Multiscale Bootstrap Resampling - 多尺度的自举重取样
+
+```{r}
+head(t(spe.norm)) # 查看下文使用的数据信息
+# 通过多尺度自展重取样分析带有 p-value 的层次聚类
+# 计算聚类树形图中所有类的 p-value
+# http://stat.sys.i.kyoto-u.ac.jp/prog/pvclust/
+spech.pv <- pvclust(t(spe.norm), # 使用转置的标准化后的数据集
+                    method.hclust = "ward.D2", # 聚类的方法 - ward 最小方差分析
+                    method.dist = "euc", # 计算距离的方法 - euclidean
+                    parallel=TRUE)
+# AU p-value (red) - "approximately unbiased" p-value, calculated by multiscale bootstrap resampling.
+# BP value (green) - "bootstrap probability" value, less accurate than AU value as p-value.
+# clusters (edges) with high AU values (e.g. 95%) are strongly supported by data
+plot(spech.pv) # 使用默认选项绘制带有 p-value 的树形图
+
+# 凸显具有高 au p-values 值的聚类
+pvrect(spech.pv, # Find Clusters with High/Low P-values | 导入数据是 pcvlust 对象
+       alpha = 0.95, 
+       pv = "au")
+lines(spech.pv) # 添加线
+pvrect(spech.pv, 
+       alpha = 0.91, 
+       border = 4) # 矩形的边框宽度
+```
+
+
+
+#### 4.7.3.4 Average Silhouette Widths - 平均轮廓宽度
+
+```{r}
+# 选择合适的聚类数量 - 分别针对三种不同聚类分析的数据集
+
+hc <- spe.ch.ward # 重命名 hclust 对象 - ward 最小方差分析聚类
+# hc <- spe.ch.beta2 # 柔性聚类
+# hc <- spe.ch.complete # 完全连接聚合聚类
+# 平均轮廓宽度分析 (Rousseeuw 质量指数)
+Si <- numeric(nrow(spe)) # 强制数值类型转换
+for (k in 2:(nrow(spe) - 1)) {
+  # silhouette - 提取轮廓信息
+  sil <- silhouette(cutree(hc, k = k), # 根据簇数切分树形 并返回数值化向量
+                    spe.ch) # spe.ch - 弦距离矩阵
+  Si[k] <- summary(sil)$avg.width
+  }
+k.best <- which.max(Si)
+plot(
+  1:nrow(spe),
+  Si,
+  type = "h", # '高密度'垂直线
+  main = "Silhouette-optimal number of clusters",
+  xlab = "k (number of clusters)",
+  ylab = "Average silhouette width")
+axis( 1, # 哪一侧绘制轴: 1 下; 2 左; 3 上; 4 右
+  k.best, # 目标点在轴上的位置
+  paste("optimum", k.best, sep = "\n"),
+  col = "red",
+  font = 2,
+  col.axis = "red")
+points(k.best, # 描绘目标点的位置
+       max(Si), # 目标点的数值
+       pch = 16,
+       col = "red",
+       cex = 1.5)
+```
+
+
+#### 4.7.3.5 Comparison Between the Dissimilarity Matrix and Binary Matrices Representing Partitions - 比较表示分区块的相异矩阵和二进制矩阵
+
+```{r}
+# 根据相异矩阵的相关性分析(Pearson)选择最优的聚类数量
+kt <- data.frame(k = 1:nrow(spe), r = 0)
+#hc <- spe.ch.ward # 重命名 hclust 对象 - ward 最小方差分析聚类
+#spe.ch - 弦距离矩阵
+for (i in 2:(nrow(spe) - 1)) {
+  gr <- cutree(hc, i) # 根据簇数切分树形图 并生成数值化向量
+  # https://github.com/JoeyBernhardt/NumericalEcology/blob/master/NEwR%20functions/supplementary/grpdist.R
+  distgr <- grpdist(gr) # 计算向量的相异二元矩阵(二进制矩阵)
+  mt <- cor(spe.ch, distgr, # spe.ch - 弦距离矩阵
+            method = "pearson") # 计算 pearson 相关性系数
+  kt[i, 2] <- mt }
+k.best <- which.max(kt$r)
+plot(
+  kt$k,
+  kt$r,
+  type = "h", # '高密度'垂直线
+  main = "Matrix correlation-optimal number of clusters",
+  xlab = "k (number of clusters)",
+  ylab = "Pearson's correlation")
+axis( 1, # 哪一侧绘制轴: 1 下; 2 左; 3 上; 4 右
+  k.best, # 目标点在轴上的位置
+  paste("optimum", k.best, sep = "\n"),
+  col = "red",
+  font = 2,
+  col.axis = "red")
+points(k.best,  # 描绘目标点的位置
+       max(kt$r), # 目标点的数值
+       pch = 16,
+       col = "red",
+       cex = 1.5)
+```
+
+
+
+#### 4.7.3.6 Species Fidelity Analysis - 物种的保真度分析
+
+```{r}
+# 根据对每个指示性物种的分析选择最优的聚类数量
+# IndVal, Dufrene-Legendre; 分析包: labdsv
+IndVal <- numeric(nrow(spe)) # 强制数值化定义类别
+ng <- numeric(nrow(spe))
+for (k in 2:(nrow(spe) - 1)) {
+  # 计算集群或类型中物种的指标值(保真度和相对丰度)
+  iva <- indval(spe, 
+                cutree(hc, k = k), # 数值化簇成员的向量
+                numitr = 1000) # 迭代次数
+  gr <- factor(iva$maxcls[iva$pval <= 0.05]) # 因子化
+  ng[k] <- length(levels(gr)) / k
+  iv <- iva$indcls[iva$pval <= 0.05]
+  IndVal[k] <- sum(iv)
+  }
+k.best <- which.max(IndVal[ng == 1]) + 1
+col3 <- rep(1, nrow(spe)) # 生成重复向量
+col3[ng == 1] <- 3
+
+# par(mfrow = c(1, 2))
+plot(
+  1:nrow(spe),
+  IndVal,
+  type = "h", # '高密度'垂直线
+  main = "IndVal-optimal number of clusters",
+  xlab = "k (number of clusters)",
+  ylab = "IndVal sum",
+  col = col3)
+axis(
+  1,  # 哪一侧绘制轴: 1 下; 2 左; 3 上; 4 右
+  k.best, # 目标点在轴上的位置
+  paste("optimum", k.best, sep = "\n"),
+  col = "red",
+  font = 2,
+  col.axis = "red")
+points(
+  which.max(IndVal),  # 描绘目标点的位置
+  max(IndVal),  # 目标点的数值
+  pch = 16,
+  col = "red",
+  cex = 1.5)
+text(28, 15.7, # 坐标位置(x,y)
+     "a", cex = 1.8)
+
+plot(
+  1:nrow(spe),
+  ng,
+  type = "h", # '高密度'垂直线
+  xlab = "k (number of clusters)",
+  ylab = "Ratio",
+  main = "Proportion of clusters with significant indicator species",
+  col = col3  )
+axis(1,  # 哪一侧绘制轴: 1 下; 2 左; 3 上; 4 右
+     k.best, # 目标点在轴上的位置
+     paste("optimum", k.best, sep = "\n"),
+     col = "red",
+     font = 2,
+     col.axis = "red")
+points(k.best,  # 描绘目标点的位置
+       max(ng),  # 目标点的数值
+       pch = 16,
+       col = "red",
+       cex = 1.5)
+text(28, 0.98, # 坐标位置(x,y)
+     "b", cex = 1.8)
+```
+
+
+
+#### 4.7.3.7 Silhouette Plot of the Final Partition - 最终的分区块的轮廓图
+
+```{r}
+k <- 4 # 设置聚类簇数
+# 根据簇数切分树形图 并生成数值化向量
+spech.ward.g <- cutree(spe.ch.ward, # ward 最小方差聚类
+                       k = k) 
+# 提取轮廓信息
+sil <- silhouette(spech.ward.g,  # 向量
+                  spe.ch) # 弦距离矩阵
+# class(sil)
+# [1] "silhouette"
+rownames(sil) <- row.names(spe)
+plot(
+  sil,
+  main = "Silhouette plot - Chord - Ward",
+  cex.names = 0.8,
+  col = 2:(k + 1),
+  nmax = 100  )
+```
+
+
+
+#### 4.7.3.8 Final Dendrogram with Graphical Options - 带有图形选项的最终树形图
+
+```{r}
+# 按簇类别标记 - 不同的标签
+spe.chwo <- reorder.hclust(spe.ch.ward, spe.ch)
+plot(
+  spe.chwo,
+  hang = -1,
+  xlab = "4 groups",
+  sub = "",
+  ylab = "Height",
+  main = "Chord - Ward (reordered)",
+  labels = cutree(spe.chwo, k = k)
+  )
+rect.hclust(spe.chwo, 
+            k = k)
+
+# 使用组和图例的颜色重新排序和绘制树状图
+# https://github.com/JoeyBernhardt/NumericalEcology/blob/master/hcoplot.R#L4
+hcoplot(spe.ch.ward, # ward 最小方差聚类分析 | 聚类分析的对象
+        spe.ch, # 弦距离矩阵
+        title = "hcplot : Chord-ward", 
+        k = 4)
+
+
+```
+
+```{r}
+dend <- as.dendrogram(spe.chwo) # 将 hclust 对象 转换成 树形对象(dendrogram)
+k = 4 # 设置聚类的簇数
+
+# 1 - 绘制带颜色枝的树形图
+dend %>% set("branches_k_color", k = k) %>% plot 
+
+# 2 - 对簇上色(使用标准颜色)
+# order.dendrogram(dend) # 叶子的顺序/标签
+clusters <- cutree(dend, k)[order.dendrogram(dend)] # 按照簇数切分树形图对象并再次按照标签重新排列生成新向量
+dend %>% set("branches_k_color", 
+             k = k, value = unique(clusters) + 1) %>% plot  # 绘制带颜色枝的树形图
+colored_bars(clusters + 1, # 坐标轴位置
+             y_shift = -0.5, # 坐标轴位置
+             rowLabels = paste(k, "clusters")) # 颜色行列名
+
+# 3 - 绘制颜色条形图
+clusters <- cutree(dend, k)[order.dendrogram(dend)] # 按照簇数切分树形图对象并再次按照标签重新排列生成新向量
+dend %>% branches_attr_by_clusters(clusters) %>% plot # 绘制带颜色枝的树形图
+cols <- rainbow_hcl(k) # 生成 k 个颜色向量
+ord_cols <- rainbow_hcl(k)[order(unique(clusters))]
+tmp_cols  <- rep(1, length(clusters)) # 生成重复向量
+tmp_cols[clusters != 0] <- ord_cols[clusters != 0][clusters]
+colored_bars(tmp_cols, # 坐标轴位置
+             y_shift = -0.5,  # 坐标轴位置
+             rowLabels = paste(k, "clusters")) # 颜色行列名
+
+# 4 - 使用标准颜色
+cols <- 2:(k + 1)
+# > clusters[2] 
+# 29 
+#  3
+# unique(clusters) # 获取向量集合 - 唯一
+# order(unique(clusters)) # 重新排序??
+ord_cols <- cols[order(unique(clusters))]
+tmp_cols  <- rep(1, length(clusters))  # 生成重复向量
+tmp_cols[clusters != 0] <- ord_cols[clusters != 0][clusters]
+dend %>% branches_attr_by_clusters(clusters, values = cols) %>% plot  # 绘制带颜色枝的树形图
+colored_bars(tmp_cols, # 坐标轴位置
+             y_shift = -0.5,  # 坐标轴位置
+             rowLabels = paste(k, "clusters")) # 颜色行列名
+```
+
+
+#### 4.7.3.9 Spatial Plot of the Clustering Result - 聚类结果的空间图
+
+```{r}
+# 将 ward 最小方差聚类分析的结果通过地图的形式呈现
+# dim(spa)
+# [1] 29  2
+drawmap(xy = spa, # 地理位置数据集 - 经纬度
+        clusters = spech.ward.g, # ward 最小方差聚类分析的结果对象
+        main = "Four Ward clusters along the Doubs River")
+```
+
+
+
+#### 4.7.3.10 Heat Map and Ordered Community Table -  热图和有序群落表
+
+```{r}
+# 绘制排序后的树形图的相异矩阵的热图
+heatmap(
+  as.matrix(spe.ch),
+  Rowv = dend, # 确定是否以及如何计算和重新排序 - 行 - 树形图
+  symm = TRUE, # 是否对数据进行对称处理
+  margin = c(3, 3) # 设置行列名的边距
+  )
+
+# 排序后的群落表
+# 通过位点分数的加权平均数重新排序物种
+# 点 - 不存在
+or <- vegemite(spe, spe.chwo)
+
+# 带有树形图的双序群落列表的热图
+heatmap(
+  t(spe[rev(or$species)]), # 转置数据
+  Rowv = NA, # 禁止任何行树形图（和重新排序）
+  Colv = dend, # 确定是否以及如何重新排序 - 列 - 树形图
+  col = c("white", brewer.pal(5, "Greens")),
+  scale = "none", # 值应该在行方向或列方向上居中和缩放; 默认 - 行
+  margin = c(4, 4), # 设置行列名的边距
+  ylab = "Species (weighted averages of sites)",
+  xlab = "Sites")
+```
+
+
+
+---
+
+## 4.8 Non-hierarchical Clustering - 非层次聚类
+
+### 4.8.1 k-means Partitioning - k-均值分配
+
+#### 4.8.1.1 k-means with Random Starts - 随机化的 k-均值
+
+```{r}
+# K均值分解的物种数据预转换
+spe.kmeans <- kmeans(spe.norm, # 数据标准化转换
+                     centers = 4, # 分成 4 个簇类 
+                     nstart = 100) # 如果 centers 是整数,应该选取多少个随机数据集
+head(spe.kmeans) 
+
+# k-均值划分 2 ~ 10 簇类
+# cascadeKM 是 vegan 分析包中的 函数
+# 使用一系列的 k 值进行k-均值划分 
+# https://www.rdocumentation.org/packages/vegan/versions/2.4-2/topics/cascadeKM
+spe.KM.cascade <- cascadeKM(spe.norm, 
+                              inf.gr = 2, # 最小分区数值
+                              sup.gr = 10, # 最大分区数值
+                              iter = 100, # 随机数起始的配指数
+                              criterion = "ssi") # 用于选择最佳分区的标准参考 | ssi - 简单的结构索引
+summary(spe.KM.cascade)
+head(spe.KM.cascade$results)
+head(spe.KM.cascade$partition)
+plot(spe.KM.cascade, 
+     sortg = T) # 是否对簇类进行排序
+plot(spe.KM.cascade, 
+     sortg = F) # 是否对簇类进行排序
+plot(spe.KM.cascade) # 使用默认参数
+
+# 通过列联表进行比较分析
+# 使用交叉分类因子来构建每个因子水平组合的计数的列联表
+table(spe.kmeans$cluster, # k-均值 簇类向量
+      spech.ward.g) # ward 最小方差聚类分析 簇类向量
+# 通过列联表进行比较分析
+# 使用交叉分类因子来构建每个因子水平组合的计数的列联表
+table(spe.KM.cascade$partition[, 3], # k-均值 划分 3 个簇类之后的 簇类向量
+      spech.ward.g) # ward 最小方差聚类分析 簇类向量
+
+# 根据 k-均值 对位点数据进行重排序
+spe.kmeans.g <- spe.kmeans$cluster
+class(spe.kmeans.g) # 查看类别信息
+head(spe[order(spe.kmeans.g), ])
+
+# 重新排序位点和物种信息
+# 显示紧凑有序的社区表 
+ord.KM <- vegemite(spe, # 物种原始数据集
+                   spe.kmeans.g)  # k-均值聚类分析的结果对象
+head(spe[ord.KM$sites, ord.KM$species])
+
+# 聚类分析的结果通过地图的形式呈现
+drawmap(xy = spa, # 原始地理位点信息 - 经纬度
+        clusters = spe.kmeans.g, # 聚类分析结果的对象
+        main = "Four k-means clusters along the Doubs River")
+```
+
+
+
+#### 4.8.1.2 Use of k-means Partitioning to Optimize an Independently Obtained Classification - 使用 k-均值分配方法优化已独立获得的分类结果
+
+```{r}
+# 位点数据 - ward 最小方差聚类分析中的 平均物种丰度
+groups <- as.factor(spech.ward.g) # 弦距离矩阵 - ward 聚类分析 - 簇类向量 因子化
+spe.means <- matrix(0, ncol(spe), length(levels(groups))) # 全 0 矩阵
+row.names(spe.means) <- colnames(spe)
+# tapply - 将函数应用于不规则数组的每个单元格
+# 进行分组统计 - tapply(x,f,g)
+# x为向量,f为因子列,g为操作函数,相对数据框进行类似操作可以用by函数
+for (i in 1:ncol(spe)) {
+  spe.means[i, ] <- tapply(spe.norm[, i],  # spe.norm 物种数据标准化变换
+                           spech.ward.g, 
+                           mean)
+  }
+
+startpoints <- t(spe.means) # 平均物种丰度作为起始点
+# k-means on starting points - 对起始点进行 k-均值 聚类分析
+spe.kmeans2 <- kmeans(spe.norm, 
+                      centers = startpoints) # 注意: 非整数分区 | 矩阵
+startobjects <- spe.norm[c(2, 17, 21, 23), ] # 起始对象
+spe.kmeans3 <- kmeans(spe.norm, 
+                      centers = startobjects) # 注意: 非整数分区 | 矩阵
+
+# 通过列联表进行比较分析
+# 使用交叉分类因子来构建每个因子水平组合的计数的列联表
+table(spe.kmeans2$cluster, # 根据起始位点进行 k-均值聚类分析 簇类向量
+      spech.ward.g) # 物种数据集 - 弦距离矩阵 - ward 聚类分析 - 簇类向量
+# 通过列联表进行比较分析
+# 使用交叉分类因子来构建每个因子水平组合的计数的列联表
+table(spe.kmeans2$cluster, # 根据起始位点进行 k-均值聚类分析 簇类向量
+      spe.kmeans3$cluster) # 根据起始对象进行 k-均值聚类分析 簇类向量
+
+# 系列 k-均值 聚类分析的 簇类向量
+spech.ward.gk <- spe.kmeans2$cluster
+k <- 4 
+# 应用 silhouette 提取轮廓信息 
+sil <- silhouette(spech.ward.gk, # 系列 k-均值 聚类分析的 簇类向量
+                  spe.ch) # 物种数据集的弦距离矩阵
+rownames(sil) <- row.names(spe)
+plot(sil,
+     main = "Silhouette plot - Ward & k-means",
+     cex.names = 0.8,
+     col = 2:(k + 1))
+
+drawmap(xy = spa, # 原始地理位点信息 - 经纬度
+       clusters = spech.ward.gk, # 聚类分析结果的对象
+       main = "Four optimized Ward clusters along the Doubs River")
+
+```
+
+
+
+### 4.8.2 Partitioning Around Medoids (PAM) - 分区围绕中心点（围绕中心点划分）
+
+```{r}
+# 使用 物种弦距离矩阵 选择簇类数量
+asw <- numeric(nrow(spe)) # 生成 nrow(spe) 数值化的向量
+for (k in 2:(nrow(spe) - 1)) {
+  # 围绕中心点划分
+  asw[k] <- pam(spe.ch, k, diss = TRUE)$silinfo$avg.width
+  }
+k.best <- which.max(asw)
+plot(
+  1:nrow(spe),
+  asw,
+  type = "h", # 垂直线
+  main = "Choice of the number of clusters",
+  xlab = "k (number of clusters)",
+  ylab = "Average silhouette width" )
+axis(
+  1, # 哪一侧绘制轴: 1 下; 2 左; 3 上; 4 右
+  k.best, # 轴上的位置
+  paste("optimum", k.best, sep = "\n"),
+  col = "red",
+  font = 2,
+  col.axis = "red")
+points(k.best, # X 轴位置
+       max(asw), # Y 轴位置
+       pch = 16,
+       col = "red",
+       cex = 1.5)
+```
+
+
+
+```{r}
+spe.ch.pam <- pam(spe.ch, k = 4, diss = TRUE) # 围绕中心点划分
+summary(spe.ch.pam)
+spe.ch.pam.g <- spe.ch.pam$clustering
+head(spe.ch.pam$silinfo$widths) # 轮廓宽度
+
+# 通过列联表进行比较分析
+# 使用交叉分类因子来构建每个因子水平组合的计数的列联表
+table(spe.ch.pam.g, 
+      spech.ward.g)
+# 通过列联表进行比较分析
+# 使用交叉分类因子来构建每个因子水平组合的计数的列联表
+table(spe.ch.pam.g, 
+      spe.kmeans.g)
+# 通过列联表进行比较分析
+# 使用交叉分类因子来构建每个因子水平组合的计数的列联表
+table(spe.kmeans.g, 
+      spech.ward.gk)
+
+# 应用 silhouette 提取轮廓信息
+sil <- silhouette(spe.kmeans.g, # 聚类分析的 簇类向量
+                  spe.ch) # 物种数据集的弦距离矩阵
+rownames(sil) <- row.names(spe)
+k <- 4
+
+plot(sil,
+     main = "Silhouette plot - k-means",
+     cex.names = 0.8,
+     col = 2:(k + 1)
+     )
+
+plot(
+  silhouette(spe.ch.pam),
+  main = "Silhouette plot - PAM",
+  cex.names = 0.8,
+  col = 2:(k + 1)
+  )
+
+# 通过列联表进行比较分析
+# 使用交叉分类因子来构建每个因子水平组合的计数的列联表
+table(spe.kmeans.g, 
+      spech.ward.gk)
+```
+
+
+---
+
+## 4.9 Comparison with Environmental Data - 比较环境数据
+
+### 4.9.1 Comparing a Typology with External Data (ANOVA Approach) - 比较类型学与外部数据（方差分析）
+
+```{r}
+# 展示鱼类数据聚类结果(基于最优分区)与环境变量之间的相关关系
+
+# 针对特定数据框进行分析
+with(env, {
+  # 箱式图 - 环境因子
+  par(mfrow = c(2, 2))
+  boxplot(
+    sqrt(ele) ~ spech.ward.gk, # 映射关系 y - sqrt(ele); x - spech.ward.gk
+    main = "Elevation",
+    ylab = "sqrt(alt)",
+    col = (1:k) + 1,
+    varwidth = TRUE) # 框宽度与组中观察数的平方根成比例
+  boxplot(
+    log(slo) ~ spech.ward.gk,
+    main = "Slope",
+    ylab = "log(slo)",
+    col = (1:k) + 1,
+    varwidth = TRUE)
+  boxplot(
+    oxy ~ spech.ward.gk,
+    main = "Oxygen",
+    ylab = "oxy",
+    col = (1:k) + 1,
+    varwidth = TRUE )
+  boxplot(
+    sqrt(amm) ~ spech.ward.gk,
+    main = "Ammonium",
+    ylab = "sqrt(amm)",
+    col = (1:k) + 1,
+    varwidth = TRUE) # 框宽度与组中观察数的平方根成比例
+  })
+
+# 针对特定数据框进行分析
+with(env, {
+  # 方差分析假设检验 - Test of ANOVA assumptions
+  
+  # Normality of residuals - 残差正态性
+  shapiro.test(resid(aov(sqrt(ele) ~ as.factor(spech.ward.gk))))
+  shapiro.test(resid(aov(log(slo) ~ as.factor(spech.ward.gk))))
+  shapiro.test(resid(aov(oxy ~ as.factor(spech.ward.gk))))
+  shapiro.test(resid(aov(sqrt(amm) ~ as.factor(spech.ward.gk))))
+  
+  # Homogeneity of variances - 方差的同质性 
+  bartlett.test(sqrt(ele), as.factor(spech.ward.gk))
+  bartlett.test(log(slo), as.factor(spech.ward.gk))
+  bartlett.test(oxy, as.factor(spech.ward.gk))
+  bartlett.test(sqrt(amm), as.factor(spech.ward.gk))
+  
+  # ANOVA of the testable variables - 可测试变量的方差分析
+  summary(aov(log(slo) ~ as.factor(spech.ward.gk)))
+  summary(aov(oxy ~ as.factor(spech.ward.gk)))
+  summary(aov(sqrt(amm) ~ as.factor(spech.ward.gk)))
+  
+  # Kruskal-Wallis test of variable alt - 变量测试
+  kruskal.test(ele ~ as.factor(spech.ward.gk))
+  })
+```
+
+---
+
+->>>>->>>>->>>>->>>>->>>>
+
+**方差分析假设检验 - Test of ANOVA assumptions**
+
+```{r}
+# Normality of residuals - 残差正态性
+shapiro.test(resid(aov(sqrt(env$ele) ~ as.factor(spech.ward.gk))))
+# Normality of residuals - 残差正态性
+shapiro.test(resid(aov(log(env$slo) ~ as.factor(spech.ward.gk))))
+# Normality of residuals - 残差正态性
+shapiro.test(resid(aov(env$oxy ~ as.factor(spech.ward.gk))))
+# Normality of residuals - 残差正态性
+shapiro.test(resid(aov(sqrt(env$amm) ~ as.factor(spech.ward.gk))))
+# >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+# Homogeneity of variances - 方差的同质性 
+bartlett.test(sqrt(env$ele), as.factor(spech.ward.gk))
+# Homogeneity of variances - 方差的同质性 
+bartlett.test(log(env$slo), as.factor(spech.ward.gk))
+# Homogeneity of variances - 方差的同质性 
+bartlett.test(env$oxy, as.factor(spech.ward.gk))
+# Homogeneity of variances - 方差的同质性 
+bartlett.test(sqrt(env$amm), as.factor(spech.ward.gk))
+# >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+# ANOVA of the testable variables - 可测试变量的方差分析
+summary(aov(log(env$slo) ~ as.factor(spech.ward.gk)))
+# ANOVA of the testable variables - 可测试变量的方差分析
+summary(aov(env$oxy ~ as.factor(spech.ward.gk)))
+# ANOVA of the testable variables - 可测试变量的方差分析
+summary(aov(sqrt(env$amm) ~ as.factor(spech.ward.gk)))
+# >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+# Kruskal-Wallis test of variable alt - 变量测试
+kruskal.test(env$ele ~ as.factor(spech.ward.gk))
+
+```
+
+<<<<-<<<<-<<<<-<<<<-<<<<-
+
+---
+
+
+
+```{r}
+# kruskal() - Kruskal Wallis Test And Multiple Comparison Of Treatments.
+# 多重比较
+# 事后测试是使用标准费舍尔最不显着的差异 - 调整方法包括Bonferroni校正等
+# https://www.rdocumentation.org/packages/agricolae/versions/1.3-1/topics/kruskal
+# p.adj - p-value 校准 c("none","holm","hommel", "hochberg", "bonferroni", "BH", "BY", "fdr")
+# bcol -- boxplot 中的 col 选项
+# par(mfrow = c(2, 2))
+with(env, {
+  # boxplert() or boxplerk() 显著性标记 - 星号 | post-hoc tests - 事后验证
+  # https://github.com/zdealveindy/anadat-r/blob/master/scripts/NumEcolR2/boxplerk.R
+  boxplerk( # 多重比较&带有字母的箱式图
+    ele,
+    spech.ward.gk,
+    xlab = "",
+    ylab = "ele",
+    main = "Elevation",
+    bcol = (1:k) + 1,
+    p.adj = "holm")
+  # https://github.com/zdealveindy/anadat-r/blob/master/scripts/NumEcolR2/boxplert.R
+  boxplert( # 多重比较&带有字母的箱式图
+    log(slo),
+    spech.ward.gk,
+    xlab = "",
+    ylab = "log(slo)",
+    main = "Slope",
+    bcol = (1:k) + 1,
+    p.adj = "holm")
+  # https://github.com/zdealveindy/anadat-r/blob/master/scripts/NumEcolR2/boxplert.R
+  boxplert(
+    oxy,
+    spech.ward.gk,
+    xlab = "",
+    ylab = "oxy",
+    main = "Oxygen",
+    bcol = (1:k) + 1,
+    p.adj = "holm")
+  # https://github.com/zdealveindy/anadat-r/blob/master/scripts/NumEcolR2/boxplert.R
+  boxplert(
+    sqrt(amm),
+    spech.ward.gk,
+    xlab = "",
+    ylab = "sqrt(amm)",
+    main = "Ammonium",
+    bcol = (1:k) + 1,
+    p.adj = "holm")
+  })
+```
+
+
+
+### 4.9.2 Comparing Two Typologies (Contingency Table Approach) - 比较两种类型（列联表方法）
+
+```{r}
+# Environment-based typology - 基于环境的类型学
+env2 <- env[, -1] # 删除环境因子数据集的第 1 列
+env.de <- vegdist(scale(env2), "euc") # 数据变换之后,计算 euclidean 距离的相异矩阵
+env.kmeans <- kmeans(env.de, # 距离相异矩阵
+                     centers = 4, # 划分成的簇数
+                     nstart = 100) # 如果 centers 是整数,应该选取多少个随机数据集
+env.kmeans.g <- env.kmeans$cluster
+
+# 通过列联表进行比较分析
+# 使用交叉分类因子来构建每个因子水平组合的计数的列联表
+# 物种与环境交叉表 - 4组类型 
+table(spe.kmeans.g, env.kmeans.g)
+
+# 使用 卡方检验 相关关系 
+chisq.test(table(spe.kmeans.g, env.kmeans.g))
+# 卡方检验 - 检验过程更改为'置换方式'
+chisq.test(table(spe.kmeans.g, env.kmeans.g), simulate.p.value = TRUE)
+
+# Fisher's 精确检验 相关关系
+fisher.test(table(spe.kmeans.g, env.kmeans.g))
+
+```
+
+
+
+---
+
+## 4.10 Species Assemblages - 物种组合
+
+### 4.10.1 Simple Statistics on Group Contents - 组内数据的简单统计
+
+```{r}
+# 位点聚类簇的平均物种丰度
+groups <- as.factor(spech.ward.gk) # ward 聚类簇 因子化
+spe.means <- matrix(0, ncol(spe), length(levels(groups))) # 全 0 矩阵
+row.names(spe.means) <- colnames(spe)
+for (i in 1:ncol(spe)) {
+  # tapply - 将函数应用于不规则数组的每个单元格
+  # 进行分组统计 - tapply(x,f,g)
+  # x为向量,f为因子列,g为操作函数,相对数据框进行类似操作可以用by函数
+  spe.means[i, ] <- tapply(spe[, i], spech.ward.gk, mean)
+  }
+# 4 簇 不同的平均物种丰度
+group1 <- round(sort(spe.means[, 1], decreasing = TRUE), 2) # 保留两位小数
+group2 <- round(sort(spe.means[, 2], decreasing = TRUE), 2) # 保留两位小数
+group3 <- round(sort(spe.means[, 3], decreasing = TRUE), 2) # 保留两位小数
+group4 <- round(sort(spe.means[, 4], decreasing = TRUE), 2) # 保留两位小数
+# 物种丰度 大于 组平均物种丰度
+group1.domin <- which(group1 > mean(group1))
+head(group1)
+head(group1.domin)
+# 其他组 分析类同
+group2.domin <- which(group2 > mean(group2))
+head(group2)
+group3.domin <- which(group3 > mean(group3))
+head(group3)
+group4.domin <- which(group4 > mean(group4))
+head(group4)
+```
+
+
+
+### 4.10.2 Kendall’s W Coefficient of Concordance - Kendall 一致性系数
+
+```{r}
+# https://www.rdocumentation.org/packages/vegan/versions/2.4-2/topics/decostand
+spe.hel <- decostand(spe, "hellinger") # 物种数据变换 - hellinger 
+spe.std <- decostand(spe.hel, "standardize") # 数据变换 - 标准化
+spe.t <- t(spe.std)
+
+# 第一次 涉及所有物种的 kendall 一致性检验
+#(spe.kendall.global1 <- kendall.global(spe.hel)) # 直接显示全部结果
+spe.kendall.global1 <- kendall.global(spe.hel)
+head(spe.kendall.global1) # 查看部分数据
+
+# 物种 k-均值 分区
+# cascadeKM 是 vegan 分析包中的 函数
+# 使用一系列的 k 值进行k-均值划分 
+# https://www.rdocumentation.org/packages/vegan/versions/2.4-2/topics/cascadeKM
+spe.t.kmeans.casc <- cascadeKM(
+  spe.t, # 两次数据变换(hellinger -> standardize)之后的转置数据集
+  inf.gr = 2,  # 最小分区个数数值
+  sup.gr = 8, # 最大分区个数数值
+  iter = 100, # 随机数起始的配指数
+  criterion = "calinski") # 用于选择最佳分区的标准参考 | Calinski-Harabasz (1974) criterion
+plot(spe.t.kmeans.casc, sortg = TRUE) # 排序绘图
+plot(spe.t.kmeans.casc, sortg = F) # 不排序绘图
+plot(spe.t.kmeans.casc) # 使用默认参数绘图
+
+# spe.t.kmeans.casc$partition 的第1,2,3列分成了 2,3,4 个簇
+#(clusters2 <- spe.t.kmeans.casc$partition[, 1]) # 直接显示全部结果
+clusters2 <- spe.t.kmeans.casc$partition[, 1]
+unique(clusters2) # 簇的集合 - 分成了几簇
+#(clusters3 <- spe.t.kmeans.casc$partition[, 2]) # 直接显示全部结果
+clusters3 <- spe.t.kmeans.casc$partition[, 2]
+unique(clusters3) # 簇的集合 - 分成了几簇
+#(clusters4 <- spe.t.kmeans.casc$partition[, 3]) # 直接显示全部结果
+clusters4 <- spe.t.kmeans.casc$partition[, 3]
+unique(clusters4) # 簇的集合 - 分成了几簇
+
+# 一致性 
+# https://www.rdocumentation.org/packages/vegan/versions/2.4-2/topics/kendall.global
+# 通过置换检验,测试变量或物种之间的一致性系数
+(spe.kendall.global2 <- kendall.global(spe.hel, # 定量或者半定量数据框或者矩阵 | 物种数据变换 - hellinger 
+                                       clusters2) # 确定分组的向量
+  ) # 直接显示全部结果
+
+# 后验试验 - 计算稍慢
+# https://www.rdocumentation.org/packages/vegan/versions/2.4-2/topics/kendall.global
+(spe.kendall.post2 <-
+     kendall.post(spe.hel, # 定量或者半定量数据框或者矩阵 | 物种数据变换 - hellinger 
+                  clusters2, # 确定分组的向量
+                  nperm = 9999) # 置换试验的次数
+  ) # 直接显示全部结果
+
+# 后验试验 - 计算稍慢
+# https://www.rdocumentation.org/packages/vegan/versions/2.4-2/topics/kendall.global
+(spe.kendall.post3 <-
+     kendall.post(spe.hel, # 定量或者半定量数据框或者矩阵 | 物种数据变换 - hellinger 
+                  clusters3, # 确定分组的向量
+                  nperm = 9999) # 置换试验的次数
+  ) # 直接显示全部结果
+```
+
+
+
+### 4.10.3 Species Assemblages in Presence-Absence Data - 二元数据类型中的物种组合
+
+```{r}
+spe.pa <- decostand(spe, "pa") # 数据变换 - '有-无'二元数据类型
+# 物种共现分析检验 - co-occurrence of species
+# 诸多小数位点 - Holm correction 校正
+res <- test.a(spe.pa, # 物种'有-无'二元数据类型
+              nperm = 9999) # 置换验证的次数
+summary(res)
+
+# 计算 p-values 的 Holm correction 校正值
+(res.p.vec <- as.vector(res$p.a.dist)) # 直接显示全部结果 | 向量化 p-values | 未修正
+(adjust.res <- p.adjust(res.p.vec, method = "holm")) # 直接显示全部结果 | Holm correction 校正
+
+
+# Check that the number of permutations allows significant p-values
+# after Holm's correction. Look for values <=0.05:
+range(adjust.res) # 查看变化范围
+# 显著性阈值 - 0.05 ; 校正之后
+(adj.sigth <- max(adjust.res[adjust.res <= 0.05])) # 直接显示全部结果 | 查看最大值
+
+# 筛选出与 adj.sigth 对应的未修正的 p-value 
+(sigth <- max(res.p.vec[adjust.res <= 0.05])) # 直接显示全部结果
+
+# Holm's correction 校正之后,将无显著性意义的 p-values 赋值 1  
+res.pa.dist <- res$p.a.dist
+res.pa.dist[res.pa.dist > sigth] <- 1
+# How many (unadjusted) values are equal to or smaller than sigth?
+length(which(res.p.vec <= sigth)) # 统计 小于等于 显著性阈值 的未校正数值
+
+# 热图呈现显著的 p-values
+coldiss(res.pa.dist, # 校正后的 '有-无'二元数据矩阵
+        nc = 16, # 颜色数量
+        byrank = TRUE, 
+        diag = TRUE) # 对角线 显示
+```
+
+
+
+### 4.10.4 Species Co-occurrence Network - 物种共现网络
+
+```{r}
+# 需要使用的分析包
+#library(igraph)
+#library(rgexf)
+
+# --- 1 ---
+# Adjacency matrix from the binary matrix of significant co-occurrences
+# 由 显著性共现的二进制/二元矩阵 计算 邻接矩阵
+adjm1 <- 1 - as.matrix(res.pa.dist) # 强制矩阵化 校正后的 '有-无'二元数据矩阵
+diag(adjm1) <- 0 # 对角线重新赋值
+
+# --- 2 ---
+# Adjacency matrix from the "a" distance matrix
+# 由 物种共现分析检验后的距离矩阵 计算 邻接矩阵 -- test.a.R test.R()
+adjm2 <- 1 - as.matrix(res$p.a.dist) # 强制矩阵化
+adjm2[adjm2 < 0.5] <- 0
+diag(adjm2) <- 0 # 对角线重新赋值
+
+# --- 3 ---
+# Adjacency matrix from the Spearman rank correlation matrix
+# 由 Spearman 秩相关性系数 计算 邻接矩阵
+adjm3 <- cor(spe, # 计算相关性系数
+             method = "spearman")
+# 设置正相关的阈值 rho > 0.2
+adjm2[adjm3 < 0.25] <- 0
+adjm2[adjm3 >= 0.25] <- 1  # binary co-occurrences | 二元/二进制共现
+diag(adjm3) <- 0 # 对角线重新赋值
+
+
+# Species co-occurrence dissimilarities (picante, Hardy 2008)
+# 物种共现相异矩阵 - picante
+# https://www.rdocumentation.org/packages/picante/versions/1.7
+# 整合性系统发育和生态学分析
+# ?species.dist  --  Species Co-Occurrence Distances 物种共现距离
+# 根据群落中物种共生的模式计算种间距离
+# https://www.rdocumentation.org/packages/picante/versions/1.7/topics/species.dist
+adjm4 <- species.dist(spe.pa, # 物种'有-无'二元数据矩阵
+                      metric = "jaccard") # Jaccard!! - 注意距离方法!!
+adjm4 <- as.matrix(adjm4) # 强制矩阵化
+adjm4[adjm4 < 0.4] <- 0
+adjm <- adjm4 # 选择邻接矩阵
+summary(as.vector(adjm)) # 统计每列的基本信息
+
+# 绘制邻接值的直方图
+hist(adjm)
+
+# 创建图
+go <- graph_from_adjacency_matrix(adjm, # 邻接矩阵
+                                  weighted = TRUE, 
+                                  mode = "undirected")
+plot(go) # 画出网络图
+
+# 网络结构检测: 发现 邻接矩阵在图中密集连接的子图（模块或“社区”）
+# https://kateto.net/polnet2018 
+wc <- cluster_optimal(go) # 选取最优簇
+modularity(wc) # 模块化 | 图的社区结构的模块性
+membership(wc) # 成员间关系 | 处理网络社区检测的结果
+plot(wc, go)
+
+# 输出可在 gephi 软件中查看的文件类型
+gexfo <- igraph.to.gexf(go)
+print(gexfo, 
+      file = "doubs0.gexf", 
+      replace = TRUE)
+```
+
+
+
+---
+
+## 4.11 Indicator Species - 指示性物种
+
+### 4.11.1 简介 
+
+### 4.11.2 IndVal: Species Indicator Values - 物种指示值
+
+```{r}
+# 根据与河流源头的距离,分成 4 组
+dfs.D1 <- dist(data.frame(dfs = env[, 1], # 计算距离矩阵,默认方法 euclidean
+               row.names = rownames(env)))
+dfsD1.kmeans <- kmeans(dfs.D1, # 距离矩阵
+                       centers = 4, # 分成 4 簇
+                       nstart = 100) # 如果 centers 是整数,应该选取多少个随机数据集
+# Cluster delimitation and numbering - 分类定界和编号
+head(dfsD1.kmeans$cluster) # 查看 k-均值 聚类的簇向量
+# 编号由计算机决定 
+# 为了避免混淆，在 dfd1.kmeans$cluster 的基础上构造一个具有连续数字的组的向量
+grps <- rep(1:4, c(8, 10, 6, 5)) # 生成重复向量, 重复次数不同
+# 该地区类型学的指示性物种
+# 计算群集或类型中物种的指标值（保真度和相对丰度）
+# https://www.rdocumentation.org/packages/labdsv/versions/1.8-0/topics/indval
+(iva <- indval(spe, # 物种数据集
+               grps, # 簇向量 | 分组
+               numitr = 10000) # 迭代计算概率的随机数
+  ) # 直接显示全部信息
+
+# 多次试验校正 p-values
+# 调整P值以进行多重比较 - p.adjust()
+# https://www.rdocumentation.org/packages/stats/versions/3.5.3/topics/p.adjust
+pval.adj <- p.adjust(iva$pval)
+
+# 构建 显著的指示性物种表
+gr <- iva$maxcls[pval.adj <= 0.05]
+iv <- iva$indcls[pval.adj <= 0.05]
+pv <- iva$pval[pval.adj <= 0.05]
+fr <- apply(spe > 0, 2, sum)[pval.adj <= 0.05] # apply 列方向 
+fidg <- data.frame(
+  group = gr,
+  indval = iv,
+  pvalue = pv,
+  freq = fr
+  )
+fidg <- fidg[order(fidg$group, -fidg$indval), ] # 重排序 order()
+head(fidg)
+# 输出结果文件
+write.csv(fidg, "IndVal-dfs.csv")
+
+# multipatt - Multi-Level Pattern Analysis | 研究 物种模式 与 站点组的组合 之间的关联
+# https://www.rdocumentation.org/packages/indicspecies/versions/1.7.6/topics/multipatt
+(iva2 <- multipatt(
+  spe, # 物种数据集
+  grps, # 簇分类的向量
+  max.order = 2, # 位点间组合的最大顺序
+  control = how(nperm = 999)) # 置换检验
+  ) # 直接显示全部结果
+
+# 多次试验校正 p-values
+# 调整P值以进行多重比较 - p.adjust()
+# https://www.rdocumentation.org/packages/stats/versions/3.5.3/topics/p.adjust
+(pval.adj2 <- p.adjust(iva2$sign$p.value)
+  ) # 直接显示全部信息
+summary(iva2, indvalcomp = TRUE) # 统计信息
+
+# 指示性物种值 - 自举置信区间 
+# 计算较慢
+# strassoc - 计算 物种站点 - 群组 之间的关联强度
+# https://www.rdocumentation.org/packages/indicspecies/versions/1.7.6/topics/strassoc
+(iva2.boot <- strassoc(spe, #　物种数据集
+                       grps, # 簇分类的向量
+                       func = "IndVal.g", # 关联性分析的方法索引
+                       nboot = 1000) # 自展值
+  ) # 直接显示全部结果
+```
+
+
+### 4.11.3 Correlation-Type Indices - 相关类型指数
+
+```{r}
+# Phi correlation index - Phi 相关指数 - 二元变量的关联度量
+# http://www.pmean.com/definitions/phi.htm
+# multipatt - Multi-Level Pattern Analysis | 研究 物种模式 与 站点组的组合 之间的关联
+# https://www.rdocumentation.org/packages/indicspecies/versions/1.7.6/topics/multipatt
+(iva.phi <- multipatt(
+  spe, #　物种数据集
+  grps, # 簇分类的向量
+  func = "r.g", # 关联性分析的方法索引
+  max.order = 2,  # 位点间组合的最大顺序
+  control = how(nperm = 999)) # 置换检验
+ ) # 直接显示全部结果
+summary(iva.phi) # 统计每列的基本信息
+round(iva.phi$str, 3) # 保留三位小数
+(iva.phi.boot <- strassoc(spe, #　物种数据集
+                          grps, # 簇分类的向量
+                          func = "r.g", # 关联性分析的方法索引
+                          nboot = 1000) # 自展值
+  ) # 直接显示全部结果
+```
+
+
+
+---
+
+## 4.12 Multivariate Regression Trees (MRT): Constrained Clustering - 多元回归树 (MRT): 约束性聚类
+
+### 4.12.1 简介
+
+### 4.12.2 计算原理
+
+#### 4.12.2.1 Constrained Partitioning of the Data - 约束性的数据分区
+
+#### 4.12.2.2 Cross-Validation of the Partitions and Pruning of the Tree - 分区块的交叉验证与树形的修剪
+
+#### 4.12.2.3 MRT Procedure - 多元回归树方法的分析过程
+
+
+
+
+### 4.12.3 Application Using Packages mvpart and MVPARTwrap - 应用 mvpart 和 MVPARTwrap 分析包进行分析
+
+```{r}
+# Testing mvpart | Multivariate partitioning 多元变量分区 | Multivariate regression trees
+# https://bookdown.org/forestgeoguest/mpart/mvpart.html
+# https://cran.r-project.org/src/contrib/Archive/mvpart/
+# 递归分区与回归树
+spe.ch.mvpart <- mvpart(
+    data.matrix(spe.norm) ~ ., # 符号表达式 - 映射关系 y ~ model | 响应数据集
+    env, # 环境因子数据集
+    margin = 0.08, # 边距设置
+    cp = 0, # prune.rpart() 成本复杂度修剪 - 通过复杂度剪切掉最不重要的分区 - 复杂度参数
+    xv = "pick", # 选择交叉验证的方法选择树形
+    xval = nrow(spe), # 交叉验证的数量 - 交叉验证的向量
+    xvmult = 100 # 多重交叉验证的次数
+  )
+summary(spe.ch.mvpart) # 统计每列的基本信息
+printcp(spe.ch.mvpart) # 打印结果对象 - 复杂度表格
+
+# Residuals of MRT - 多元回归树分析的残差
+par(mfrow = c(1, 2))
+# 残差分析 - residual analysis : 通过残差所提供的信息,分析出数据的可靠性,周期性或其它干扰
+# 残差: 指观测值与预测值（拟合值）之间的差，即是实际观察值与回归估计值的差
+# 异常值检验、方差齐性检验、误差的正态性检验、相关性检验以及相伴随的方差稳定化变换，正态化变换等修正方法
+hist(residuals(spe.ch.mvpart), # 提取模型残差
+     col = "bisque")
+plot(predict(spe.ch.mvpart, # 使用拟合模型进行预测
+             type = "matrix"), # 返回的形式 | 其一 "vector", "prob", "class", "matrix"
+     residuals(spe.ch.mvpart),
+     main = "Residuals vs Predicted"
+     )
+abline(h = 0, lty = 3, col = "grey")
+
+# Group composition - 群体 成分
+head(spe.ch.mvpart$where) # 查看部分数据
+# Group identity # 群体 一致性
+(groups.mrt <- levels(as.factor(spe.ch.mvpart$where)) # 查看因子水平
+  )  # 直接显示全部结果
+
+# Fish composition of first leaf - 第一叶 鱼类组分
+spe.norm[which(spe.ch.mvpart$where == groups.mrt[1]), ]
+# Environmental variables of first leaf - 第一叶 环境变量
+env[which(spe.ch.mvpart$where == groups.mrt[1]), ]
+
+# 可视化 所有叶 的鱼类组分
+leaf.sum <- matrix(0, length(groups.mrt), ncol(spe))
+colnames(leaf.sum) <- colnames(spe)
+for (i in 1:length(groups.mrt)) {
+  leaf.sum[i, ] <-
+    apply(spe.norm[which(spe.ch.mvpart$where == groups.mrt[i]), ],
+          2, sum) # 按照列方向进行处理
+  }
+head(leaf.sum) # 查看部分数据
+par(mfrow = c(2, 2))
+for (i in 1:length(groups.mrt)) {
+  pie(which(leaf.sum[i, ] > 0), # 筛选的数据集
+      radius = 1, # 在方框居中位置绘制,[-1, 1] | 长字符串 小数字
+      main = paste("leaf #", groups.mrt[i])
+      )
+  }
+
+# 从 mvpart() 结果对象中提取 多元回归分析的结果
+# rdaTest
+# https://cran.r-project.org/src/contrib/Archive/MVPARTwrap/
+# library(MVPARTwrap)
+# ? MRT 多元回归树分析的修正输出
+spe.ch.mvpart.wrap <- MRT(spe.ch.mvpart, # mvpart() 结果对象
+                          percent = 10, # 判别 - 解释方差的贡献水平
+                          species = colnames(spe)) # 用以 分区显示解释的方差
+summary(spe.ch.mvpart.wrap) # 统计每列的基本信息
+```
+
+
+
+### 4.12.4 Combining MRT and IndVal - 比较多元回归树方法与指示值方法
+
+```{r}
+# Indicator species search on the MRT result
+# 对 多元回归树分析结果进行 指示性物种 分析
+spe.ch.MRT.indval <- indval(spe.norm, # 物种数据集 已变换 
+                            spe.ch.mvpart$where) # 簇分类向量
+# spe.ch.MRT.indval$pval - Probability 概率
+# 多次试验校正 p-values
+# 调整P值以进行多重比较 - p.adjust()
+# https://www.rdocumentation.org/packages/stats/versions/3.5.3/topics/p.adjust
+pval.adj3 <- p.adjust(spe.ch.MRT.indval$pval)
+
+# For each significant species, find the leaf with the highest IndVal
+# 对于每个显著性的物种,查找具有最大 IndVal 值的叶子
+spe.ch.MRT.indval$maxcls[which(pval.adj3 <= 0.05)] # 根据显著性筛选数据集
+
+# IndVal value in the best leaf for each significant species
+# 每个显著性物种在重要叶子的 IndVal 数值
+# spe.ch.MRT.indval$indcls[which(spe.ch.MRT.indval$pval <= 0.05)]
+spe.ch.MRT.indval$indcls[which(pval.adj3 <= 0.05)]
+
+# 基于多元回归树分析结果对象的划分 | 分区
+spech.mvpart.g <- factor(spe.ch.mvpart$where)
+levels(spech.mvpart.g) <- 1:length(levels(spech.mvpart.g)) # 因子化水平
+
+# 通过列联表进行比较分析
+# 使用交叉分类因子来构建每个因子水平组合的计数的列联表
+table(spech.mvpart.g, spech.ward.g)
+
+# Plot of the MRT clusters on a map of the Doubs River
+drawmap(xy = spa,
+        clusters = spech.mvpart.g,
+        main = "Four MRT clusters along the Doubs River")
+# 输出结果又乱码 - 提示信息
+```
+
+
+---
+
+## 4.13 MRT as a Monothetic Clustering Method - 多元回归树方法可以作为一种单元聚类方法
+
+```{r}
+# Method related to Williams & Lambert (1959) 关联分析:
+# spe.pa (presence-absence) 作为响应和解释矩阵
+spe.pa <- decostand(spe, "pa") # 物种数据集,'有-无'二进制数据变换, 矩阵
+# Testing mvpart | Multivariate partitioning 多元变量分区 | Multivariate regression trees
+# https://bookdown.org/forestgeoguest/mpart/mvpart.html
+# https://cran.r-project.org/src/contrib/Archive/mvpart/
+res.part1 <- mvpart(
+    data.matrix(spe.pa) ~ ., # 符号表达式 - 映射关系 y ~ model | 响应数据集
+    data = spe.pa, # 物种'有-无'数据集
+    margin = 0.08, # 边距设置
+    xv = "p", # 选择交叉验证的方法选择树形
+    xvmult = 100  # 多重交叉验证的次数
+  )
+
+head(res.part1$where) # 查看部分数据
+
+# Testing mvpart | Multivariate partitioning 多元变量分区 | Multivariate regression trees
+# https://bookdown.org/forestgeoguest/mpart/mvpart.html
+# https://cran.r-project.org/src/contrib/Archive/mvpart/
+# spe.norm is the response, spe.pa is the explanatory matrix
+res.part2 <- mvpart(
+    data.matrix(spe.norm) ~ ., # 符号表达式 - 映射关系 y ~ model | 响应数据集
+    data = spe.pa, # 解释性数据集
+    margin = 0.08,  # 边距设置
+    xv = "p", # 选择交叉验证的方法选择树形
+    xvmult = 100  # 多重交叉验证的次数
+  )
+head(res.part2$where) # 查看部分数据
+
+# Testing mvpart | Multivariate partitioning 多元变量分区 | Multivariate regression trees
+# https://bookdown.org/forestgeoguest/mpart/mvpart.html
+# https://cran.r-project.org/src/contrib/Archive/mvpart/
+res.part3 <- mvpart(
+    data.matrix(spe.norm) ~ ., # 符号表达式 - 映射关系 y ~ model | 响应数据集
+    data = spe, # 解释性数据集
+    margin = 0.08, # 边距设置
+    xv = "p", # 选择交叉验证的方法选择树形
+    xvmult = 100 # 多重交叉验证的次数
+  )
+
+# 对象 - 组 关系
+head(res.part1$where) # 查看部分数据
+res.part1.g <- factor(res.part1$where)
+levels(res.part1.g) <- 1:length(levels(res.part1.g)) # 因子化水平
+# 比较组间的非限制性聚类
+# 通过列联表进行比较分析
+# 使用交叉分类因子来构建每个因子水平组合的计数的列联表
+table(res.part1.g, spech.ward.g)
+table(res.part1.g, spech.ward.gk)
+
+#绘制多元回归树分析的地理位置分布图
+drawmap3(xy = spa, # 地理位置信息 - 经纬度
+        clusters = res.part1.g, # 聚类向量
+        main = "Six monothetic clusters along the Doubs River")
+
+# Clustering with sequential constraint - 连续性约束聚类
+# 本文不介绍 使用多元回归树方法进行序列聚类 - Sequential clustering using MRT
+# Testing mvpart | Multivariate partitioning 多元变量分区 | Multivariate regression trees
+# https://bookdown.org/forestgeoguest/mpart/mvpart.html
+# https://cran.r-project.org/src/contrib/Archive/mvpart/
+spe.ch.seq <- mvpart(
+  as.matrix(spe) ~ dfs, # 符号表达式 - 映射关系 y ~ model | 响应数据集
+  env,  # 解释性数据集
+  cp = 0, # prune.rpart() 成本复杂度修剪 - 通过复杂度剪切掉最不重要的分区 - 复杂度参数
+  xv = "pick", # 选择交叉验证的方法选择树形
+  margin = 0.08, # 边距设置
+  xval = nrow(spe),  # 交叉验证的数量 - 交叉验证的向量
+  xvmult = 100,  # 多重交叉验证的次数
+  which = 4) # 分割标签和绘制的位置:1 居中，2 左，3 右，4双端
+summary(spe.ch.seq)
+
+# 组 成分 (终端节点标签)
+(gr <- spe.ch.seq$where) # 直接显示全部信息
+# 重新编码簇
+aa <- 1
+gr2 <- rep(1, length(gr)) # 生成重复向量
+for (i in 2 : length(gr)) {
+	if (gr[i] !=  gr[i-1]) aa <- aa + 1
+	gr2[i] <- aa
+	}
+# 绘制聚类的地理位置图
+drawmap3(xy = spa, # 地理位置信息 - 经纬度
+        clusters = gr2, # 聚类的簇分类向量
+        main = "MRT sequential clustering along the Doubs River")
+```
+
+
+---
+
+## 4.14 Sequential Clustering - 连续性聚类
+
+```{r}
+# 对 percentage difference 相异矩阵 使用默认方法 - CONISS
+# https://www.rdocumentation.org/packages/vegan/versions/2.4-2/topics/vegdist
+# vegdist() 计算相异矩阵, 默认距离方法 - bray
+# https://www.rdocumentation.org/packages/rioja/versions/0.9-15.2/topics/chclust
+# chclust - Constrained Hierarchical Clustering - 约束性层次聚类
+spe.chcl <- chclust(vegdist(spe)) # 使用默认 聚合方法 - coniss | "coniss" or "conslink".
+
+# 将等级分类的分散度与从断棒模型中获得的分散度进行比较 
+# https://www.rdocumentation.org/packages/vegan/versions/1.11-0/topics/screeplot.cca
+# 为下文 k 值提供依据
+bstick(spe.chcl, # 约束性层次聚类的结果对象
+       10, # 展示的 组/簇 数量
+       plot = T)
+
+k <- 4 # 设置聚类数量
+(gr4 <- cutree(spe.chcl, k = k)# 切分聚类结果对象
+  ) # 直接显示全部信息 -- 向量的形式
+
+# 绘制树形图
+plot(spe.chcl, 
+     hang = -1, # 改变 横轴的位置? 尝试(-1,0,1)
+     main = "CONISS clustering")
+rect.hclust(spe.chcl, k = k) # 添加层次聚类结果的矩阵框
+
+# 绘制树形图
+plot(spe.chcl,
+     xvar = env$dfs,
+     hang = -1, 
+     main = "CONISS clustering",
+     cex = 0.8
+     )
+# 绘制聚类的地理位置图
+drawmap(xy = spa, # 地理位置信息 - 经纬度
+        clusters = gr4,  # 聚类的簇分类向量
+        main = "Sequential clusters along the river")
+```
+
+
+---
+
+## 4.15 Fuzzy Clustering - 模糊聚类
+
+### 4.15.1 Fuzzy c-means Using Package cluster’s Function fanny() - 使用 cluster 分析包中的 fanny() 函数计算 模糊 c-均值
+
+```{r}
+k <- 4		# 设置聚类数量
+spe.fuz <- fanny(spe.ch, # 物种弦距离矩阵
+                 k = k, # 聚类数量
+                 memb.exp = 1.5) # 严格大于1,指定拟合标准中使用的隶属指数
+summary(spe.fuz) # 统计每列的基本信息
+# Site fuzzy membership - 位点 模糊 关系
+head(spe.fuz$membership) # 查看部分数据
+# Nearest crisp clustering - 最近的清晰 类分支
+head(spe.fuz$clustering) # 查看部分数据
+spefuz.g <- spe.fuz$clustering
+
+# 画出轮廓图
+# https://www.rdocumentation.org/packages/cluster/versions/2.0.8/topics/silhouette
+plot(
+  silhouette(spe.fuz), # 提取轮廓信息
+  main = "Silhouette plot - Fuzzy clustering",
+  cex.names = 0.8,
+  col = spe.fuz$silinfo$widths + 1
+  )
+# 模糊聚类排序 - PCoA
+# Step 1:鱼类物种数据集的弦距离矩阵的 PCOA 排序分析
+# https://www.rdocumentation.org/packages/stats/versions/3.5.3/topics/cmdscale
+# 矩阵的经典多维缩放
+dc.pcoa <- cmdscale(spe.ch)
+# https://www.rdocumentation.org/packages/vegan/versions/2.4-2/topics/scores
+# 获取排序结果的物种或位点的分值
+dc.scores <- scores(dc.pcoa, # 排序结果
+                    choices = c(1, 2)) # 选择信息获取的轴方向
+# Step 2: 对模糊聚类结果进行排序绘图
+plot(dc.scores,
+     type = "n", #不绘图
+     main = "Ordination of fuzzy clusters (PCoA)")
+abline(h = 0, lty = "dotted")
+abline(v = 0, lty = "dotted")
+# Step 3: 表示模糊聚类结果
+for (i in 1:k) {
+  gg <- dc.scores[spefuz.g == i, ]
+  # 计算位于指定点集的凸包上的点子集
+  # https://www.rdocumentation.org/packages/grDevices/versions/3.5.3/topics/chull
+  hpts <- chull(gg)
+  hpts <- c(hpts, hpts[1])
+  lines(gg[hpts, ], col = i + 1)
+  }
+stars( # 绘制星图或段图 - Star (Spider/Radar) Plots And Segment Diagrams
+  spe.fuz$membership, # 矩阵类型数据
+  location = dc.scores, # 必须含有两列
+  key.loc = c(0.6, 0.4), # 单位键 坐标
+  key.labels = 1:k, # 单位键 标签
+  draw.segments = TRUE, 
+  add = TRUE, # 添加'星图'
+  scale = FALSE, # 数据变换 | T 矩阵中的数据独立缩放; F 已经是数据变换之后的数据集
+  len = 0.075, # 长度或者半径的尺度印祖
+  col.segments = 2:(k + 1) # 指定颜色
+  )
+
+```
+
+```{r}
+# 聚类地理位置图
+plot(
+  spa, # 地理信息数据 - 经纬度
+  type = "n",
+  main = "Fuzzy clusters along the river",
+  xlab = "x coordinate (km)",
+  ylab = "y coordinate (km)"
+  )
+lines(spa, col = "light blue")
+text(65, 20, # 位置
+     "Upstream", cex = 1.2)
+text(15, 32, # 位置
+     "Downstream", cex = 1.2)
+# Add sectors to represent fuzzy membership
+for (i in 1:k) {
+  # 绘制星图或段图 - Star (Spider/Radar) Plots And Segment Diagrams
+  stars(
+    spe.fuz$membership,
+    location = spa,
+    key.loc = c(150, 20),
+    key.labels = 1:k,
+    draw.segments = TRUE,
+    add = TRUE,
+    # scale = FALSE,  # 数据变换 | T 矩阵中的数据独立缩放; F 已经是数据变换之后的数据集
+    len = 5,
+    col.segments = 2:(k + 1) # 指定颜色
+    )
+  }
+```
+
+
+### 4.15.2 Noise Clustering Using the vegclust() Function - 使用 vegclust() 进行噪声聚类分析
+
+```{r}
+k <- 4 # 聚类个数
+# 创建噪音聚类 - 4 分类 
+# Perform 30 starts from random seeds and keep the best solution
+#?vegclust
+# https://www.rdocumentation.org/packages/vegclust/versions/1.7.7/topics/vegclust
+# 对植被数据执行硬或模糊聚类
+spe.nc <- vegclust(
+  spe.norm,
+  mobileCenters = k, # 数字, 种子向量, 坐标
+  m = 1.5,
+  dnoise = 0.75, # 到噪声簇的距离
+  method = "NC", # 聚类模型
+  nstart = 30 # 选择多少个随机数据集
+  )
+head(spe.nc)
+# Medoids of species - 物种的中心点
+(medoids <- spe.nc$mobileCenters) # 直接显示全部数据
+
+# Fuzzy membership matrix - 模糊关系矩阵
+head(spe.nc$memb) # 查看部分数据
+
+# Cardinality of fuzzy clusters - 模糊聚类的基数
+head(spe.nc$size) # 查看部分数据
+
+# 获取硬关系向量
+spefuz.g <- defuzzify(spe.nc$memb)$cluster
+clNum <- as.numeric(as.factor(spefuz.g))
+
+# 模糊聚类结果的排序 - PCOA
+plot(dc.scores,
+     main = "Ordination of fuzzy clusters (PCoA)",
+     type = "n"
+     )
+abline(h = 0, lty = "dotted")
+abline(v = 0, lty = "dotted")
+for (i in 1:k) {
+  gg <- dc.scores[clNum == i, ]
+  # 计算位于指定点集的凸包上的点子集
+  # https://www.rdocumentation.org/packages/grDevices/versions/3.5.3/topics/chull
+  hpts <- chull(gg)
+  hpts <- c(hpts, hpts[1])
+  lines(gg[hpts, ], col = i + 1)
+  }
+stars( # 绘制星图或段图 - Star (Spider/Radar) Plots And Segment Diagrams
+  spe.nc$memb[, 1:4],
+  location = dc.scores,
+  key.loc = c(0.6, 0.4),
+  key.labels = 1:k,
+  draw.segments = TRUE,
+  add = TRUE,
+  # scale = FALSE,  # 数据变换 | T 矩阵中的数据独立缩放; F 已经是数据变换之后的数据集
+  len = 0.075,
+  col.segments = 2:(k + 1) # 指定颜色
+  )
+
+```
+
+
+```{r}
+# Defuzzified site plot - 已解除模糊的位点图 
+plot(
+  dc.pcoa,
+  xlab = "MDS1",
+  ylab = "MDS2",
+  pch = clNum,
+  col = clNum)
+legend(
+  "topleft",
+  col = 1:(k + 1),
+  pch = 1:(k + 1),
+  legend = levels(as.factor(spefuz.g)), #因子化
+  bty = "n")
+```
+
+
+```{r}
+# drawmap() ???
+plot(
+  spa, # 物种空间地理数据
+  type = "n",
+  main = "Noise clusters along the river",
+  xlab = "x coordinate (km)",
+  ylab = "y coordinate (km)"  )
+lines(spa, col = "light blue")
+text(65, 20, "Upstream", cex = 1.2)
+text(15, 32, "Downstream", cex = 1.2)
+# 添加扇区以表示模糊成员身份
+for (i in 1:k) {
+  stars( # 绘制星图或段图 - Star (Spider/Radar) Plots And Segment Diagrams
+    spe.nc$memb[, 1:4],
+    location = spa,
+    key.loc = c(150, 20),
+    key.labels = 1:k,
+    draw.segments = TRUE,
+    add = TRUE,
+    len = 5,
+    col.segments = 2:(k + 1) # 指定颜色
+    )
+  }
+```
+
+
+---
+
+## 4.16 结论
+
+
+---
 
 </font>
