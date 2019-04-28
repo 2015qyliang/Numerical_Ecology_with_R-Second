@@ -304,10 +304,14 @@ plot(spe.ch.beta3, # 使用默认选项绘制树形图
 
 ### 4.7.1 简介
 
+**无约束性聚类是一种启发式过程, 并不是统计检验(或者说是聚类分析是一种探索性分析, 不是统计检验).** 
+关联系数和聚类方法的选择将直接影响对聚类结果的判断. 
+方法的选择与分析目的直接相关. 
+可以通过 **summary('聚类分析结果对象')** 来查看聚类结果的诸多信息, 进而作出合理的选择. 
+
 ### 4.7.2 Cophenetic Correlation - 同表象相关
 
 ```{r}
-
 spe.ch.single.coph <- cophenetic(spe.ch.single) # 单连接聚类（层次聚类） - Single linkage clustering
 cor(spe.ch, spe.ch.single.coph) # 相关性分析 - 默认方法'pearson'
 spe.ch.comp.coph <- cophenetic(spe.ch.complete) # 完全连接聚类（层次聚类） - Complete linkage clustering
