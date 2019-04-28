@@ -212,6 +212,17 @@ plot(spe.ch.complete, # 使用默认选项绘制树形图
 
 ## 4.4 Average Agglomerative Clustering - 平均聚合聚类分析
 
+基于对象之间的平均相异程度或者类群的质心, 具体的平均聚合聚类分析共有 4 中方法. 
+方法之间的不同之处源于两方面: 一是计算类群位置采用的方法(是根据算数平均值还是根据类群质心); 二是当计算融合水平时, 根据所包含的对象数量是否应该对类群进行加权或者不加权重. 
+
+|  | **Arithmetic average** | **Centroid clustering** |
+|----------------|:----------------:|:----------------:|
+| Equal weights | Unweighted pair-group method using arithmetic averages (UPGMA) “average” | Unweighted pair-group method using centroids (UPGMC) “centroid” |
+| Unequal weights | Weighted pair-group method using arithmetic averages (WPGMA)“mcquitty” | Weighted pair-group method using centroids (WPGMC) "median" |
+
+最为熟知的一种方法是'UPGMA': 根据该对象与待融入类群的每个成员之间的平均相异距离判断是否融入该类群. 
+当两个类群进行融合时, 会根据两个类群中每个成员与另一个类群所有成员的平均相异距离进行判断是否相互融合.
+
 ```{r}
 # Unweighted pair-group method using arithmetic averages -- UPGMA
 # 使用算术平均值的未加权对组方法 
@@ -219,16 +230,20 @@ spe.ch.UPGMA <- hclust(spe.ch, method = "average") # 算数平均数聚合聚类
 plot(spe.ch.UPGMA,  # 使用默认选项绘制树形图
   labels = rownames(spe), 
   main = "Chord - UPGMA")
+```
+
+- 聚类分析的结果有些介于单连接聚合聚类分析和完全连接聚合聚类分析结果之间. 
+
+```{r}
 spe.ch.centroid <- hclust(spe.ch, method = "centroid") # 质心聚合聚类
 plot(spe.ch.centroid, 
   labels = rownames(spe), 
   main = "Chord - Centroid")
-
-
-
 ```
 
+- 对于生态学研究工作者而言, 生成的质心聚合聚类结果难以解释, 基本等同于'噩梦' -- **为什么会产生树形反转**. *如何将树形图划分成几个不同的分区进行解释, 而不是采用'二分法'对聚类结果进行解释*
 
+联合使用 'UPGMC' 和 'WPGMC' 有时会导致树形图反转, 由于不在形成嵌套状的分区, 因此很难对其进行生物学解释. 
 
 ---
 
