@@ -266,10 +266,14 @@ plot(spe.ch.ward,  # 使用默认选项绘制树形图 - 直接使用 hclust 对
 
 ## 4.6 Flexible Clustering - 柔性聚类
 
+通过改变 4 个参数值来实现前文所提到的所有聚类分析模型(Lance and Williams algorithm). 
 
+- hclust() -- stats 分析包
+- agnes() -- cluster 分析包: 参数 par.method 可以接受 3 种不同长度的向量( 1 - αh; 3 - αh, αi, β, 同时 γ = 0; 4 )
+
+**αh = αi = (1 - β)/2**
 
 ```{r}
-# 
 spe.ch.beta1 <- agnes(spe.ch, method = "flexible",par.method = 0.55) # 柔性聚类 - beta = -0.1
 spe.ch.beta2 <- agnes(spe.ch, method = "flexible",par.method = 0.625) # 柔性聚类 - beta = -0.25
 spe.ch.beta3 <- agnes(spe.ch, method = "flexible",par.method = 0.75) # 柔性聚类 - beta = -0.5
@@ -278,18 +282,21 @@ spe.ch.beta1 <- as.hclust(spe.ch.beta1)
 class(spe.ch.beta1)
 spe.ch.beta2 <- as.hclust(spe.ch.beta2)
 spe.ch.beta3 <- as.hclust(spe.ch.beta3)
+# 与 前文的 Ward 最小方差聚类方法进行比较
 plot(spe.ch.beta1, # 使用默认选项绘制树形图
   labels = rownames(spe), 
   main = "Chord - Beta-flexible (beta=-0.1)")
+# 与 前文的 Ward 最小方差聚类方法进行比较
 plot(spe.ch.beta2, # 使用默认选项绘制树形图
   labels = rownames(spe), 
   main = "Chord - Beta-flexible (beta=-0.25)")
+# 与 前文的 Ward 最小方差聚类方法进行比较
 plot(spe.ch.beta3, # 使用默认选项绘制树形图
   labels = rownames(spe), 
   main = "Chord - Beta-flexible (beta=-0.5)")
 ```
 
-
+> 串联分析上述 3 幅聚类结果图, 分析 beta 对树形结构的影响
 
 ---
 
