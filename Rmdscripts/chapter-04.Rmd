@@ -247,21 +247,26 @@ plot(spe.ch.centroid,
 
 ---
 
-## 4.5 Ward’s Minimum Variance Clustering - Ward最小方差聚类
+## 4.5 Ward’s Minimum Variance Clustering - Ward 最小方差聚类
 
+该方法是基于最小二乘法线性模型计算的, 根据组内平方和最小化确定分组. 
+聚类簇内方差和(sum of squared errors)等于簇内成员间距离的平方和除以对象的数量. 
+虽然组内方差和是基于 Euclidean 模型计算的, 但是 Ward 方法由相异距离产生有意义的结果并非只有 Euclidean 模型一种选择. 
+
+本章将介绍两种不同的 ward 最小方差聚类方法: 一种实现了  Ward’s (1963) 最小方差聚类模型(hclust -- method = "ward.D2"), 另一种则没有实现(hclust -- method = "ward.D"). 
 
 ```{r}
 spe.ch.ward <- hclust(spe.ch, method = "ward.D2") # Ward最小方差聚类
-plot(spe.ch.ward,  # 使用默认选项绘制树形图
+plot(spe.ch.ward,  # 使用默认选项绘制树形图 - 直接使用 hclust 对象 | 亦可使用 as.dendrogram() 转换成树形图对象进行绘制
   labels = rownames(spe), 
   main = "Chord - Ward")
 ```
 
-
-
 ---
 
 ## 4.6 Flexible Clustering - 柔性聚类
+
+
 
 ```{r}
 # 
