@@ -439,9 +439,12 @@ lines(lowess(spe.ch, spe.ch.ward.coph),
 
 #### 4.7.3.1 Graph of the Fusion Level Values - 融合水平值图
 
-```{r}
-# par(mfrow = c(3, 2))
+树形图的融合水平值是树形图中发生融合的两个分支的相异值. 
+通过可视化融合水平值相关的信息, 有助于确定对树形图剪切(裁剪或者分割)的水平. 
 
+**如何对融合水平值图进行解读???**
+
+```{r}
 plot(spe.ch.single$height, # 单连接聚合聚类（层次聚类）
      nrow(spe):2, 
      type="S", # 阶梯绘图 - S 先垂直后水平，s 则相反
@@ -510,10 +513,11 @@ text(spe.ch.beta2$height,
      nrow(spe):2,
      col = "red",
      cex = 0.5) # 标签字体大小
-
 ```
 
-
+使用 cutree() 对确定分组数量的树形图进行剪裁, 并通过列联表进行比较分析. 
+如果两个分类中含有相同的成员组分, 那么在列联表的列方向和行方向上只有一个非零频率值. (单连接聚合聚类的两组中的26个位点分布在 ward 最小方差聚类分析结果的 4 4个组中)
+ 
 ```{r}
 k <- 4  # 设置分组数量
 # 剪切树形图
@@ -539,10 +543,10 @@ table(spech.UPGMA.g, spech.ward.g) # UPGMA vs Ward
 table(spech.beta.g, spech.ward.g) # beta-flexible vs Ward
 ```
 
-
-
-
 #### 4.7.3.2 Compare Two Dendrograms to Highlight Common Subtrees - 比较两个树形图以凸显出公共子树
+
+通过比较树形图和寻找公共聚类簇(共同聚类簇)有助于发现使用几种不同方法找到的分区. 
+dendextend 分析包中的 tangelgram() 函数可以实现上述诉求. 
 
 ```{r}
 # 凸显公共子树
@@ -561,7 +565,7 @@ tanglegram( #绘制并排树的缠结图
   )
 ```
 
-
+*位点的信息会尽可能的匹配到两个树形图种, 相同的彩色表征相同的聚类簇, 黑色则说明在两个树中的不同位置. 如何确定稳健的分类簇? *
 
 #### 4.7.3.3 Multiscale Bootstrap Resampling - 多尺度的自举重取样
 
