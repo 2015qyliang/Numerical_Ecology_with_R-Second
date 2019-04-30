@@ -355,7 +355,10 @@ plot(
            )
   )
 abline(0, 1) # 为当前图表添加一条或多条直线 - 截距和斜率
-lines(lowess(spe.ch, spe.ch.single.coph), col = "red")
+# lowess 散点图平滑
+# https://www.rdocumentation.org/packages/gplots/versions/3.0.1.1/topics/lowess
+lines(lowess(spe.ch, spe.ch.single.coph), 
+      col = "red") 
 
 plot(
   spe.ch,
@@ -371,7 +374,10 @@ plot(
            )
   )
 abline(0, 1)# 为当前图表添加一条或多条直线 - 截距和斜率
-lines(lowess(spe.ch, spe.ch.comp.coph), col = "red")
+# lowess 散点图平滑
+# https://www.rdocumentation.org/packages/gplots/versions/3.0.1.1/topics/lowess
+lines(lowess(spe.ch, spe.ch.comp.coph), 
+      col = "red")
 
 plot(
   spe.ch,
@@ -387,7 +393,10 @@ plot(
            )
   )
 abline(0, 1)  # 为当前图表添加一条或多条直线 - 截距和斜率
-lines(lowess(spe.ch, spe.ch.UPGMA.coph), col = "red")
+# lowess 散点图平滑
+# https://www.rdocumentation.org/packages/gplots/versions/3.0.1.1/topics/lowess
+lines(lowess(spe.ch, spe.ch.UPGMA.coph), 
+      col = "red")
 
 plot(
   spe.ch, # X 
@@ -402,14 +411,24 @@ plot(
            )
   )
 abline(0, 1)  # 为当前图表添加一条或多条直线 - 截距和斜率
-lines(lowess(spe.ch, spe.ch.ward.coph), col = "red")
+# lowess 散点图平滑
+# https://www.rdocumentation.org/packages/gplots/versions/3.0.1.1/topics/lowess
+lines(lowess(spe.ch, spe.ch.ward.coph), 
+      col = "red")
+```
 
+使用 Gower 距离进行聚类分析, 并进行统计比较(原始相异矩阵和同表型距离之间的平方差之和). 
+产生最小 Gower 距离的聚类方法可被视为对相异矩阵的最优聚类模型. 
+同表型相关性和 Gower 距离准则并不是总会将相同的聚类结果视为最好(评价结果并不一致). 
+
+*命令行置于括号之中, 会立即显示执行结果* 
+
+```{r}
 (gow.dist.single <- sum((spe.ch - spe.ch.single.coph) ^ 2)) # Gower (1983) distance
 (gow.dist.comp <- sum((spe.ch - spe.ch.comp.coph) ^ 2)) # Gower (1983) distance
 (gow.dist.UPGMA <- sum((spe.ch - spe.ch.UPGMA.coph) ^ 2)) # Gower (1983) distance
 (gow.dist.ward <- sum((spe.ch - spe.ch.ward.coph) ^ 2)) # Gower (1983) distance
 ```
-
 
 ### 4.7.3 Looking for Interpretable Clusters - 寻找可解释的聚类簇
 
