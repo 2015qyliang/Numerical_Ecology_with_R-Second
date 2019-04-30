@@ -335,7 +335,9 @@ spe.ch.ward.coph <- cophenetic(spe.ch.ward) # Ward聚类
 cor(spe.ch, spe.ch.ward.coph) # 相关性分析 - 默认方法'pearson'
 ```
 
-为了说明不相似矩阵和从各种方法获得的一组共生矩阵之间的关系，可以绘制 Shepard-like 图
+为了说明不相似矩阵和从各种方法获得的一组共生矩阵之间的关系，可以绘制 Shepard-like 图(数据点之间距离的散点图 -- 是实际或变换的邻近度与预测的邻近度的关系图。该图表示多维尺度图表反映实际接近度的程度 -- )
+[Ref-1](https://www.jmp.com/support/help/14-2/shepard-diagram.shtml) 
+[Ref-2](http://www.mgs.md.gov/coastal_geology/shepards.html)
 
 ```{r}
 # Shepard-like diagrams - 绘制原始的相异性与共生距离
