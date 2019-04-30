@@ -606,7 +606,7 @@ pvrect(spech.pv,
        border = 4) # 矩形的边框宽度
 ```
 
-一旦我们确定了树形图结构并意欲评估聚类簇的稳健性, 可以通过'轮廓宽度','矩阵比较'和'鉴别物种'三种方式来确定聚类分析结果的适当聚类组数量.
+一旦我们确定了树形图结构并意欲评估聚类簇的稳健性, 可以通过 '轮廓宽度 - silhouette widths','矩阵比较 - matrix comparison'和'鉴别物种 - diagnostic species' 三种方式来确定聚类分析结果的适当聚类组数量.
 
 #### 4.7.3.4 Average Silhouette Widths - 平均轮廓宽度
 
