@@ -309,9 +309,22 @@ plot(spe.ch.beta3, # 使用默认选项绘制树形图
 方法的选择与分析目的直接相关. 
 可以通过 **summary('聚类分析结果对象')** 来查看聚类结果的诸多信息, 进而作出合理的选择. 
 
-### 4.7.2 Cophenetic Correlation - 同表象相关
+### 4.7.2 Cophenetic Correlation - 同表型相关
+
+在树形图中,两个对象之间的同表型距离就是相同组(簇)中两个成员间的距离. 
+树形图中的两个对象, 从任意一个出发, 沿着树形结构向上,遇到节点之后再向下, 会遇到第二个对象. 
+同表型矩阵代表了对象之间所有成员结对的同表型距离. 
+可以通过原始的相异矩阵和童标星矩阵计算 Pearson 相关性(同表型相关性). 
+具有最高同表型相关性的方法可以视为保留相异矩阵中大部分信息的聚类模型. 
+
+由于同表型矩阵来源于原始的相异矩阵(这两种距离数据集并不是相互的独立事件), 因此不可以使用同表型相关性进行显著性检验. 
+同时, 同表型相关性对聚类方法的选择非常依赖. 
+
+使用 stats 分析包中的 [cophenetic()](https://www.rdocumentation.org/packages/stats/versions/3.5.3/topics/cophenetic) 功能函数计算 4 种不同聚类结果的同表型矩阵和同表型相关性. 
 
 ```{r}
+# https://www.rdocumentation.org/packages/stats/versions/3.5.3/topics/cophenetic
+# https://en.wikipedia.org/wiki/Cophenetic_correlation
 spe.ch.single.coph <- cophenetic(spe.ch.single) # 单连接聚类（层次聚类） - Single linkage clustering
 cor(spe.ch, spe.ch.single.coph) # 相关性分析 - 默认方法'pearson'
 spe.ch.comp.coph <- cophenetic(spe.ch.complete) # 完全连接聚类（层次聚类） - Complete linkage clustering
