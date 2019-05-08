@@ -877,8 +877,6 @@ colored_bars(tmp_cols, # 坐标轴位置
 
 #### 4.7.3.9 Spatial Plot of the Clustering Result - 聚类结果的空间图
 
-
-
 ```{r}
 # 将 ward 最小方差聚类分析的结果通过地图的形式呈现
 # dim(spa)
@@ -887,8 +885,6 @@ drawmap(xy = spa, # 地理位置数据集 - 经纬度
         clusters = spech.ward.g, # ward 最小方差聚类分析的结果对象
         main = "Four Ward clusters along the Doubs River")
 ```
-
-
 
 #### 4.7.3.10 Heat Map and Ordered Community Table -  热图和有序群落表
 
@@ -900,7 +896,15 @@ heatmap(
   symm = TRUE, # 是否对数据进行对称处理
   margin = c(3, 3) # 设置行列名的边距
   )
+```
 
+最后, 根据组成员关系重新排序原始数据表并探究分类簇中物种含量可能会有不一样的发现. 
+
+使用 vegan 分析包中的 vegemite() 函数避免大值在绘图过程中造成的堵塞影响, 该函数使用外部数据重排和展示'物种-位点'数据表, 其中丰度值使用不同的方法进行了重排. 
+如果没有物种的特定排序, 则通过位点分数上的加权平均值进行排序. 
+vegemite() 函数所接受的丰度尺度为个位数(0 ~ 9), >= 10 的数字将无法运行该函数. 
+
+```{r}
 # 排序后的群落表
 # 通过位点分数的加权平均数重新排序物种
 # 点 - 不存在
@@ -917,8 +921,6 @@ heatmap(
   ylab = "Species (weighted averages of sites)",
   xlab = "Sites")
 ```
-
-
 
 ---
 
