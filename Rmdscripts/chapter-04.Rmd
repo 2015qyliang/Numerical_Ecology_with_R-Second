@@ -908,6 +908,8 @@ vegemite() 函数所接受的丰度尺度为个位数(0 ~ 9), >= 10 的数字将
 # 排序后的群落表
 # 通过位点分数的加权平均数重新排序物种
 # 点 - 不存在
+# https://www.rdocumentation.org/packages/vegan/versions/2.4-2/topics/vegemite
+# vegemite() & tabasco() 展示紧凑的群落表
 or <- vegemite(spe, spe.chwo)
 
 # 带有树形图的双序群落列表的热图
