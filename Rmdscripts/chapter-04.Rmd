@@ -774,6 +774,14 @@ text(28, 0.98, # 坐标位置(x,y)
 
 #### 4.7.3.7 Silhouette Plot of the Final Partition - 最终的分区块的轮廓图
 
+基于平均轮廓分析,矩阵相关性分析和指示性物种分析等三种不同的方法都没有返回相同的轮廓结构图, 同时, 分区的最佳结果也在 2 ~ 6 之间波动. 
+一种折中的分类簇数量为 4, 以此继续进行后续的分类组诊断. 
+选择 ward 最小方差聚类方法进行最后的分析, 该方法可以产生 4 种平衡良好(大小不等, 无异常值)和划分良好的分类组.
+
+- **注意绘图结果的解读**
+
+*分类簇 1 - 3 结果较好, 分类簇 2 有些错分类的对象*
+
 ```{r}
 k <- 4 # 设置聚类簇数
 # 根据簇数切分树形图 并生成数值化向量
@@ -793,12 +801,13 @@ plot(
   nmax = 100  )
 ```
 
-
-
 #### 4.7.3.8 Final Dendrogram with Graphical Options - 带有图形选项的最终树形图
+
+生成含有 4 个分类簇的最终树形图, 绘图过程中修改几个选项以利于最终的结果呈现. 
 
 ```{r}
 # 按簇类别标记 - 不同的标签
+# reorder.hclust() 重新排序对象, 以便可能地照顾到对象在相异矩阵中的原始顺序
 spe.chwo <- reorder.hclust(spe.ch.ward, spe.ch)
 plot(
   spe.chwo,
@@ -809,8 +818,9 @@ plot(
   main = "Chord - Ward (reordered)",
   labels = cutree(spe.chwo, k = k)
   )
-rect.hclust(spe.chwo, 
-            k = k)
+# 在分类簇四周绘制矩阵框
+rect.hclust(spe.chwo,  # 聚类分析的对象
+            k = k) # 融合水平 | 分类簇数量
 
 # 使用组和图例的颜色重新排序和绘制树状图
 # https://github.com/JoeyBernhardt/NumericalEcology/blob/master/hcoplot.R#L4
@@ -818,9 +828,9 @@ hcoplot(spe.ch.ward, # ward 最小方差聚类分析 | 聚类分析的对象
         spe.ch, # 弦距离矩阵
         title = "hcplot : Chord-ward", 
         k = 4)
-
-
 ```
+
+使用 dendextend 分析包提高和改善树形图的可视化程度. 
 
 ```{r}
 dend <- as.dendrogram(spe.chwo) # 将 hclust 对象 转换成 树形对象(dendrogram)
@@ -865,8 +875,9 @@ colored_bars(tmp_cols, # 坐标轴位置
              rowLabels = paste(k, "clusters")) # 颜色行列名
 ```
 
-
 #### 4.7.3.9 Spatial Plot of the Clustering Result - 聚类结果的空间图
+
+
 
 ```{r}
 # 将 ward 最小方差聚类分析的结果通过地图的形式呈现
