@@ -1391,6 +1391,8 @@ with(env, {
 
 ### 4.9.2 Comparing Two Typologies (Contingency Table Approach) - 比较两种类型（列联表方法）
 
+如果仅想简单比较由物种数据产生的类型学和由环境变量独立获得的类型学, 可以使用列联表的形式进行类型学特征的比较和使用 Fisher extract 测试.
+
 ```{r}
 # Environment-based typology - 基于环境的类型学
 env2 <- env[, -1] # 删除环境因子数据集的第 1 列
@@ -1412,10 +1414,7 @@ chisq.test(table(spe.kmeans.g, env.kmeans.g), simulate.p.value = TRUE)
 
 # Fisher's 精确检验 相关关系
 fisher.test(table(spe.kmeans.g, env.kmeans.g))
-
 ```
-
-
 
 ---
 
