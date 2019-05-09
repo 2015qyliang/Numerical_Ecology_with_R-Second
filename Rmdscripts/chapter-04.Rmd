@@ -1049,8 +1049,15 @@ drawmap(xy = spa, # 原始地理位点信息 - 经纬度
         main = "Four k-means clusters along the Doubs River")
 ```
 
-
 #### 4.8.1.2 Use of k-means Partitioning to Optimize an Independently Obtained Classification - 使用 k-均值分配方法优化已独立获得的分类结果
+
+从另一种角度来看, k-均值聚类分析可被用来优化层次聚类结果. 
+事实上, 聚合算法本质上组织了组内对象向后续聚合分析新产生组的转移, 即便后续聚合分析的结果更加适合. 
+为了克服这个潜在的问题, 我们可以向k-均值算法提供从要优化的聚类中得到的先验信息, 
+要么是以用该方法获得的 k 个组中 p 个变量均值的 k*p 矩阵的形式, 要么是以 k 个对象的列表的形式; 
+每组生成一个'典型'对象. 
+
+在后面的一节中, 这种'典型'对象被称为'中心点划分', 视为用于构建群体的种子. 使用该方法验证鱼类物种数据经过 ward 最小方差聚类分析获得的 4 个分组是否经过了 k-均值聚类分析的调整. 
 
 ```{r}
 # 位点数据 - ward 最小方差聚类分析中的 平均物种丰度
@@ -1070,6 +1077,7 @@ startpoints <- t(spe.means) # 平均物种丰度作为起始点
 # k-means on starting points - 对起始点进行 k-均值 聚类分析
 spe.kmeans2 <- kmeans(spe.norm, 
                       centers = startpoints) # 注意: 非整数分区 | 矩阵
+
 startobjects <- spe.norm[c(2, 17, 21, 23), ] # 起始对象
 spe.kmeans3 <- kmeans(spe.norm, 
                       centers = startobjects) # 注意: 非整数分区 | 矩阵
@@ -1101,9 +1109,9 @@ drawmap(xy = spa, # 原始地理位点信息 - 经纬度
 
 ```
 
-
-
 ### 4.8.2 Partitioning Around Medoids (PAM) - 分区围绕中心点（围绕中心点划分）
+
+
 
 ```{r}
 # 使用 物种弦距离矩阵 选择簇类数量
