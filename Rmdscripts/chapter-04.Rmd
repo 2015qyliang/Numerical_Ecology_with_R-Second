@@ -1200,12 +1200,33 @@ table(spe.kmeans.g,
 
 ## 4.9 Comparison with Environmental Data - 比较环境数据
 
+上文中已经使用物种丰度数据为例简单介绍了多种聚类方法. 
+多种方法也可以应用于其他类型的数据, 尤其是环境数据表. 
+使用过程中一定要格外注意每个变量正确编码的选择和数据转换以及关联测度. 
+
 ### 4.9.1 Comparing a Typology with External Data (ANOVA Approach) - 比较类型学与外部数据（方差分析）
+
+通过前文中的描述, 可得知内部准则(比如仅仅依赖物种数量的轮廓宽度和其他聚类质量指标)并不总是能够选择位点的分区结果.
+**拓扑学的最终选择应该基于分类组的环境可解释性. **
+这可以看做是位点类型学的外部验证. 
+
+通过前文中的描述, 可得知内部准则(比如仅仅依赖物种数量的轮廓宽度和其他聚类质量指标)并不总是能够选择位点的分区结果.
+**拓扑学的最终选择应该基于分类组的环境可解释性. **
+这可以看做是位点类型学的外部验证. 
+
+可以通过判别分析(discriminant analysis)将聚类结果(通常被视为响应数据)与外部独立性数据结合, 进而进行分析. 
+从另一个角度看, 从社区组成型数据中获得的聚类可以被看做是方差分析意义上的一个因素或者分类标准. 
+
+本章将对几个环境变量分别进行方差分析假设(残差正态性和方差齐性, normality of residuals and homogeneity of variances)的快速评估, 分析过程中或使用带参数的方差分析, 或者使用非参数的  Kruskal-Wallis 检验. 
+
+通过使用箱式图来展示优化的 ward 聚类簇. 
+
+值得注意的是, 基于群落物种组成数据的聚类结果在方差分析中扮演一种解释变量的角色(因子角色), 但在生态学角度看来, 真正寻找的是成组位点中的环境解释. 
 
 ```{r}
 # 展示鱼类数据聚类结果(基于最优分区)与环境变量之间的相关关系
 
-# 针对特定数据框进行分析
+# 针对特定数据框进行分析  | with() 避免重复使用数据对象
 with(env, {
   # 箱式图 - 环境因子
   par(mfrow = c(2, 2))
@@ -1245,11 +1266,16 @@ with(env, {
   shapiro.test(resid(aov(oxy ~ as.factor(spech.ward.gk))))
   shapiro.test(resid(aov(sqrt(amm) ~ as.factor(spech.ward.gk))))
   
+  # 残差呈正态分布, 表示测试的效力足够
+  # 对其他变量尝试寻找出好的数据标准化转换.
+  
   # Homogeneity of variances - 方差的同质性 
   bartlett.test(sqrt(ele), as.factor(spech.ward.gk))
   bartlett.test(log(slo), as.factor(spech.ward.gk))
   bartlett.test(oxy, as.factor(spech.ward.gk))
   bartlett.test(sqrt(amm), as.factor(spech.ward.gk))
+  
+  # 变量 sqrt(ele) 具有异构差异, 不适合进行有参方差分析(parametric ANOVA)
   
   # ANOVA of the testable variables - 可测试变量的方差分析
   summary(aov(log(slo) ~ as.factor(spech.ward.gk)))
@@ -1302,7 +1328,9 @@ kruskal.test(env$ele ~ as.factor(spech.ward.gk))
 
 ---
 
-
+后验试验并标记分类簇的显著性. 
+函数 boxplert() 可以展示方差分析(ANOVA)和 LSD 检验的多重比较, 
+而函数 boxplerk() 用以表示 Kruskal-Wallis 检验和相对应的事后验证比较(**两者都是用 Holm 校正**)
 
 ```{r}
 # kruskal() - Kruskal Wallis Test And Multiple Comparison Of Treatments.
@@ -1353,7 +1381,13 @@ with(env, {
   })
 ```
 
+- **在此分析的基础上, 如何确定四种鱼类群落类型的生态类型??**
 
+当然, 也可以进行相反的分析过程. 
+先聚类环境变量(获取一系列的生境特征), 然后通过指示物种分析的方式检测物种是否显著响应这些栖息地类型(4.11). 
+在这种方法中, 物种逐一针对栖息地类型进行测试. 
+如果对多个物种进行独立测试, 请考虑多次测试的问题.
+作为替代方案，将在第6章中提出基于排序的多变量方法，以直接模拟和测试物种 - 栖息地关系
 
 ### 4.9.2 Comparing Two Typologies (Contingency Table Approach) - 比较两种类型（列联表方法）
 
