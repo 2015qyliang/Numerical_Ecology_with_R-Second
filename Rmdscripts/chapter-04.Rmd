@@ -946,19 +946,67 @@ heatmap(
 
 k-均值划分的方法使用局部数据来确定分类簇: 通过识别鉴定数据中的高密度区域来形成分类簇. 
 为实现这一目的, 该方法需要通过迭代最小化'总平方和误差(TESS or SSE, 组内平方和的和)'目标函数. 
+*这个值是建立在所有 k 个分类组上的, 分类组中的所有对象的平方(Euclidean)距离的和, 每个值都除以分类组中的对象数量. *
+这和 Ward 最小方差聚合聚类分析使用的标准一样. 
 
 #### 4.8.1.1 k-means with Random Starts - 随机化的 k-均值
 
+如果考虑到预先分组的数量, 可以使用 stats 分析包中的 kmeans() 函数. 
+该函数可使用不同的随机初始值, 自动地重复大量(次数由参数 nstart 决定)的分析, 经过多次(次数由 nstart 决定)重复分析之后找到最优的解决方案(最小化的 SSE 值, 也就是最小的'总平方和误差')
+
+k-均值分区方法是一种线性分析方法, 并不适合分析含有大量零值的原始物种丰度数据. 
+
+(**第一种解决方案**)一种可能性是使用'非欧式相异矩阵(non-Euclidean dissimilarity matrices)', 比如百分比差异( Bray-Curtis ); 
+这一类的矩阵应该进行平方化数值转换, 为能够获得对象在'欧式空间(Euclidean space)'中的所有表示, 需要将数值转换之后的数据进行主坐标分析(principal coordinate analysis, PCoA). 
+将获得的 PCOA 轴 进行 k-均值分区处理. 
+
+(**第二种解决方案**)另一种解决方案需要对物种数据进行预转换(对物种数据进行弦转换或者标准化,  chord-transformed 或 'normalized'). 
+当与 k-均值中隐含的欧式距离相结合时, 在后续的分析过程中需要保留位点之间的弦距离. 
+
+为了与上述 ward 最小方差聚类结果进行比较, 下文将 k 设置为 4 进行 k-均值聚类分析. 
+
 ```{r}
 # K均值分解的物种数据预转换
+# 由于 'nstart' 起始于不同的随机配置, 因此每次运行的结果可能会有所不一样
 spe.kmeans <- kmeans(spe.norm, # 数据标准化转换
                      centers = 4, # 分成 4 个簇类 
                      nstart = 100) # 如果 centers 是整数,应该选取多少个随机数据集
 head(spe.kmeans) 
+# 通过列联表进行比较分析 | 比较聚类结果是否相似
+# 使用交叉分类因子来构建每个因子水平组合的计数的列联表
+table(spe.kmeans$cluster, # k-均值 簇类向量
+      spech.ward.g) # ward 最小方差聚类分析 簇类向量
+```
 
+(*上文中的'第一种解决方案'*) 
+对于不能从原始数据转换后进行欧式距离(Euclidean distance)计算的相异指数(如 百分比差异相异矩阵, Bray-Curtis), 需要先将原始数据相异度矩阵进行主坐标分析(principal coordinate analysis, PCoA)以获得 n 行的数据表格, 然对获得的数据表格进行 k-均值聚类分析. 
+对于百分比差异的相异矩阵(Bray-Curtis 相异矩阵), 首先需要对其平方根化然后在进行 PCoA 分析以获得完全的欧式解决方案, 或者使用提供负特征值校对的 PCoA 函数进行分析. 
+
+划分区处理可产生一个具有预定义的分组数量的简单分区. 
+可以通过尝试不同的分组数量进行多次重复分析. 
+
+只有首先确定'最好聚类方案的选择标准', 才能选出'多少分组(聚类簇)数量才是最好'. (*磨刀不误砍柴工*) 
+
+可以使用cclust 分析包中的 clustIndex() 函数获得多种聚类簇选择的标准. 
+1) Calinski 指数: 比较组间和组内分区的平方和 (由于聚类簇内所含对象数量的不一致性或者说是差异较大, 导致 Calinski 指数可能会比较低); 
+2) SSI (Simple Structure Index), 简单结构指数的最大值也是衡量最小二乘意义下的最优分区结果的选择标准. 
+
+使用 vegan 分析包中的 cascadeKM() 函数, 可以避免多次简单调用 kmeans() 的繁琐操作, 同时该函数也是 kmeans() 函数功能的升级应用(可以实现一定聚类簇数量范围之内的重复调用 kmeams ). 
+
+- **不同的颜色表示不同的聚类簇, 相同的颜色表示属于同一个聚类簇.** 
+
+- *'总平方和误差'的最小值是寻找对象最优分组的准则 (在给定 k 中进行选择), 而 calinski 和 ssiare 值是寻找 k 值(到底选择多少的分组结果)最优解的判断依据 (在一个范围内确定最佳 k 值, 最小值决定最佳 k 值). *
+
+- 虽然 k 设置为不同的数值, 但在计算比较的时候独立进行分析
+
+- 由于连续分区的组并不一定是嵌套的, 所以自上到下的检查并不等同于检查树形图. 
+
+- 一旦确定了位点的聚类簇, 接下来就是物种数量的信息分析. 最简单的方法就是根据保留的类型特征来定义位点的子分组, 并统计基本信息. 
+
+```{r}
 # k-均值划分 2 ~ 10 簇类
 # cascadeKM 是 vegan 分析包中的 函数
-# 使用一系列的 k 值进行k-均值划分 
+# 使用一系列的 k 值进行k-均值划分; 并提供一定的数值统计
 # https://www.rdocumentation.org/packages/vegan/versions/2.4-2/topics/cascadeKM
 spe.KM.cascade <- cascadeKM(spe.norm, 
                               inf.gr = 2, # 最小分区数值
@@ -969,11 +1017,12 @@ summary(spe.KM.cascade)
 head(spe.KM.cascade$results)
 head(spe.KM.cascade$partition)
 plot(spe.KM.cascade, 
-     sortg = T) # 是否对簇类进行排序
+     sortg = T) # 是否对簇类进行排序 | 按照紧密程度重新进行排序
 plot(spe.KM.cascade, 
-     sortg = F) # 是否对簇类进行排序
+     sortg = F) # 是否对簇类进行排序 | 不按照紧密程度重新进行排序
 plot(spe.KM.cascade) # 使用默认参数
 
+# 注意比较分类之间的不同之处
 # 通过列联表进行比较分析
 # 使用交叉分类因子来构建每个因子水平组合的计数的列联表
 table(spe.kmeans$cluster, # k-均值 簇类向量
@@ -999,7 +1048,6 @@ drawmap(xy = spa, # 原始地理位点信息 - 经纬度
         clusters = spe.kmeans.g, # 聚类分析结果的对象
         main = "Four k-means clusters along the Doubs River")
 ```
-
 
 
 #### 4.8.1.2 Use of k-means Partitioning to Optimize an Independently Obtained Classification - 使用 k-均值分配方法优化已独立获得的分类结果
