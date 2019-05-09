@@ -1420,7 +1420,13 @@ fisher.test(table(spe.kmeans.g, env.kmeans.g))
 
 ## 4.10 Species Assemblages - 物种组合
 
+目前有很多方法可以解决数据集中物种的关联性问题. 
+
 ### 4.10.1 Simple Statistics on Group Contents - 组内数据的简单统计
+
+先前的章节中介绍了一种定义粗放型集合的方法: 
+一是计算由聚类方法获得的类型学的基本统计量(例如实例平均值), 
+二是寻找在位点的每个聚类簇中广泛存在,高丰度或者独特的物种.
 
 ```{r}
 # 位点聚类簇的平均物种丰度
@@ -1451,9 +1457,17 @@ group4.domin <- which(group4 > mean(group4))
 head(group4)
 ```
 
-
-
 ### 4.10.2 Kendall’s W Coefficient of Concordance - Kendall 一致性系数
+
+Kendall’s W 一致性系数与置换检验相结合, 用以确定物种在丰度数据集中的组合情况(这种方法不可应用于二元'有-无'数据). 
+**首先需要对所有物种进行独立性检验. 如果所有物种之间相互独立(拒绝零假设), 可以使用置换检验的方式进行组内物种的相关性分析并检验每个物种的统计贡献. **
+在该方法中, 物种关联性的搜索既不涉及已知位点的类型特征, 也不由其他数据(比如示例环境数据)进行计算. 
+该方法旨在找到最包容的组合, 最少聚类簇(簇中包含最大数量的显著正相关的物种). 
+
+**当判断的数量[=物种数量]很小时(Kendall’s 一致性系数检验应用的实际场景多是如此), 经典的卡方检验(classical χ2 test)过于保守, 而置换检验可以校正 I 型错误; 置换检验的效力因此也就更高. **
+
+简单示例: 使用 k-均值聚类分析鱼类物种数据集, 执行全局检验(kendall.global())验证是否所有物种的分组是全局显著关联的. 
+如果所有物种的分组全局显著关联, 则对每个分组的物种进行后验概率检验(post hoc tests, kendall.post())进而确保组内的所有物种是否具有一致性(concordant).
 
 ```{r}
 # https://www.rdocumentation.org/packages/vegan/versions/2.4-2/topics/decostand
@@ -1462,9 +1476,10 @@ spe.std <- decostand(spe.hel, "standardize") # 数据变换 - 标准化
 spe.t <- t(spe.std)
 
 # 第一次 涉及所有物种的 kendall 一致性检验
-#(spe.kendall.global1 <- kendall.global(spe.hel)) # 直接显示全部结果
-spe.kendall.global1 <- kendall.global(spe.hel)
-head(spe.kendall.global1) # 查看部分数据
+(spe.kendall.global1 <- kendall.global(spe.hel)) # 直接显示全部结果
+
+# 拒绝零假设
+# 寻找物种的分组, 并进行 kendall 一致性检验分析
 
 # 物种 k-均值 分区
 # cascadeKM 是 vegan 分析包中的 函数
@@ -1481,15 +1496,9 @@ plot(spe.t.kmeans.casc, sortg = F) # 不排序绘图
 plot(spe.t.kmeans.casc) # 使用默认参数绘图
 
 # spe.t.kmeans.casc$partition 的第1,2,3列分成了 2,3,4 个簇
-#(clusters2 <- spe.t.kmeans.casc$partition[, 1]) # 直接显示全部结果
-clusters2 <- spe.t.kmeans.casc$partition[, 1]
-unique(clusters2) # 簇的集合 - 分成了几簇
-#(clusters3 <- spe.t.kmeans.casc$partition[, 2]) # 直接显示全部结果
-clusters3 <- spe.t.kmeans.casc$partition[, 2]
-unique(clusters3) # 簇的集合 - 分成了几簇
-#(clusters4 <- spe.t.kmeans.casc$partition[, 3]) # 直接显示全部结果
-clusters4 <- spe.t.kmeans.casc$partition[, 3]
-unique(clusters4) # 簇的集合 - 分成了几簇
+(clusters2 <- spe.t.kmeans.casc$partition[, 1]) # 直接显示全部结果
+(clusters3 <- spe.t.kmeans.casc$partition[, 2]) # 直接显示全部结果
+(clusters4 <- spe.t.kmeans.casc$partition[, 3]) # 直接显示全部结果
 
 # 一致性 
 # https://www.rdocumentation.org/packages/vegan/versions/2.4-2/topics/kendall.global
