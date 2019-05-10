@@ -1500,14 +1500,19 @@ plot(spe.t.kmeans.casc) # 使用默认参数绘图
 (clusters3 <- spe.t.kmeans.casc$partition[, 2]) # 直接显示全部结果
 (clusters4 <- spe.t.kmeans.casc$partition[, 3]) # 直接显示全部结果
 
+# 重新检验两组的划分
+
 # 一致性 
 # https://www.rdocumentation.org/packages/vegan/versions/2.4-2/topics/kendall.global
 # 通过置换检验,测试变量或物种之间的一致性系数
 (spe.kendall.global2 <- kendall.global(spe.hel, # 定量或者半定量数据框或者矩阵 | 物种数据变换 - hellinger 
                                        clusters2) # 确定分组的向量
   ) # 直接显示全部结果
+# 注意校正之后的置换 p-值, 如果小于等于 0.05, 则认为所有的分组具有全局的显著性, 也就认为分组中所包含的物种是一致性的. 
+# 但是, 这并不意味着在全局显著性的分组中的所有物种都是一致性的, 仅仅只有一小部分是一致性的. 
+# 如果, 一些分组的校正 p-value 没有显著性, 也就是说这些分组中包含非一致性的物种, 同时应该更加细致地划分至更小的分组. 
 
-# 后验试验 - 计算稍慢
+# 后验试验 - 计算稍慢 | 鉴定每个分组内显著性一致的物种
 # https://www.rdocumentation.org/packages/vegan/versions/2.4-2/topics/kendall.global
 (spe.kendall.post2 <-
      kendall.post(spe.hel, # 定量或者半定量数据框或者矩阵 | 物种数据变换 - hellinger 
@@ -1515,7 +1520,12 @@ plot(spe.t.kmeans.casc) # 使用默认参数绘图
                   nperm = 9999) # 置换试验的次数
   ) # 直接显示全部结果
 
-# 后验试验 - 计算稍慢
+# 查看每个独立物种的平均 Spearman 相关系数 
+# 如果每个物种与分组内的其他物种具有正平均相关性, 那么该分组中就含有一致性物种. 
+# 如果物种与分组内的其他成员具有负平均相关性, 则将该物种从该分组中剔除. 
+# 尝试更加细致的划分, 以期同组内的物种成员具有正平均相关性. 这种情况下很可能造成单一物种构成单一分组.
+
+# 后验试验 - 计算稍慢 | 鉴定每个分组内显著性一致的物种
 # https://www.rdocumentation.org/packages/vegan/versions/2.4-2/topics/kendall.global
 (spe.kendall.post3 <-
      kendall.post(spe.hel, # 定量或者半定量数据框或者矩阵 | 物种数据变换 - hellinger 
@@ -1524,9 +1534,17 @@ plot(spe.t.kmeans.casc) # 使用默认参数绘图
   ) # 直接显示全部结果
 ```
 
+在生态关系中, 生态学理论克预测出嵌套结构. 
+在群落中, 物种的亚组要么紧密关联要么毫不相干. 
+可以通过 Kendall W 检验揭示大量物种关联中的少量物种分组来探索这些途径. 
 
+这里所定义的物种的分组可以通过多种不同的方式进行生态学解释. 
+比如, 绘制物种沿河流的丰度图, 并统计位点的物种组合, 可以帮助评估物种的生态作用. 
+另一种解释方法, 根据一组解释性环境变量计算显著关联物种的冗余分析( redundancy analysis, RDA ). 
 
 ### 4.10.3 Species Assemblages in Presence-Absence Data - 二元数据类型中的物种组合
+
+
 
 ```{r}
 spe.pa <- decostand(spe, "pa") # 数据变换 - '有-无'二元数据类型
