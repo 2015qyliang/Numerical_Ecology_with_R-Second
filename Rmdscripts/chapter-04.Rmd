@@ -1544,7 +1544,10 @@ plot(spe.t.kmeans.casc) # 使用默认参数绘图
 
 ### 4.10.3 Species Assemblages in Presence-Absence Data - 二元数据类型中的物种组合
 
+使用新方法计算 R 模式下的 Jaccard’s S7 系数的组分 a, 并通过 Raup & Crick 系数置换检验组分 a 的概率. 
+p-value 可以扮演一种相异性的角色: 对于高度贡献物种, 值很小. 
 
+*过高的置换次数, 虽然可提高更加细致的评估, 但需要消耗计算时间*
 
 ```{r}
 spe.pa <- decostand(spe, "pa") # 数据变换 - '有-无'二元数据类型
@@ -1558,7 +1561,6 @@ summary(res)
 (res.p.vec <- as.vector(res$p.a.dist)) # 直接显示全部结果 | 向量化 p-values | 未修正
 (adjust.res <- p.adjust(res.p.vec, method = "holm")) # 直接显示全部结果 | Holm correction 校正
 
-
 # Check that the number of permutations allows significant p-values
 # after Holm's correction. Look for values <=0.05:
 range(adjust.res) # 查看变化范围
@@ -1568,10 +1570,14 @@ range(adjust.res) # 查看变化范围
 # 筛选出与 adj.sigth 对应的未修正的 p-value 
 (sigth <- max(res.p.vec[adjust.res <= 0.05])) # 直接显示全部结果
 
+# 与 adj.sigth 对应的未修正的 p-value 是 0.00017. 
+# 因此, 显著性值应该更小
+# 在概率矩阵中将大值使用 1 代替
+
 # Holm's correction 校正之后,将无显著性意义的 p-values 赋值 1  
 res.pa.dist <- res$p.a.dist
 res.pa.dist[res.pa.dist > sigth] <- 1
-# How many (unadjusted) values are equal to or smaller than sigth?
+# 统计 小于等于 sigth 的 未校正 p-value 数量
 length(which(res.p.vec <= sigth)) # 统计 小于等于 显著性阈值 的未校正数值
 
 # 热图呈现显著的 p-values
@@ -1581,9 +1587,26 @@ coldiss(res.pa.dist, # 校正后的 '有-无'二元数据矩阵
         diag = TRUE) # 对角线 显示
 ```
 
-
-
 ### 4.10.4 Species Co-occurrence Network - 物种共现网络
+
+在群落生态研究中, 物种共现网络分析变得越来越流行, 尤其是在研究物种间或者群落中的生态相互关系领域更为流行. 
+分析物种间关联性的基本原则主要是在生态'宏环境'或者多营养物种组合中共同存在. 
+基于共现网络的拓扑结构, 将物种的'社会属性组'定义为'模块'. 
+网络结构通常有两方面的主要特征, 
+一是模块性, 物种高度相关联, 物种间没有重叠; 
+二是嵌套性, 少量物种组合构成大量物种组合的子集 (俄罗斯套娃). 
+
+物种的作用由其自身模块中的其他物种相比的位置来定义的 
+("标准化的模块内度", 即节点与同一模块中其他节点的链接数量, 模块中每个节点连接数量的标准偏差和均值进行标准化, 以及该物种如何与其他模块中的物种相连接(模块间"连接"). 
+
+基本上, 通过邻接矩阵来构建网络(这种邻接矩阵可以是二元'有-无'矩阵类型--物种显著性共现或者不共现; 也可以是数值型的矩阵类型--物种间的连接具有加权信息). 
+
+物种间的正相关,中性相关和负相关的多种指标都可以用来用以计算包括 Spearman 相关系数,Jaccard 相似系数或者前文中的 p-value 在的邻接矩阵. 
+这些指标可以从物种的'有-无'二元矩阵或者丰度矩阵中计算获得. 
+通常应用阈值来将非零链接限制为最重要的正关联以构建**无向网络(undirected networks)**. 
+经常共现的物种在网络图中彼此邻近. 
+
+本章使用 picante 分析包计算共现距离, 使用 igraph 分析包进行网络处理. 
 
 ```{r}
 # 需要使用的分析包
@@ -1608,11 +1631,10 @@ diag(adjm2) <- 0 # 对角线重新赋值
 # 由 Spearman 秩相关性系数 计算 邻接矩阵
 adjm3 <- cor(spe, # 计算相关性系数
              method = "spearman")
-# 设置正相关的阈值 rho > 0.2
+# 设置正相关的阈值 rho > 0.
 adjm2[adjm3 < 0.25] <- 0
 adjm2[adjm3 >= 0.25] <- 1  # binary co-occurrences | 二元/二进制共现
 diag(adjm3) <- 0 # 对角线重新赋值
-
 
 # Species co-occurrence dissimilarities (picante, Hardy 2008)
 # 物种共现相异矩阵 - picante
