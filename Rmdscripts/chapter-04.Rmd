@@ -1683,7 +1683,7 @@ print(gexfo,
 比如可以快速评估或者预测给定位点的保守和维持性物种, 
 评估给定区域中活的群落的类型, 
 亦或是检测一些环境参量的变化. 
-在基础生态学中, 可以查看一系列中位点中物种的生态表型(生态表现), 就可以增加对相应物种的了解, 也可以增加对采样处栖息地生境的了解. 
+在基础生态学中, 可以查看一系列中位点中物种的生态偏好, 就可以增加对相应物种的了解, 也可以增加对采样处栖息地生境的了解. 
 
 研究中使用的方法具有互补性, 可以使用不同的方法尝试去解释. 
 De Cáceres 和 Legendre (2009) 提出了两种互补性质的方法以及他们相关的指标(**指示值**和**相关性指标**)
@@ -1694,7 +1694,7 @@ De Cáceres 和 Legendre (2009) 提出了两种互补性质的方法以及他们
 
 De Cáceres 和 Legendre (2009) 一共描述了两组中共计 12 个指标. 他们认为: 
 指示者值在生态监测或者群落类型的确定中更有利于作为生物指示者进行评估或预测, 
-而相关性指标应该用于确定系列位点中给定物种的生态学表型(表现). 
+而相关性指标应该用于确定系列位点中给定物种的生态学偏好. 
 
 ### 4.11.2 IndVal: Species Indicator Values - 物种指示值
 
@@ -1736,7 +1736,28 @@ grps <- rep(1:4, c(8, 10, 6, 5)) # 生成重复向量, 重复次数不同
                grps, # 簇向量 | 分组
                numitr = 10000) # 迭代计算概率的随机数
   ) # 直接显示全部信息
+```
 
+- **注意:** 输出表中的聚类编号不一定有意义. k-均值聚类分析以数字的形式差生任意的组标签. 列标签进行了重新排序. 
+
+- 聚类分组的结果不一定按照河流的顺序, 就是为什么要对对象进行有序的组编号. 
+
+- 表中包含的信息:
+
+1. relfrq = 每个组中物种的相对频率 = (物种存在位点的数量)/(组中位点的数量)
+
+2. relabu = 所有组中物种的相对丰度 = (组中的总丰度)/(巨大总丰度) total abundance in
+group/grand total abundance
+
+3. indval = 每个物种的指示者值
+
+4. maxcls = 具有最高指示者值物种所在的聚类簇编号
+
+5. indcls = 物种最高的指示者值
+
+6. pval = 置换检验的 p-value
+
+```{r}
 # 多次试验校正 p-values
 # 调整P值以进行多重比较 - p.adjust()
 # https://www.rdocumentation.org/packages/stats/versions/3.5.3/topics/p.adjust
@@ -1757,7 +1778,19 @@ fidg <- fidg[order(fidg$group, -fidg$indval), ] # 重排序 order()
 head(fidg)
 # 输出结果文件
 write.csv(fidg, "IndVal-dfs.csv")
+```
 
+- 鉴定的指示者物种可能与 4.10 章节中使用的物种组合方法的结果不一致
+
+- 指示者物种与预定义组有关联, 而物种组合是在没有预先分类和参考环境条件下分析的. 
+
+*链接 4.12 回归树分析 MRT 相关的分析*
+
+分析包 **indicspecies** 可用于计算各种指标物种指数, 该分析包有两个有趣的功能: 
+1) 汇总两个或者多个类型学的分组以寻找可能是汇集组的指示者物种 -- multipatt(); 
+2) 通过自展分析计算指示者值--strassoc(). 
+
+```{r}
 # multipatt - Multi-Level Pattern Analysis | 研究 物种模式 与 站点组的组合 之间的关联
 # https://www.rdocumentation.org/packages/indicspecies/versions/1.7.6/topics/multipatt
 (iva2 <- multipatt(
@@ -1766,18 +1799,40 @@ write.csv(fidg, "IndVal-dfs.csv")
   max.order = 2, # 位点间组合的最大顺序
   control = how(nperm = 999)) # 置换检验
   ) # 直接显示全部结果
+```
 
+- 结果包含的信息:
+
+1. comb = 位点与所有可能组合(取决于分析中要求的顺序)的矩阵; 
+
+2. str = 相关性的强度;
+
+3. A = IndVal 分析前提下表示 "特异性"; 其他情况无意义;
+
+4. B = IndVal 分析前提下表示 "保真度"; 其他情况无意义;
+
+5. sign = 最适合模型的结果, 统计结果和置换试验结果最优的组或者组合组; 不提供多重检验校正. 
+
+```{r}
 # 多次试验校正 p-values
 # 调整P值以进行多重比较 - p.adjust()
 # https://www.rdocumentation.org/packages/stats/versions/3.5.3/topics/p.adjust
 (pval.adj2 <- p.adjust(iva2$sign$p.value)
   ) # 直接显示全部信息
-summary(iva2, indvalcomp = TRUE) # 统计信息
 
-# 指示性物种值 - 自举置信区间 
+# 汇总统计信息
+# 第二次汇总统计的结果与第一次的汇总统计结果有所不同
+# 具体体现: 具有高 IndVal 值的一些物种形成组合组, 代替了原先的单个组
+summary(iva2, indvalcomp = TRUE) 
+
+# 通过自举分析计算指示性物种值的置信区间 
 # 计算较慢
 # strassoc - 计算 物种站点 - 群组 之间的关联强度
 # https://www.rdocumentation.org/packages/indicspecies/versions/1.7.6/topics/strassoc
+# 结果包含 3 部分: 
+# 指示者值 ($stat) 和 置信区间的上下限
+# * 个物种, * 个分组
+# 指示者值 = 0, 
 (iva2.boot <- strassoc(spe, #　物种数据集
                        grps, # 簇分类的向量
                        func = "IndVal.g", # 关联性分析的方法索引
@@ -1785,8 +1840,27 @@ summary(iva2, indvalcomp = TRUE) # 统计信息
   ) # 直接显示全部结果
 ```
 
+**如何解释相关的置信区间结果?**
 
-### 4.11.3 Correlation-Type Indices - 相关类型指数
+置信区间的下限为 0, 稍微大一点的都视为不重要. 
+区间的范围可能会有重合, 但是不能认为最终的值就不相同; 真实的指示者值可能在交集之中, 尚无办法确定值的大小(重叠的范围无法判断大小). 
+
+### 4.11.3 Correlation-Type Indices - 相关类型指标
+
+相关性指标用以帮助确定系列组中物种的生态学偏好. 
+以生态学偏好鉴定为目的, 使用相关性指标的效果要好于指示者指标, 得益于相关性指标允许检测阴性偏好. 
+
+要注意位点数据中的物种缺失相关的问题. 在不同的位点, 物种缺失的原因可能会不同, 因此不能草率地将缺失物种信息用于生物学意义的解释. 
+
+通常将植物学中代表明确生态条件的的特定组中具有高度偏好性的物种称为"诊断性"物种, 有助于野外调查中植被类型的识别. 
+
+对于二元数据类型('有-无')的相关性类型指标通常称为 Pearson 相关性系数. 
+计算包含在两个二元(1 或者 0)向量间的相关性. 
+
+使用定量(丰度)数据时, **Pearson's phi** 相关系数称为'点双相关系数', 
+丰度向量代替'有-无'向量. 
+
+**关键还是在对结果的解读!!!!**
 
 ```{r}
 # Phi correlation index - Phi 相关指数 - 二元变量的关联度量
@@ -1800,7 +1874,11 @@ summary(iva2, indvalcomp = TRUE) # 统计信息
   max.order = 2,  # 位点间组合的最大顺序
   control = how(nperm = 999)) # 置换检验
  ) # 直接显示全部结果
-summary(iva.phi) # 统计每列的基本信息
+
+# 统计每列的基本信息
+# 结果与 IndVal 分析的相似 | 使用两种方法揭示了某些物种和选定组之间的强相关性
+# 统计检验中显示了最高的"正 Pearson's phi 相关系数值"
+summary(iva.phi) 
 round(iva.phi$str, 3) # 保留三位小数
 (iva.phi.boot <- strassoc(spe, #　物种数据集
                           grps, # 簇分类的向量
@@ -1808,8 +1886,6 @@ round(iva.phi$str, 3) # 保留三位小数
                           nboot = 1000) # 自展值
   ) # 直接显示全部结果
 ```
-
-
 
 ---
 
