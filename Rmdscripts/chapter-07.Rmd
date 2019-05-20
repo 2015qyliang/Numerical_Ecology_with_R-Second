@@ -1,0 +1,104 @@
+<font face="微软雅黑">
+
+---
+
+# **第七章：生态数据的空间分析**
+
+---
+
+本章内容简介：
+
+- 7.1 目标
+- 7.2 空间结构与空间分析简介
+- 7.3 多变量趋势面分析(Multivariate Trend-Surface Analysis)
+- 7.4 基于特征向量的空间变量与空间模型(Eigenvector-Based Spatial Variables and Spatial Modelling)
+- 7.5 另一种空间结构的观察方法: 多尺度排序(Multiscale Ordination, MSO)
+- 7.6 多元变量方差分析中的无重复时空交互检验(Space-Time Interaction Test in Multivariate ANOVA, Without Replicates)
+- 7.7 结论
+
+---
+
+## 7.1 目标
+
+
+---
+
+## 7.2 空间结构与空间分析简介
+
+### 7.2.1 简介
+
+### 7.2.2 诱导空间依赖与空间自相关(Induced Spatial Dependence and Spatial Autocorrelation)
+
+### 7.2.3 空间尺度(Spatial Scale)
+
+### 7.2.4 空间异质性(Spatial Heterogeneity)
+
+### 7.2.5 空间相关或相关函数与空间相关图(Spatial Correlation or Autocorrelation Functions and Spatial Correlograms)
+
+### 7.2.6 空间相关性存在的检验: 条件(Testing for the Presence of Spatial Correlation: Conditions)
+
+### 7.2.7 空间结构建模(Modelling Spatial Structures)
+
+
+---
+
+## 7.3 多变量趋势面分析(Multivariate Trend-Surface Analysis)
+
+### 7.3.1 简介
+
+### 7.3.2 趋势面分析的实际应用(In practice)
+
+
+
+---
+
+## 7.4 基于特征向量的空间变量与空间模型(Eigenvector-Based Spatial Variables and Spatial Modelling)
+
+### 7.4.1 简介
+
+### 7.4.2 基于距离的 Moran 特征向量图(Distance-Based Moran's Eigenvector Maps, dbMEM) 和 相邻矩阵主坐标分析(Principal Coordinates of Neighbour Matrices, PCNM)
+
+### 7.4.3 更广泛背景下的Moran 特征向量图分析方法(MEM): 地理距离以外的权重(Weights Other than Geographic Distances)
+
+### 7.4.4 如何选择应用正空间相关的 MEM 或者负空间相关的 MEM 
+
+### 7.4.5 非对称的特征向量图(Asymmetric Eigenvector Maps, AEM): 方向性很重要时(When Directionality Matters)
+
+#### 7.4.5.1 简介
+
+#### 7.4.5.2 非对称的特征向量图(Asymmetric Eigenvector Maps, AEM)分析方法的原理与应用
+
+
+
+
+---
+
+## 7.5 另一种空间结构的观察方法: 多尺度排序(Multiscale Ordination, MSO)
+
+### 7.5.1 多尺度排序(Multiscale Ordination, MSO)方法的基本原理
+
+### 7.5.2 多尺度排序(Multiscale Ordination, MSO)方法在甲螨数据集探索性分析中的应用
+
+### 7.5.3 多尺度排序(Multiscale Ordination, MSO)方法在甲螨数据集和环境数据集中的应用
+
+
+
+---
+
+## 7.6 多元变量方差分析中的无重复时空交互检验(Space-Time Interaction Test in Multivariate ANOVA, Without Replicates)
+
+### 7.6.1 简介
+
+### 7.6.2 使用 sti() 函数进行时空交互检验
+
+
+
+---
+
+## 7.7 结论
+
+
+
+---
+
+</font>
