@@ -1,0 +1,1081 @@
+<font face="微软雅黑">
+
+---
+
+# **第五章: 非约束性排序**
+
+---
+
+本章内容简介: 
+
+- 5.1 目的
+- 5.2 排序方法简介
+- 5.3 主成分分析 - Principal Component Analysis (PCA)
+- 5.4 对应分析 - Correspondence Analysis (CA)
+- 5.5 主坐标分析 - Principal Coordinate Analysis (PCoA)
+- 5.6 非度量多维尺度分析 - Nonmetric Multidimensional Scaling (NMDS)
+- 5.7 手写 PCA 排序函数
+
+---
+
+## 5.1 目的
+
+## 5.2 排序方法简介
+
+### 5.2.1 多维度空间 - Multidimensional Space
+
+### 5.2.2 降维排序 - Ordination in Reduced Space
+
+## 5.3 主成分分析 - Principal Component Analysis (PCA)
+
+### 5.3.1 主成分分析简介 (PCA)
+
+### 5.3.2 使用 rda() 对河流数据集的环境变量进行主成分分析 
+
+#### 5.3.2.1 数据的预处理 
+
+```{r}
+# 解决警告信息的显示问题
+# Warning: Input string not available in this locale
+Sys.setlocale('LC_ALL','C')
+
+# 导入分析包
+# ade4 https://www.rdocumentation.org/packages/ade4/versions/1.7-13
+# 生态型数据分析(多变量数据分析): 环境科学中的探索分析和 Euclidean 方法
+# vegan https://www.rdocumentation.org/packages/vegan/versions/2.4-2
+# 群落生态分析包: 排序方法, 多样性分析等
+# gclus https://www.rdocumentation.org/packages/gclus/versions/1.3.2
+# 聚类图形: 排序面板信息等
+# ape https://www.rdocumentation.org/packages/ape/versions/5.3
+# 系统发育与进化分析
+# missMDA https://www.rdocumentation.org/packages/missMDA/versions/1.14
+# 处理多变量数据分析处理缺失值
+# FactoMineR https://www.rdocumentation.org/packages/FactoMineR/versions/1.41
+# 多变量探索性分析和数据挖掘
+library(ade4)
+library(vegan) # 后期会重点解读该包的总和使用
+library(gclus)
+library(ape)
+library(missMDA)
+library(FactoMineR)
+
+# 导入分析脚本和数据集
+source("Functions/cleanplot.pca.R")
+source("Functions/PCA.newr.R")
+source("Functions/CA.newr.R")
+load("Data/mite.RData")
+load("Data/Doubs.RData")
+# 移除第八列数据, 列名代表位点
+spe <- spe[-8, ]
+env <- env[-8, ]
+spa <- spa[-8, ]
+```
+
+
+
+#### 5.3.2.2 相关性矩阵的主成分分析 (PCA) 
+
+```{r}
+summary(env)
+# https://www.rdocumentation.org/packages/klaR/versions/0.6-14/topics/rda
+# 规则判别分析
+(env.pca <- rda(env, # 环境变量数据
+                scale = TRUE)) #对变量进行标准化
+summary(env.pca) # 默认 - 列方向 2
+summary(env.pca, scaling = 1) # 行方向 统计
+```
+
+
+
+#### 5.3.2.3 对 vegan 分析包的输出结果进行信息提取,解释和可视化 
+
+```{r}
+# ?cca.object # 约束排序的结果
+
+(ev <- env.pca$CA$eig) # 查看特征值 - Eigenvalues
+
+# 绘制与主成分数量的差异 
+# https://www.rdocumentation.org/packages/stats/versions/3.6.0/topics/screeplot 
+screeplot(env.pca, bstick = TRUE, npcs = length(env.pca$CA$eig))
+
+# 绘制双序图
+# http://biol09.biol.umontreal.ca/PLcourses/Ordination_section_1.1_PCA_Eng.pdf
+# Scaling type 1: distance biplot
+# Scaling type 2: correlation biplot,
+# scaling = 1 结果呈现较为稀松; scaling = 2 结果呈现较为紧凑
+biplot(env.pca, 
+       scaling = 1, 
+       main = "PCA - scaling 1")
+biplot(env.pca, 
+       main = "PCA - scaling 2")  # 默认 2 - 列方向
+
+# 需要矩形窗口来进行绘制
+# par(mfrow = c(1, 2))
+cleanplot.pca(env.pca, 
+              scaling = 1, # species scores have norms of 1; site scores are scaled to variances = can.eigenvalues 
+              mar.percent = 0.08)
+cleanplot.pca(env.pca, 
+              scaling = 2, # species scores have norms of sqrt(can.eigenvalues); site scores are scaled to variances of 1
+              mar.percent = 0.04)
+
+# 绘制带变量子集的图: ele, oxy, har, bod
+# par(mfrow = c(1, 2))
+var.subset <- c(2, 6, 10, 11)
+cleanplot.pca(
+  env.pca,
+  scaling = 1, 
+  select.spe = var.subset,
+  mar.percent = 0.10
+  )
+cleanplot.pca(
+  env.pca,
+  scaling = 2, 
+  select.spe = var.subset,
+  mar.percent = 0.04
+  )
+
+# 使用 biplot() 绘制变量的子集: ele, oxy, har, bod, 
+# par(mfrow = c(1, 2))
+# scaling = 1 结果呈现较为稀松; 
+# scores() https://www.rdocumentation.org/packages/vegan/versions/2.4-2/topics/scores
+# 从排序结果中获取物种或者位点的分数
+var.sc1.sub <- scores(env.pca, 
+                      scaling = 1, 
+                      display = "species")[c(2, 6, 10, 11), ]
+biplot(env.pca,
+       scaling = 1,
+       main = "PCA scaling 1",
+       type = "n") 
+text(env.pca,
+     scaling = 1,
+     display = "sites",
+     cex = 0.7) 
+arrows(
+  0, # 起点
+  0, # 起点
+  var.sc1.sub[, 1], # 终点
+  var.sc1.sub[, 2], # 终点
+  length = 0.10,
+  angle = 10,
+  col = "red")
+text(
+  var.sc1.sub[, 1],
+  var.sc1.sub[, 2],
+  labels = rownames(var.sc1.sub),
+  col = "red",
+  pos = 4) # 下左上右 - 1,2,3,4
+
+# scaling = 2 结果呈现较为紧凑
+# scores() https://www.rdocumentation.org/packages/vegan/versions/2.4-2/topics/scores
+# 从排序结果中获取物种或者位点的分数
+var.sc2.sub <- scores(env.pca, 
+                      display = "species")[c(2, 6, 10, 11), ]
+biplot(env.pca, 
+       type = "n", 
+       main = "PCA scaling 2")
+text(env.pca,
+     scaling = 2,
+     display = "sites",
+     cex = 0.7)
+arrows(
+  0,
+  0,
+  var.sc2.sub[, 1],
+  var.sc2.sub[, 2],
+  length = 0.10,
+  angle = 10,
+  col = "red"
+  )
+text(
+  var.sc2.sub[, 1],
+  var.sc2.sub[, 2],
+  labels = rownames(var.sc2.sub),
+  col = "red",
+  pos = 4 # 下左上右 - 1,2,3,4
+  )
+```
+
+
+
+
+#### 5.3.2.4 将补充**向量**投影到 PCA 的双序图(Biplot)
+
+```{r}
+# 剔除两个环境变量的的信息
+# https://www.rdocumentation.org/packages/klaR/versions/0.6-14/topics/rda
+# 规则判别分析
+env.pca2 <- rda(env[, -c(10, 11)], 
+                scale = TRUE # 进行分析之前应将变量缩放 | 数据变换
+                )
+new.var <- env[, c(10, 11)]
+# 计算新变量箭头的位置? (arrow tips)
+new.vscores <- predict(env.pca2, # 模型预测
+                       type = "sp",
+                       newdata = new.var,
+                       scaling = 2)
+
+# scaling = 1 结果呈现较为稀松
+biplot(env.pca2, scaling = 1)
+arrows(
+  0,
+  0,
+  new.vscores[, 1],
+  new.vscores[, 2],
+  length = 0.05,
+  angle = 30,
+  col = "blue"
+  )
+text(
+  new.vscores[, 1],
+  new.vscores[, 2],
+  labels = rownames(new.vscores),
+  cex = 0.8,
+  col = "blue",
+  pos = 2 # 下左上右 - 1,2,3,4
+  )
+
+# scaling = 2 结果呈现较为紧凑
+biplot(env.pca2, scaling = 2)
+arrows(
+  0,
+  0,
+  new.vscores[, 1],
+  new.vscores[, 2],
+  length = 0.05,
+  angle = 30,
+  col = "blue"
+  )
+text(
+  new.vscores[, 1],
+  new.vscores[, 2],
+  labels = rownames(new.vscores),
+  cex = 0.8,
+  col = "blue",
+  pos = 2 # 下左上右 - 1,2,3,4
+  )
+```
+
+
+#### 5.3.2.5 将补充**对象**投影到 PCA 的双序图(Biplot)
+
+```{r}
+# 使用 prcomp() 计算 PCA
+# https://www.rdocumentation.org/packages/stats/versions/3.6.0/topics/prcomp
+env.prcomp <- prcomp(env[-c(2, 8, 22), ], # 环境变量矩阵
+                     scale. = TRUE # 进行分析之前应将变量缩放 | 数据变换
+                     )
+
+# 使用 biplot.prcomp() 可视化
+# biplot(env.prcomp, scale = 0)
+# 使用 plot() 绘制 PCA 位点分数
+plot(
+  env.prcomp$x[ ,1], 
+  env.prcomp$x[ ,2], 
+  type = "n", # 不立即绘制图形
+  main = "PCA scaling 1 - sites with supplementary objects",
+  xlab = "PCA 1",
+  ylab = "PCA 2"
+  )
+abline(h = 0, col = "gray")
+abline(v = 0, col = "gray")
+text(
+  env.prcomp$x[ ,1],
+  env.prcomp$x[ ,2], 
+  labels = rownames(env[-c(2, 8, 22), ])
+  )
+
+# 预测新的位点分数
+new.sit <- env[c(2, 8, 22), ]
+pca.newsit <- predict(env.prcomp, 
+                      new.sit) 
+# 将位点得分映射到 PCA 绘图中 
+text(
+   pca.newsit[, 1],
+   pca.newsit[, 2],
+   labels = rownames(pca.newsit),
+   cex = 0.8,
+   col = "blue"
+   )
+```
+
+- **非本书中的示例** >>>
+
+```{r}
+# 使用 vegan 分析包中的 rda() 计算 PCA
+env.small <- env[-c(2, 8, 22), ]
+# 规则判别分析
+# https://www.rdocumentation.org/packages/klaR/versions/0.6-14/topics/rda
+env.pca3 <- rda(env.small, 
+                scale = TRUE) # 进行分析之前应将变量缩放 | 数据变换
+new.sit <- env[c(2, 8, 22), ]
+# 计算位点得分
+# 提取相关的矩阵结果
+U.mat <- env.pca3$CA$v
+# 处理数据
+env.mean <- apply(env.small, # 输入数据
+                  2, # 列方向
+                  mean) # 均值计算
+env.sd <- apply(env.small, 
+                2, # 列方向
+                sd) # 标准差计算
+# scale https://www.rdocumentation.org/packages/base/versions/3.6.0/topics/scale
+# 矩阵对象的列进行缩放与居中
+newsit.stand <- scale(new.sit, 
+                      center = env.mean, 
+                      scale = env.sd) 
+# Raw scaling 1 scores of new sites
+(newsit.scores <- newsit.stand %*% U.mat)
+# 提取 vegan 结果对象中的位点分数
+# scores() https://www.rdocumentation.org/packages/vegan/versions/2.4-2/topics/scores
+# 从排序结果中获取物种或者位点的分数
+env.scores1 <- scores(
+  env.pca,
+  display = "sites",
+  choices = c(1, 2),
+  scaling = 1
+  )
+const <- attributes(env.scores1)$const # 获取对象属性列表
+# 计算位点得分
+(newsit.scores.cons <- newsit.scores / const)
+
+# scaling = 1 结果呈现较为稀松 
+biplot(env.pca3, 
+       scaling = 1)
+text(
+  newsit.scores.cons[, 1],
+  newsit.scores.cons[, 2],
+  labels = rownames(newsit.scores.cons),
+  cex = 0.8,
+  col = "blue"
+  )
+
+# 手动计算 vegan 常量 (constant)
+n <- nrow(env[-c(2, 8, 22), ])
+eigenv <- env.pca3$CA$eig
+tot <- sum(eigenv)
+(const <- ((n - 1) * tot) ^ 0.25)
+```
+
+- <<< **上述示例非本书**
+
+#### 5.3.2.6 比较聚类和排序的结果 
+
+```{r}
+# Clustering the objects using the environmental data: Euclidean
+# distance after standardizing the variables, followed by Ward
+# 使用环境数据集聚类分析: 标准化变量之后计算 Euclidean 距离, 然后进行 ward 最小方差聚类分析
+env.w <- hclust(dist(scale(env)), "ward.D")
+# 将树形图切分成 4 组
+gr <- cutree(env.w, k = 4)
+(grl <- levels(factor(gr))) # 注意观察结果的呈现形式, 与 factor(gr) 进行对比
+factor(gr)
+
+# 提取位点信息, scaling 1
+sit.sc1 <- scores(env.pca, 
+                  display = "wa", 
+                  scaling = 1)
+
+# 使用类群标识符和颜色绘制 (scaling 1)
+p <- plot(
+  env.pca,
+  display = "wa",
+  scaling = 1,
+  type = "n",
+  main = "PCA correlation + clusters"
+)
+abline(v = 0, lty = "dotted")
+abline(h = 0, lty = "dotted")
+for (i in 1:length(grl)) {
+  points(sit.sc1[gr == i, ],
+         pch = (14 + i),
+         cex = 2,
+         col = i + 1)
+  }
+text(sit.sc1, 
+     row.names(env), 
+     cex = 0.7, 
+     pos = 3) # 上左下右 - 1,2,3,4
+# ordicluster 添加树形图
+# https://github.com/vegandevs/vegan/blob/master/R/ordicluster.R
+ordicluster(p, 
+            env.w, 
+            col = "dark grey")
+```
+
+
+### 5.3.3 已转换的物种数据的主成分分析(PCA) 
+
+
+
+
+#### 5.3.3.1 对已 Hellinger-转换的鱼类物种数据进行主成分分析(PCA)
+
+```{r}
+# 物种数据进行 Hellinger 预转化 
+spe.h <- decostand(spe, "hellinger") # 群落类型数据的标准化
+(spe.h.pca <- rda(spe.h))
+
+# 绘制与主成分数量的差异 
+# 碎石图和破碎棒模型 
+screeplot(spe.h.pca,
+  bstick = TRUE, 
+  npcs = length(spe.h.pca$CA$eig)
+  )
+
+# PCA biplots 双序图
+spe.pca.sc1 <- scores(spe.h.pca, 
+                      display = "species", 
+                      scaling = 1) # 稀松
+spe.pca.sc2 <- scores(spe.h.pca, 
+                      display = "species", 
+                      scaling = 2) # 紧凑
+
+# https://stackoverflow.com/questions/37128140/correlation-biplot-scaling-2-and-distance-biplot-scaling-1-pca-not-in-the-ri
+# 绘制 triplot 三序图 ?
+# par(mfrow = c(1, 2))
+cleanplot.pca(spe.h.pca, 
+              scaling = 1, 
+              mar.percent = 0.06)
+cleanplot.pca(spe.h.pca, 
+              scaling = 2, 
+              mar.percent = 0.06)
+```
+
+
+#### 5.3.3.2 使用环境变量对轴进行事后解释(Passive -'post hoc'- Explanation)
+
+```{r}
+biplot(spe.h.pca, # 默认 scaling 2
+       main = "PCA fish abundances - scaling 2")
+# envfit() https://www.rdocumentation.org/packages/vegan/versions/2.4-2/topics/envfit
+# 将环境变量或因子拟合到排序结果上
+(spe.h.pca.env <- envfit(spe.h.pca, 
+                         env, 
+                         scaling = 2)) # ??
+# 看绘制显著性变量
+plot(spe.h.pca.env, 
+     p.max = 0.05, 
+     col = 3) # 添加显著的环境变量
+```
+
+
+### 5.3.4 主成分分析(PCA)的主要应用
+
+
+
+### 5.3.5 使用 PCA.newr() 进行主成分分析(PCA)
+
+```{r}
+# 使用 PCA.newr() 和 biplot.PCA.newr() 对环境数据集进行主成分分析(PCA)
+# 其中, PCA 相关函数默认使用 scaling 1 -- distance biplot
+# Scaling 2 - correlation biplot
+env.PCA.PL <- PCA.newr(env, stand = TRUE)
+
+biplot.PCA.newr(env.PCA.PL)
+biplot.PCA.newr(env.PCA.PL, 
+                scaling = 2) # scaling 2 -- correlation biplot
+```
+
+
+### 5.3.6 主成分分析中的缺省值处理 
+
+```{r}
+# 使用 NA 替换缺省值 
+env.miss3 <- env
+env.miss3[2, 5] <- NA    # pH
+env.miss3[18, 7] <- NA   # pho
+env.miss3[22, 11] <- NA  # dbo
+
+# 忽略缺省值重新
+mean(env.miss3[, 5], na.rm = TRUE)
+mean(env.miss3[, 7], na.rm = TRUE)
+mean(env.miss3[, 11], na.rm = TRUE)
+
+# 类似于设置罚分
+env.imp <- imputePCA(env.miss3)
+# 类似设置罚分
+env.imp$completeObs[2, 5]    # 初始值: 8.0
+env.imp$completeObs[18, 7]   # 初始值: 0.60
+env.imp$completeObs[22, 11]  # 初始值: 16.4
+
+# 对已'罚分'数据进行主成分分析(PCA)
+env.imp3 <- env.imp$completeObs
+# 规则判别分析
+# https://www.rdocumentation.org/packages/klaR/versions/0.6-14/topics/rda
+env.imp3.pca <- rda(env.imp3, 
+                    scale = TRUE) # 进行分析之前应将变量缩放 | 数据变换
+
+# 原始数据和已'罚分'数据的比较
+# Procrustes analysis
+# https://en.wikipedia.org/wiki/Procrustes_analysis
+pca.proc <- procrustes(env.pca, 
+                       env.imp3.pca, 
+                       scaling = 1) # scaling 1 -- distance biplot
+
+# 缺省值随机替换
+rnd <- matrix(sample(c(rep(1, 32), rep(0, 287))), 29, 11)
+env.miss32 <- env
+env.miss32[rnd == 1] <- NA
+# 统计每个变量的缺省值数量(位点方向)
+summary(t(env.miss32))
+# 统计的替代方法
+sapply(as.data.frame(t(env.miss32)), function(x) sum(is.na(x)))
+
+# 进行'罚分'处理
+env.imp2 <- imputePCA(env.miss32)
+
+# 对已'罚分'数据进行主成分分析(PCA)
+env.imp32 <- env.imp2$completeObs
+# rda() 规则判别分析
+# https://www.rdocumentation.org/packages/klaR/versions/0.6-14/topics/rda
+env.imp32.pca <- rda(env.imp32, 
+                     scale = TRUE) # 进行分析之前应将变量缩放 | 数据变换
+
+# Procrustes analysis 
+# https://en.wikipedia.org/wiki/Procrustes_analysis
+# 对两种不同的数据处理进行比较分析
+pca.proc32 <- procrustes(env.pca, 
+                         env.imp32.pca, 
+                         scaling = 1) # scaling 1 -- distance biplot
+
+# par(mfrow = c(1, 2))
+plot(pca.proc, 
+     main = "Procrustes rotation of original and imputed PCA\n3 missing values")
+points(pca.proc, display = "target", col = "red")
+text(
+  pca.proc,
+  display = "target",
+  col = "red",
+  pos = 4,
+  cex = 0.6
+  )
+plot(pca.proc32, 
+     main = "Procrustes rotation of original and imputed PCA\n32 missing values")
+points(pca.proc32, display = "target", col = "red")
+text(
+  pca.proc32,
+  display = "target",
+  col = "red",
+  pos = 4,
+  cex = 0.6
+  )
+
+# 比较分析两种不同的主成分分析结果 scaling 2
+# scaling 2 -- correlation biplot
+# par(mfrow = c(1, 2))
+biplot(env.pca, 
+       main = "Original PCA, scaling 2")
+biplot(env.imp32.pca, 
+       main = "Imputed PCA, scaling 2")
+```
+
+
+## 5.4 对应分析(Correspondence Analysis, CA)
+
+
+
+
+### 5.4.1 简介 
+
+
+
+### 5.4.2 使用 vegan 分析包的 cca() 函数进行对应分析(CA) 
+
+
+
+#### 5.4.2.1 分析并绘制双序图(Biplots) 
+
+```{r}
+# 对原始物种丰度数据集进行对应分析(Correspondence Analysis, CA)
+(spe.ca <- cca(spe))
+summary(spe.ca)  # 默认 scaling 2
+summary(spe.ca, 
+        scaling = 1) 
+
+# 绘制与主成分数量的差异
+screeplot(spe.ca, 
+          bstick = TRUE, # 注意与下图进行比较
+          npcs = length(spe.ca$CA$eig))
+
+screeplot(spe.ca, 
+          bstick = FALSE, # 注意与上图进行比较
+          npcs = length(spe.ca$CA$eig))
+
+# 绘制对应分析(CA)的双序图 -- biplots
+# par(mfrow = c(1, 2))
+# Scaling 1: sites are centroids of species
+plot(spe.ca, 
+     scaling = 1, 
+     main = "CA fish abundances - biplot scaling 1"
+     )
+# Scaling 2 (default): species are centroids of sites
+plot(spe.ca, 
+     main = "CA fish abundances - biplot scaling 2")
+```
+
+
+#### 5.4.2.2 使用对应分析双序图预测 Sulementar 位点或物种
+
+```{r}
+# 预测对应分析中的补充物种 - scaling 2
+spe.small <- spe[, -c(1, 3, 10)]  # 物种数据集进行删减
+spesmall.ca <- cca(spe.small)
+plot(spesmall.ca, 
+     display = "species", 
+     scaling = 2)
+# 对 3 个不同的物种进行分析
+newspe3 <- spe[, c(1, 3, 10)]
+# 模型预测
+ca.newspe <- predict(
+                 spesmall.ca, 
+                 newspe3, 
+                 type = "sp", 
+                 scaling = 2)
+text(
+  ca.newspe[, 1],
+  ca.newspe[, 2],
+  labels = rownames(ca.newspe),
+  cex = 0.8,
+  col = "blue"
+  )
+```
+
+
+#### 5.4.2.3 环境变量的事后曲线拟合 
+
+```{r}
+# 在对应分析的双序图中进行曲线拟合(Curve fitting) 
+plot(spe.ca, 
+     main = "CA fish abundances - scaling 2", 
+     sub = "Fitted curves: discharge (red), ammonium (green)")
+# envfit() https://www.rdocumentation.org/packages/vegan/versions/2.4-2/topics/envfit
+# 将环境变量或因子拟合到排序结果上
+spe.ca.env <- envfit(spe.ca ~ dis + amm, 
+                     env) # 注意这种表示!!!
+plot(spe.ca.env)
+# 在排序结果上绘制拟合曲线
+ordisurf(spe.ca, 
+         env$dis, 
+         add = TRUE) # 添加轮廓 | 重新绘制 - False
+ordisurf(spe.ca, 
+         env$amm, 
+         add = TRUE, 
+         col = "green")
+```
+
+
+#### 5.4.2.4 在排序结果轴的基础上重新对数据表进行排序
+
+```{r}
+# 对应分析之后的物种数据表 
+# vegemite() 展示紧凑的群落表 
+# https://www.rdocumentation.org/packages/vegan/versions/2.4-2/topics/vegemite
+vegemite(spe, spe.ca)
+
+# 通过热图来展示对应分析排序的物种表
+# 展示紧凑的群落表 - 热图形式
+tabasco(spe, spe.ca)
+```
+
+
+### 5.4.3 使用 CA.newr() 进行对应分析(CA)
+
+```{r}
+# 使用 CA.newr() 进行对应分析(CA)
+spe.CA.PL <- CA.newr(spe)
+
+# par(mfrow = c(1, 2))
+biplot.CA(spe.CA.PL, 
+          scaling = 1, # scaling 1 -- distance biplot
+          cex = 1)
+biplot.CA(spe.CA.PL, 
+          scaling = 2, # scaling 2 -- correlation biplot
+          cex = 1)
+
+# 按照对应分析结果的第一轴对数据表进行排序分析 
+summary(spe.CA.PL)
+# 数据结果转置
+t(spe[order(as.vector(spe.CA.PL$scaling1$sites[, 1])), 
+      order(as.vector(spe.CA.PL$scaling1$species[, 1]))])
+# 物种的累积拟合 - Cumulative fit of species
+spe.CA.PL$fit$cumulfit.spe
+# 位点的累积拟合 - Cumulative fit of sites
+spe.CA.PL$fit$cumulfit.obj
+```
+
+
+### 5.4.4 Arch Effect and Detrended Correspondence Analysis (DCA)
+
+
+
+### 5.4.5 多重对应分析(Multiple Correspondence Analysis, MCA)
+
+
+
+
+#### 5.4.5.1 对甲螨数据集(Oribatid Mite Data Set)进行多重对应分析(MCA) 
+
+```{r}
+mite.h <- decostand(mite, "hel") # 进行数据变换
+mite.h.ward <- hclust(dist(mite.h), "ward.D2") # 对距离矩阵进行 ward 最小方差聚类分析
+mite.h.w.g <- cutree(mite.h.ward, 4) # 将聚类结果分成 4 份
+mite.envplus <- data.frame(mite.env, mite.h.w.g) # 整合数据框信息
+
+# 对定性环境数据 + 补充变量进行多重对应分析
+# (1) quantitative environmental data 
+# (2) 4-group mite classification 
+# 默认进行绘图展示: graph=TRUE.
+mite.env.MCA <- MCA(mite.envplus, 
+                    quanti.sup = 1:2, 
+                    quali.sup = 6)
+mite.env.MCA
+
+# 展示列联表 - 变量 "Shrub" & "Topo"
+table(mite.env$Shrub, mite.env$Topo)
+```
+
+
+## 5.5 主坐标分析(Principal Coordinate Analysis, PCoA)
+
+
+
+### 5.5.1 简介
+
+
+
+
+### 5.5.2 使用 vegan 分析包的 cmdscale() 函数对河流数据集进行主坐标分析(PCoA) 
+
+```{r}
+# 对鱼类物种数据集的百分差异相异矩阵进行主坐标分析(PCOA)
+# vegdist() 对群落数据进行相异指数的计算
+# https://www.rdocumentation.org/packages/vegan/versions/2.4-2/topics/vegdist
+spe.bray <- vegdist(spe) # 默认方法 - bray
+spe.b.pcoa <- cmdscale(spe.bray, 
+                       k = (nrow(spe) - 1), 
+                       eig = TRUE)
+# https://www.rdocumentation.org/packages/vegan/versions/2.4-2/topics/ordiplot
+# 绘制排序图
+ordiplot(scores(spe.b.pcoa, choices = c(1, 2)),
+         type = "t",
+         main = "PCoA with species weighted averages")
+abline(h = 0, 
+       lty = 3) # 添加线
+abline(v = 0, 
+       lty = 3)
+# 添加物种的加权平均预测值
+spe.wa <- wascores(spe.b.pcoa$points[, 1:2], spe)
+text(spe.wa, 
+     rownames(spe.wa), 
+     cex = 0.7, 
+     col = "red")
+# 对环境变量进行事后预测检验 - posteriori projection 
+(spe.b.pcoa.env <- envfit(spe.b.pcoa, env))
+# 绘制显著变量
+plot(spe.b.pcoa.env, 
+     p.max = 0.05, 
+     col = 3)
+```
+
+
+### 5.5.3 使用 pcoa() 对河流数据集进行主坐标分析(PCoA) 
+
+```{r}
+# 使用 pcoa() 函数对物种向量进行主坐标分析和预测
+spe.h.pcoa <- pcoa(dist(spe.h))
+# par(mfrow = c(1, 2))
+# 第一个双序图: Hellinger-transformed species data
+biplot.pcoa(spe.h.pcoa, 
+            spe.h, 
+            dir.axis1 = -1)
+abline(h = 0, lty = 3)
+abline(v = 0, lty = 3)
+text(-0.5, 
+     0.45, 
+     "a", 
+     cex = 2)
+
+# 第二个双序图: standardized Hellinger-transformed species data - 标准化
+spe.std <- scale(spe.h)
+biplot.pcoa(spe.h.pcoa, 
+            spe.std, 
+            dir.axis1 = -1)
+abline(h = 0, 
+       lty = 3)
+abline(v = 0, 
+       lty = 3)
+text(-2.7, 
+     2.45, "b", 
+     cex = 2)
+
+# 第三个双序图: standardized Hellinger-transformed species data;
+# 只绘制 4 个物种
+
+spe.std <- scale(spe.h)
+biplot.pcoa(spe.h.pcoa, 
+            spe.h[, c(2, 5, 11, 21)], 
+            dir.axis1 = -1)
+abline(h = 0, 
+       lty = 3)
+abline(v = 0, 
+       lty = 3)
+
+
+
+# 比较 欧式(Euclidean)和非欧式相异矩阵的主坐标分析(PCOA)结果
+# PCoA on a Hellinger distance matrix
+
+# https://www.rdocumentation.org/packages/ade4/versions/1.7-13/topics/is.euclid
+is.euclid(dist(spe.h)) # 检查距离矩阵是否是欧式的 - Euclidean
+summary(spe.h.pcoa)
+spe.h.pcoa$values
+
+# 对百分差异的相异矩阵进行主坐标分析(PCoA)
+is.euclid(spe.bray)
+spe.bray.pcoa <- pcoa(spe.bray)
+spe.bray.pcoa$values # Observe eigenvalues 18 and following
+
+# 对百分差异的相异矩阵的平方根进行主坐标分析(PCoA)
+is.euclid(sqrt(spe.bray))
+spe.braysq.pcoa <- pcoa(sqrt(spe.bray))
+spe.braysq.pcoa$values	# 观察特征值 - eigenvalues
+
+# PCoA on a percentage difference dissimilarity matrix with Lingoes correction
+# 对百分差异的相异矩阵进行Lingoes校正-主坐标分析(PCoA)
+spe.brayl.pcoa <- pcoa(spe.bray, 
+                       correction = "lingoes")
+spe.brayl.pcoa$values # 观察特征值(eigenvalues) & col. 1 & col. 2
+
+# 对百分差异的相异矩阵进行cailliez校正-主坐标分析(PCoA)
+spe.brayc.pcoa <- pcoa(spe.bray, 
+                       correction = "cailliez")
+spe.brayc.pcoa$values # 观察特征值(eigenvalues) & col. 1 & col. 2
+
+```
+
+
+## 5.6 非度量多维尺度分析(Nonmetric Multidimensional Scaling, NMDS)
+
+
+
+
+### 5.6.1 简介
+
+
+
+
+### 5.6.2 使用非度量多维尺度分析鱼类数据集
+
+```{r}
+# 对鱼类数据集的百分比差异相异矩阵进行非度量多维尺度分析(NMDS)
+spe.nmds <- metaMDS(spe, 
+                    distance = "bray")
+spe.nmds
+spe.nmds$stress
+
+plot(
+  spe.nmds,
+  type = "t",
+  main = paste(
+    "NMDS/Percentage difference - Stress =",
+    round(spe.nmds$stress, 3)
+    )
+  )
+
+# par(mfrow = c(1, 2))
+# stressplot() https://www.rdocumentation.org/packages/vegan/versions/2.4-2/topics/stressplot.wcmdscale
+# https://www.rdocumentation.org/packages/vegan/versions/2.4-2/topics/goodness.metaMDS
+stressplot(spe.nmds, 
+           main = "Shepard plot")
+gof <- goodness(spe.nmds)
+plot(spe.nmds, 
+     type = "t", 
+     main = "Goodness of fit")
+points(spe.nmds, 
+       display = "sites", 
+       cex = gof * 300)
+
+# 对百分比相异矩阵进行 Ward 最小方差聚类分析, 并划分出 4 组
+spe.bray.ward <- hclust(spe.bray, 
+                        "ward.D") 
+spe.bw.groups <- cutree(spe.bray.ward, 
+                        k = 4)
+grp.lev <- levels(factor(spe.bw.groups)) # 反馈因子的不同值 - 向量形式
+# 结合汇总非度量多维尺度分析结果
+sit.sc <- scores(spe.nmds) # 两列多行的'矩阵'类型
+# 绘制排序结果图 - x-y 绘图
+p <- ordiplot(sit.sc, 
+              type = "n", 
+              main = "NMDS/% difference + clusters Ward/% difference")
+for (i in 1:length(grp.lev)) {
+  points(sit.sc[spe.bw.groups == i, ],
+         pch = (14 + i),
+         cex = 2,
+         col = i + 1)
+  }
+text(sit.sc, 
+     row.names(spe), 
+     pos = 4, 
+     cex = 0.7)
+# 添加树形图
+ordicluster(p, 
+            spe.bray.ward, 
+            col = "dark grey")
+```
+
+
+### 5.6.3 如何选择主坐标分析与非度量多维尺度分析? PCoA or NMDS ?
+
+
+
+
+## 5.7 手写主成分分析(PCA) 排序函数
+
+```{r}
+myPCA <- function(Y) {
+  Y.mat <- as.matrix(Y)
+  object.names <- rownames(Y)
+  var.names <- colnames(Y)
+  
+  # 质心化数据 ? - Centre the data (needed to compute matrix F)
+  Y.cent <- scale(Y.mat, 
+                  center = TRUE, 
+                  scale = FALSE) # 是否对数据进行缩放 | F - 否
+  
+  # 计算协方差 - 矩阵 S
+  Y.cov <- cov(Y.cent)
+  
+  # 特征向量 & 特征值 - Eigenvectors and eigenvalues of S (eq. 9.1 & 9.2)
+  Y.eig <- eigen(Y.cov)
+  
+  # 复制特征向量至矩阵 U (用于表征变量 - scaling 1 - biplots)
+  U <- Y.eig$vectors
+  rownames(U) <- var.names
+  
+  # 计算矩阵 F (用以表征对象 - scaling 1 - plots)
+  F <- Y.cent %*% U  # eq. 9.4
+  rownames(F) <- object.names
+  
+  # 计算矩阵 U2 (用以表征变量 - scaling 2 plots)
+  U2 <- U %*% diag(Y.eig$values ^ 0.5)
+  rownames(U2) <- var.names
+  
+  # 计算矩阵 G (用以表征对象 - scaling 2 plots)
+  G <- F %*% diag(Y.eig$values ^ 0.5)
+  rownames(G) <- object.names
+  
+  # 输出包含结果的所有列表
+  result <- list(Y.eig$values, U, F, U2, G)
+  names(result) <- c("eigenvalues", "U", "F", "U2", "G")
+  result
+}
+
+# 使用手写 PCA-函数对鱼类物种数据集进行分析
+fish.PCA <- myPCA(spe.h)
+summary(fish.PCA)
+# 特征值
+fish.PCA$eigenvalues
+# 特征值表示为百分比
+(pv <-round(100 * fish.PCA$eigenvalues / sum(fish.PCA$eigenvalues), 
+  2))
+# 总方差(分母)的替代计算, 两位小数
+round(100 * fish.PCA$eigenvalues / sum(diag(cov(spe.h))), 
+      2)
+# 将累积特征值表示为百分比, 两位小数
+round(cumsum(100 * fish.PCA$eigenvalues / sum(fish.PCA$eigenvalues)), 
+      2)
+
+# 绘制双序图
+# par(mfrow = c(1, 2))
+# scaling 1 -- distance biplot
+biplot(fish.PCA$F, fish.PCA$U)
+# scaling 2 -- correlation biplot
+biplot(fish.PCA$G, fish.PCA$U2)
+
+# 使用基本函数 plot() 进行绘制
+# par(mfrow = c(1, 2))
+# scaling 1 -- distance biplot
+plot(
+  fish.PCA$F[, 1],
+  fish.PCA$F[, 2],
+  asp = 1,
+  main = "PCA scaling 1",
+  xlab = paste("Axis 1 (", pv[1], "%)", sep = ""),
+  ylab = paste("Axis 2 (", pv[2], "%)", sep = "")
+  )
+# 绘制变量
+arrows(
+  x0 = 0,
+  y0 = 0,
+  fish.PCA$U[, 1],
+  fish.PCA$U[, 2],
+  length = 0.1,
+  col = "red"
+  )
+# 添加对象
+text(
+  fish.PCA$F[, 1],
+  fish.PCA$F[, 2],
+  labels = row.names(spe),
+  pos = 3,
+  cex = 0.8
+  )
+# 添加变量名
+text(
+  fish.PCA$U[, 1],
+  fish.PCA$U[, 2],
+  labels = colnames(spe),
+  adj = c(-0.2, 0.2),
+  col = "red",
+  cex = 0.8
+  )
+abline(h = 0, 
+       lty = 3)
+abline(v = 0, 
+       lty = 3)
+
+# scaling 2 -- correlation biplot
+plot(
+  fish.PCA$G[, 1],
+  fish.PCA$G[, 2],
+  asp = 1,
+  main = "PCA scaling 2",
+  xlab = paste("Axis 1 (", pv[1], "%)", sep = ""),
+  ylab = paste("Axis 2 (", pv[2], "%)", sep = "")
+  )
+# 绘制变量
+arrows(
+  x0 = 0,
+  y0 = 0,
+  fish.PCA$U2[, 1],
+  fish.PCA$U2[, 2],
+  length = 0.1,
+  col = "red"
+  )
+# 添加对象
+text(
+  fish.PCA$G[, 1],
+  fish.PCA$G[, 2],
+  labels = row.names(spe),
+  pos = 3,
+  cex = 0.8
+  )
+# 添加变量名
+text(
+  fish.PCA$U2[, 1],
+  fish.PCA$U2[, 2],
+  labels = colnames(spe),
+  col = "red",
+  adj = c(-0.2, 0.2),
+  cex = 0.8
+  )
+abline(h = 0, lty = 3)
+abline(v = 0, lty = 3)
+```
+
+
+
+
+---
+
+</font>
