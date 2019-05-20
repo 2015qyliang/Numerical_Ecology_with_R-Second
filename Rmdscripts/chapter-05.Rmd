@@ -20,11 +20,20 @@
 
 ## 5.1 目的
 
+
+
+---
+
 ## 5.2 排序方法简介
 
 ### 5.2.1 多维度空间 - Multidimensional Space
 
 ### 5.2.2 降维排序 - Ordination in Reduced Space
+
+
+
+
+---
 
 ## 5.3 主成分分析 - Principal Component Analysis (PCA)
 
@@ -570,6 +579,11 @@ biplot(env.imp32.pca,
 ```
 
 
+
+
+
+---
+
 ## 5.4 对应分析(Correspondence Analysis, CA)
 
 
@@ -735,6 +749,10 @@ table(mite.env$Shrub, mite.env$Topo)
 ```
 
 
+
+
+---
+
 ## 5.5 主坐标分析(Principal Coordinate Analysis, PCoA)
 
 
@@ -854,6 +872,8 @@ spe.brayc.pcoa$values # 观察特征值(eigenvalues) & col. 1 & col. 2
 ```
 
 
+---
+
 ## 5.6 非度量多维尺度分析(Nonmetric Multidimensional Scaling, NMDS)
 
 
@@ -927,7 +947,7 @@ ordicluster(p,
 ### 5.6.3 如何选择主坐标分析与非度量多维尺度分析? PCoA or NMDS ?
 
 
-
+---
 
 ## 5.7 手写主成分分析(PCA) 排序函数
 
