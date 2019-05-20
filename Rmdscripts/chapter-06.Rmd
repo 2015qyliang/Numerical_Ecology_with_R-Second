@@ -1,0 +1,160 @@
+<font face="微软雅黑">
+
+---
+
+# **第六章：典型排序 -- Canonical Ordination**
+
+---
+
+本章内容简介：
+
+- 6.1 目标
+- 6.2 典型排序简介
+- 6.3 冗余分析(Redundancy Analysis, RDA)
+- 6.4 典型对应分析(Canonical Correspondence Analysis, CCA)
+- 6.5 线性判别分析(Linear Discriminant Analysis, LDA)
+- 6.6 其他的不对称分析(Asymmetric Analyses)
+- 6.7 两个(或多个)数据集的对称分析(Symmetric Analysis)
+- 6.8 典型相关分析(Canonical Correlation Analysis, CCorA)
+- 6.9 共惯性分析(Co-inertia Analysis, CoIA)
+- 6.10 多因素分析(Multiple Factor Analysis, MFA)
+- 6.11 关于物种特征和环境
+- 6.12 结论
+
+---
+
+## 6.1 目标
+
+
+---
+
+## 6.2 典型排序简介(Canonical Ordination Overview)
+
+
+---
+
+## 6.3 冗余分析(Redundancy Analysis, RDA)
+
+### 6.3.1 简介
+
+### 6.3.2 河流数据集的冗余分析(RDA)
+
+#### 6.3.2.1 数据集的预处理
+
+#### 6.3.2.2 使用 vegan 分析包进行冗余分析(RDA)
+
+#### 6.3.2.3 从 vegan 分析包的冗余分析(RDA)结果中检索&解读&可视化
+
+#### 6.3.2.4 对冗余分析(RDA)结果进行置换检验
+
+#### 6.3.2.5 偏(部分)冗余分析(Partial RDA)
+
+#### 6.3.2.6 选择解释性变量
+
+#### 6.3.2.7 环境重构(Environmental Reconstruction): 在冗余分析中设计新位点评估解释性变量的值
+
+#### 6.3.2.8 方差分解(Variation Partitioning)
+
+#### 6.3.2.9 冗余分析(RDA)可作为多元方差分析(Multivariate ANOVA)的一种工具
+
+#### 6.3.2.10 冗余分析中的非线性关系
+
+### 6.3.3 基于距离的冗余分析(Distance-Based Redundancy Analysis, db-RDA)
+
+### 6.3.4 手写冗余分析(RDA)函数
+
+
+---
+
+## 6.4 典型对应分析(Canonical Correspondence Analysis, CCA)
+
+### 6.4.1 简介
+
+### 6.4.2 河流数据集的典型对应分析(CCA)
+
+#### 6.4.2.1 使用 vegan 分析包进行典型对应分析(CCA)
+
+#### 6.4.2.2 绘制典型对应分析的三序图(CCA Triplot)
+
+#### 6.4.2.3 置换检验(典型对应分析 - CCA, 前向选择 - Forward Selection, 吝啬典型对应分析 - Parsimonious CCA)
+
+#### 6.4.2.4 三维交互图(Three-Dimensional Interactive Plots)
+
+
+
+---
+
+## 6.5 线性判别分析(Linear Discriminant Analysis, LDA)
+
+### 6.5.1 简介
+
+### 6.5.2 使用 lda() 进行判别分析 
+
+
+
+---
+
+## 6.6 其他的非对称分析(Asymmetric Analyses)
+
+### 6.6.1 主响应曲线(Principal Response Curves, PRC)
+
+### 6.6.2 共对应分析(Co-correspondence Analysis, CoCA)
+
+
+
+---
+
+## 6.7 两个(或者多个数据集)的对称分析(Symmetric Analysis)
+
+
+
+---
+
+## 6.8 典型相关分析(Canonical Correlation Analysis, CCorA)
+
+### 6.8.1 简介
+
+### 6.8.2 使用 CCorA() 进行典型相关分析(Canonical Correlation Analysis) 
+
+
+
+---
+
+## 6.9 共惯性分析(Co-inertia Analysis, CoIA)
+
+### 6.9.1 简介
+
+### 6.9.2 使用 ade4 分析包的 coinertia() 进行共惯性分析(Co-inertia Analysis)
+
+
+
+---
+
+## 6.10 多因素分析(Multiple Factor Analysis, MFA)
+
+### 6.10.1 简介
+
+### 6.10.2 使用 FactoMineR 分析包进行多因素分析
+
+
+
+---
+
+## 6.11 关于物种特征和环境
+
+### 6.11.1 四角法分析(The Fourth-Corner Method)
+
+### 6.11.2 物种功能属性与环境因子关系分析( , RLQ Analysis)
+
+### 6.11.3 在 R 中的应用
+
+
+---
+
+## 6.12 结论
+
+
+
+---
+
+</font>
