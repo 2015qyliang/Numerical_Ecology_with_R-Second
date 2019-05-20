@@ -1,0 +1,105 @@
+<font face="微软雅黑">
+
+---
+
+# **第八章：群落多样性分析**
+
+---
+
+本章内容简介：
+
+- 8.1 目标
+- 8.2 关于多样性的介绍
+- 8.3 与空间相关的多样性: Alpha, Beta and Gamma 多样性
+- 8.4 β-多样性(Beta Diversity)
+- 8.5 群落的功能性多样性 & 功能性组成 & 系统进化多样性 
+- 8.6 结论
+
+---
+
+## 8.1 目标
+
+
+
+---
+
+## 8.2 关于多样性的介绍
+
+
+
+### 8.2.1 简介
+
+### 8.2.2 简单数字统计的物种多样性
+
+#### 8.2.2.1 物种的丰富度与稀疏性(Species Richness & Rarefaction)
+
+#### 8.2.2.2 物种丰度多样性的组成: 丰富度与均匀度(Species Abundance Diversity Components: Richness and Evenness)
+
+### 8.2.3 分类学多样性指标的实际应用(Taxonomic Diversity Indices)
+
+#### 8.2.3.1 河流数据集中鱼类群落的物种多样性指标(Species Diversity Indices)
+
+#### 8.2.3.2 甲螨群落的稀疏性分析(Rarefaction Analysis)
+
+
+
+---
+
+## 8.3 与空间相关的多样性: Alpha, Beta and Gamma 多样性
+
+
+
+---
+
+## 8.4 β-多样性(Beta Diversity)
+
+### 8.4.1 简单数字统计的β-多样性
+
+### 8.4.2 将 β-多样性作为群落组成表中的变量: SCBD & LCBD 指标
+
+#### 8.4.2.1 简介
+
+#### 8.4.2.2 计算 β-多样性
+
+#### 8.4.2.3 关于β-多样性的相异性度量的性质(Properties of Dissimilarity Measures with Respect to Beta Diversity)
+
+#### 8.4.2.4 β-多样性的局部贡献(Local Contributions to Beta Diversity, LCBD)
+
+#### 8.4.2.5 β-多样性的物种贡献(Species Contributions to Beta Diversity, SCBD)
+
+#### 8.4.2.6 使用 adespatial 分析包中的 beta.div() 函数计算 LCBD & SCBD 
+
+### 8.4.3 将β-多样性分解成替换 & 丰富度差异 & 嵌套组成(Replacement, Richness Difference and Nestedness Components)
+
+#### 8.4.3.1 Podani 指数(Podani Family of Indices)
+
+#### 8.4.3.2 Baselga 指数(Baselga Family of Indices)
+
+#### 8.4.3.3 嵌套介绍(Flavours of Nestedness)
+
+#### 8.4.3.4 使用 adespatial 分析包中的 beta.div.comp() 函数计算替换 & 丰富度差异 & 嵌套组成(Replacement & Richness Difference & Nestedness)
+
+#### 8.4.3.5 解释性替代与丰富度差异(Explaining Replacement and Richness Difference)
+
+
+
+---
+
+## 8.5 群落的功能性多样性 & 功能性组成 & 系统进化多样性
+
+### 8.5.1 α-功能多样性(Alpha Functional Diversity)
+
+
+### 8.5.2 β 分类学 & 系统发育学 & 功能性多样性(Beta Taxonomic, Phylogenetic and Functional Diversities)
+
+
+
+---
+
+## 8.6 结论
+
+
+
+---
+
+</font>
