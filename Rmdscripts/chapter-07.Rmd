@@ -54,8 +54,6 @@ Sys.setlocale('LC_ALL','C')
 # 多元多尺度空间分析
 # spdep 空间依赖性: 加权方案, 统计, 模型
 # https://www.rdocumentation.org/packages/spdep/versions/1.1-2
-# adegraphics 用于表示多变量数据的图形功能, 它是'ade4'包中可用功能的完全重新实现
-# https://www.rdocumentation.org/packages/adegraphics/versions/1.0-15
 library(ape)
 library(spdep)
 library(ade4)
