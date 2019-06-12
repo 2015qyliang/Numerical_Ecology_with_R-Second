@@ -2,7 +2,7 @@
 
 ---
 
-# **第五章: 非约束性排序**
+# **第五章: 非约束性排序 -- Unconstrained Ordination**
 
 ---
 
@@ -20,7 +20,13 @@
 
 ## 5.1 目的
 
+聚类分析查找数据集中的**不连续性**, 排序分析以连续轴的形式**提取主要趋势**. **排序方法**适用于对**自然生态群落数据集**(结构呈现**梯度**形式)进行分析. 
 
+- 正确选择排序方法, 对排序结果进行解读
+- 应用排序方法分析河流数据集和甲螨数据集
+- 排序结果叠加聚类分析的结果并加以解释
+- 使用外部数据集中的环境变量解释物种数据集排序分析的结构
+- 编写 PCA 函数
 
 ---
 
@@ -28,10 +34,36 @@
 
 ### 5.2.1 多维度空间 - Multidimensional Space
 
+多变量数据集可被视为位于空间中的位点集合, 其中每个变量定义一个维度. 
+通过位点的散点图揭示数据的结构. 
+由于生态数据通常包含两个以上的变量, 因此绘制所有可能变量关系对的散点图十分繁琐 且所含信息量不大. (所有可能变量关系对的数量 -- 数学中的**组合** -- n*(n-1)/2 )
+
+排序方法的目的是沿着减少数量的正交轴表示数据, 即它们以递减的顺序表示数据变化的主要趋势, 可以通过可视化关联解释分析结果. 本章介绍的所有排序分析方法都是**描述性**的, 没有提供统计检验来评估结果的显著性. 
+第六章所介绍的**约束性排序**将提供**统计检验**方法. 
+
 ### 5.2.2 降维排序 - Ordination in Reduced Space
 
+大多数排序方法(除 **NMDS** 之外)都是基于提取相关性矩阵中的特征值进行后续的分析. 
+根据位点间的相异度差别以及变量类别进行分类. 
 
+排序分析中的基本原则如下: *n* 个对象 & *p* 个变量; 在 *p*-维空间中, *n* 个对象可以表示为一个点簇(聚类), 该聚类结果并非圆形, 而是偏平的椭圆形(在一些维度上被拉伸, 在另一些维度上被压平); 经过变化的方向不一定与多维空间的单个维度（单个变量）对齐. **簇最长的方向对应于簇的最大方差的方向**. 
+最大方差的方向对应于数据中存在的最强梯度: 这是最重要信息所在的位置. 要提取的下一个轴在方差中是第二重要的, 只要它与第一个轴正交(线性无关, 标量积为0). 
+该过程继续, 直到计算出所有轴. 
 
+当数据中存在一些主要结构(梯度或组)并且该方法在提取时是有效的, 那么第一轴包含大部分有用信息(提取了数据的大部分**方差**). 
+在这种情况下, (降维空间)缩小空间(最常见的是二维)**投影**中**位点**之间的距离与多维空间中的对象之间的距离相对类似. 
+*即使第一轴占方差的一小部分, 排序也很有用.* 
+当在其他噪声数据集中存在一些有趣的结构时, 这可能发生 *第一轴占方差的一小部分* 这种情况. **==>>** **应该保留和解释多少轴? 有多少轴代表可解释的结构?** ==>> **取决于 方法和数据** -- 视具体情况而定 
+
+本章介绍的方法如下:
+
+- Principal component analysis (PCA): 主成分分析 -- 基于特征向量的方法, 对**原始定量数据**进行分析; scaling 1 -- 保留位点之间的 Euclidean 距离, scaling 2 -- 保留位点之间的 Mahalanobis 距离. 
+- Correspondence analysis (CA): 对应分析 -- 所处理的数据必须是**非负+维度均质化+频率或者类频率**类型的数据; scaling 1 -- 行方向保留 χ2 (卡方) 距离, scaling 2 -- 列方向保留 χ2 (卡方) 距离. 在生态学中, 几乎可以完全应用于**群落组成型数据**分析. 
+- Multiple correspondence analysis (MCA): 多元对应分析 -- 类别变量列表的排序, 所有的变量因子化.  
+- Principal coordinate analysis (PCoA): 主坐标分析 -- Q 模式下, 对相异矩阵进行排序分析, 并不是对逐个变量表进行分析; 关联方法的选择上具有更高的灵活性. 
+- Nonmetric multidimensional scaling (NMDS): 非度量多维尺度分析 -- 与上述几种方法不同, 不依赖于特征向量. 沿预定数量的轴表示对象集合, 同时保留它们之间的排序关系. 对相异性矩阵进行运算. 
+
+PCoA & NMDS 可对任何 *平方相异性矩阵* 进行排序. 
 
 ---
 
@@ -39,7 +71,29 @@
 
 ### 5.3.1 主成分分析简介 (PCA)
 
+多元正态分布矩阵(每个变量都是正态分布的). 
+
+第一主轴(或主分量轴)是穿过该多元正态分布的浓度椭球的最大维度的直线(拥有方差的最大部分); 其余的轴线彼此正交并且相继较短. *(椭圆体, 轴线有长有短)* 
+对于含有 *p* 个变量的矩阵最多含有 *p* 个主成分. 
+
+PCA 对由变量所定义的原始轴系统进行旋转, 使得连续的新轴(主成分)相互正交, 且所获得的连续新轴(主成分)对应着 *散点* 最大方差的连续维度. 
+主成分给出了新坐标系统中对象的位置. 
+
+主成分分析的输入数据为 **方差矩阵** (比如包含维度均质化变量的方差和协方差的关联矩阵, 或者由维度异质性变量计算而来的相关性矩阵). 
+PCA专门用于定量变量数据的分析. 
+相异性矩阵 -- Euclidean 距离计算, 变量之间线性相关关系. 
+不适用与 **原始物种丰度数据** 的分析. 
+但可以对 **原始物种丰度数据** 进行 **数据预转换** 处理之后再进行主成分分析. 
+
+PCA的排序结果仍遵循笛卡尔坐标系系统(Cartesian coordinate), 对象 -- 点, 变量 -- 箭头. 
+
+vegan -- rda(); ade4 -- dudi.pca(); stats -- prcomp(); 本书中的自备函数 PCA.newr()
+
 ### 5.3.2 使用 rda() 对河流数据集的环境变量进行主成分分析 
+
+对河流数据集中的 11 个定量环境变量进行分析, 分析不同环境变量之间的关联性如何以及从位点的排序分析中可以获得哪些信息. 
+
+由于不同的环境变量采用了不同的测量标度(维度异质性), 因此需要首先获得相关性矩阵(标准化变量的协方差), 然后在进行主成分分析. 
 
 #### 5.3.2.1 数据的预处理 
 
@@ -80,27 +134,42 @@ env <- env[-8, ]
 spa <- spa[-8, ]
 ```
 
-
-
 #### 5.3.2.2 相关性矩阵的主成分分析 (PCA) 
 
 ```{r}
 summary(env)
-# https://www.rdocumentation.org/packages/klaR/versions/0.6-14/topics/rda
-# 规则判别分析
+# 结果中的 Inertia -- 变量数量 | 惯性, 惯量
+# 1> 协方差矩阵的PCA分析结果中变量总方差 2> 相关性矩阵的PCA分析结果中对角线的数值和 = 变量自相关系数的总和 = 变量的数量
+# 结果中的 Unconstrained -- PCA - 非约束性排序
+# 结果中的 Eigenvalues -- 特征值 - PCA轴的重要性(方差)的度量 -可以表示为比例解释, 或轴的变化比例, 通过将每个特征值除以"总惯量"
 (env.pca <- rda(env, # 环境变量数据
                 scale = TRUE)) #对变量进行标准化
-summary(env.pca) # 默认 - 列方向 2
-summary(env.pca, scaling = 1) # 行方向 统计
+# Scaling -- 不要与 变量标准化 中的 "scale" 相混淆; 这里特指 排序结果投影到降维空间的图形展示方式; 
+# 最优化展示 对象和变量 没有简单的方法
+# 默认 scaling = 2 -- correlation biplot -- 相关性双序图; 特征向量被标准化为特征值的平方根; 
+# 1> 双序图中 对象之间的距离 不近似于 多维孔空间中的 欧式距离, 2> 向量之间的角度反映相关性
+# 物种得分: 变量箭头的坐标. "物种" 源于 分析包 vegan 使用的历史因素 
+# 位点得分: 排序结果中位点的坐标. 对象 通常被称为 位点 
+summary(env.pca) 
+# distance biplot -- 距离双序图: 特征向量被标准化为单位向量; 
+# 1> 双序图中 对象之间的距离 近似于 多维孔空间中的 欧式距离, 2> 向量之间的角度不反映之间的相关性
+summary(env.pca, scaling = 1) 
+summary(env.pca, scaling = 1, axes = 0) # 不查看物种得分和位点得分
 ```
 
+> 如果解释**对象**之间的相互关系 ==>> scaling = 1 ; 如果解释**变量**之间的相互关系 ==>> scaling = 2
 
+- scaling = 3 -- 折中标度 - 对称标度 -- 通过特征值的平方根来缩放位点和物种得分; 这种方案没有明确的解释规则, 不在本书中讨论
 
 #### 5.3.2.3 对 vegan 分析包的输出结果进行信息提取,解释和可视化 
 
+**排序轴** 数量的选择 -- 可解释 & 有意义
+
+PCA -- 不是统计检验分析, 但是一种 **启发式分析** - 在降维空间空间中展示数据的主要特征; 通常, 应先检验特征值, 然后确定展示的轴(主成分)的数量. 轴数量的选择比较随意, 解释大于 75% 的方差, 或者依据其他的判断标准. 
+比如, 计算断棒模型(broken stick model) -- 它将单位长度的一根棍子随机分成与PCA特征值相同数量的碎片; 断棒模型的理论方程已知; 然后将这些片段按长度递减的顺序排列, 并与特征值进行比较; 只解释特征值大于棍子相应部分长度的轴. 
+
 ```{r}
 # ?cca.object # 约束排序的结果
-
 (ev <- env.pca$CA$eig) # 查看特征值 - Eigenvalues
 
 # 绘制与主成分数量的差异 
@@ -111,20 +180,19 @@ screeplot(env.pca, bstick = TRUE, npcs = length(env.pca$CA$eig))
 # http://biol09.biol.umontreal.ca/PLcourses/Ordination_section_1.1_PCA_Eng.pdf
 # Scaling type 1: distance biplot
 # Scaling type 2: correlation biplot,
-# scaling = 1 结果呈现较为稀松; scaling = 2 结果呈现较为紧凑
 biplot(env.pca, 
        scaling = 1, 
        main = "PCA - scaling 1")
 biplot(env.pca, 
-       main = "PCA - scaling 2")  # 默认 2 - 列方向
+       main = "PCA - scaling 2")
 
 # 需要矩形窗口来进行绘制
 # par(mfrow = c(1, 2))
 cleanplot.pca(env.pca, 
-              scaling = 1, # species scores have norms of 1; site scores are scaled to variances = can.eigenvalues 
+              scaling = 1, 
               mar.percent = 0.08)
 cleanplot.pca(env.pca, 
-              scaling = 2, # species scores have norms of sqrt(can.eigenvalues); site scores are scaled to variances of 1
+              scaling = 2, 
               mar.percent = 0.04)
 
 # 绘制带变量子集的图: ele, oxy, har, bod
@@ -132,20 +200,26 @@ cleanplot.pca(env.pca,
 var.subset <- c(2, 6, 10, 11)
 cleanplot.pca(
   env.pca,
-  scaling = 1, 
+  scaling = 1, # scaling = "sites" for scaling 1
   select.spe = var.subset,
   mar.percent = 0.10
   )
 cleanplot.pca(
   env.pca,
-  scaling = 2, 
+  scaling = 2, # scaling = "species" for scaling 2
   select.spe = var.subset,
   mar.percent = 0.04
   )
 
 # 使用 biplot() 绘制变量的子集: ele, oxy, har, bod, 
+# 圆圈 -- 平衡贡献圆
+# 半径 --  sqrt(d/p)
+# d -- number of axes represented in the biplot (usually d = 2)
+# p -- number of dimensions of the PCA space (usually the number of variables of the data matrix)
+# scaling = 1 有 -- Euclidean space
+# scaling = 2 无 -- Mahalanobis space
+# 箭头趋于正交(垂直), 相关性趋于 0 (scaling = 2)
 # par(mfrow = c(1, 2))
-# scaling = 1 结果呈现较为稀松; 
 # scores() https://www.rdocumentation.org/packages/vegan/versions/2.4-2/topics/scores
 # 从排序结果中获取物种或者位点的分数
 var.sc1.sub <- scores(env.pca, 
@@ -174,7 +248,6 @@ text(
   col = "red",
   pos = 4) # 下左上右 - 1,2,3,4
 
-# scaling = 2 结果呈现较为紧凑
 # scores() https://www.rdocumentation.org/packages/vegan/versions/2.4-2/topics/scores
 # 从排序结果中获取物种或者位点的分数
 var.sc2.sub <- scores(env.pca, 
@@ -204,8 +277,14 @@ text(
   )
 ```
 
-
-
+```{r}
+# 也可使用 分析包 BiodiversityR 中的 PCAsignificance() 函数展示 "broken stick model" 的结果
+library(BiodiversityR)
+PCAsignificance(env.pca)
+# https://www.rdocumentation.org/packages/vegan/versions/2.3-5/topics/ordiplot
+plot1 <- ordiplot(env.pca, choices=c(1,2), scaling=1)
+ordiequilibriumcircle(env.pca, plot1)
+```
 
 #### 5.3.2.4 将补充**向量**投影到 PCA 的双序图(Biplot)
 
