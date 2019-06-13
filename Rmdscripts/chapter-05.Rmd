@@ -288,6 +288,12 @@ ordiequilibriumcircle(env.pca, plot1)
 
 #### 5.3.2.4 将补充**向量**投影到 PCA 的双序图(Biplot)
 
+使用 predict() 函数将补充向量添加到 PCA 结果中(**预测新向量在 PCA 结果中的位置**). 
+该函数使用排序结果计算新向量的排序得分. 
+含有补充向量的数据框中必须具有原始数据集中相同的 *行名*. 
+
+**分析包 vegan 中的 predict() 函数**
+
 ```{r}
 # 剔除两个环境变量的的信息
 # https://www.rdocumentation.org/packages/klaR/versions/0.6-14/topics/rda
@@ -343,8 +349,13 @@ text(
   )
 ```
 
+> 补充向量在进行 predict() 分析之前的数据处理, 必须与原始数据集的处理过程相一致. 
 
 #### 5.3.2.5 将补充**对象**投影到 PCA 的双序图(Biplot)
+
+使用 predict() 函数将补充**对象**添加到 PCA 结果中(**预测新对象在 PCA 结果中的位置**).
+
+**分析包 stats 中的 predict() 函数**
 
 ```{r}
 # 使用 prcomp() 计算 PCA
@@ -391,8 +402,6 @@ text(
 ```{r}
 # 使用 vegan 分析包中的 rda() 计算 PCA
 env.small <- env[-c(2, 8, 22), ]
-# 规则判别分析
-# https://www.rdocumentation.org/packages/klaR/versions/0.6-14/topics/rda
 env.pca3 <- rda(env.small, 
                 scale = TRUE) # 进行分析之前应将变量缩放 | 数据变换
 new.sit <- env[c(2, 8, 22), ]
@@ -426,9 +435,8 @@ const <- attributes(env.scores1)$const # 获取对象属性列表
 # 计算位点得分
 (newsit.scores.cons <- newsit.scores / const)
 
-# scaling = 1 结果呈现较为稀松 
 biplot(env.pca3, 
-       scaling = 1)
+       scaling = 1) # distance biplot
 text(
   newsit.scores.cons[, 1],
   newsit.scores.cons[, 2],
@@ -448,9 +456,10 @@ tot <- sum(eigenv)
 
 #### 5.3.2.6 比较聚类和排序的结果 
 
+比较聚类分析结果和排序分析结果可助于确定位点分组中的差异. 
+有两种方式可用于整合聚类分析结果和排序分析结果: 1> 排序结果中使用不同的颜色区分位点的簇, 2> 在原有图形展示的基础上叠加 **树形图**. 
+
 ```{r}
-# Clustering the objects using the environmental data: Euclidean
-# distance after standardizing the variables, followed by Ward
 # 使用环境数据集聚类分析: 标准化变量之后计算 Euclidean 距离, 然后进行 ward 最小方差聚类分析
 env.w <- hclust(dist(scale(env)), "ward.D")
 # 将树形图切分成 4 组
@@ -490,11 +499,10 @@ ordicluster(p,
             col = "dark grey")
 ```
 
-
 ### 5.3.3 已转换的物种数据的主成分分析(PCA) 
 
-
-
+作为一种 **线性分析方法** 的 PCA 保留了位点之间的 Euclidean 距离, 因此不适用对 **物种丰度数据** 之间进行分析. 
+物种丰度数据经过 **转换预处理** 之后可以进行后续相应的 PCA 分析. 
 
 #### 5.3.3.1 对已 Hellinger-转换的鱼类物种数据进行主成分分析(PCA)
 
@@ -511,61 +519,112 @@ screeplot(spe.h.pca,
   )
 
 # PCA biplots 双序图
-spe.pca.sc1 <- scores(spe.h.pca, 
+(spe.pca.sc1 <- scores(spe.h.pca, 
                       display = "species", 
-                      scaling = 1) # 稀松
-spe.pca.sc2 <- scores(spe.h.pca, 
+                      scaling = 1) ) # 注意参数 scaling ?????
+(spe.pca.sc2 <- scores(spe.h.pca, 
                       display = "species", 
-                      scaling = 2) # 紧凑
+                      scaling = 2) ) # 注意参数 scaling ?????
 
 # https://stackoverflow.com/questions/37128140/correlation-biplot-scaling-2-and-distance-biplot-scaling-1-pca-not-in-the-ri
 # 绘制 triplot 三序图 ?
 # par(mfrow = c(1, 2))
 cleanplot.pca(spe.h.pca, 
-              scaling = 1, 
+              scaling = 1, # distance | 群落结构 - 簇 - 距离的远近 - 梯度结构
               mar.percent = 0.06)
 cleanplot.pca(spe.h.pca, 
-              scaling = 2, 
+              scaling = 2, # correlationship
               mar.percent = 0.06)
 ```
 
+- 技术提示: chi-square transformation 可以用于对物种数据的前处理
+
+> 比较分析与 **无数据转换处理的原始数据** 的 PCA 分析结果的差异
+
+```{r}
+(spe.pca <- rda(spe))
+
+# 绘制与主成分数量的差异 
+# 碎石图和破碎棒模型 
+screeplot(spe.pca,
+  bstick = TRUE, 
+  npcs = length(spe.pca$CA$eig)
+  )
+
+# PCA biplots 双序图
+(spe.pca.sc1 <- scores(spe.pca, 
+                      display = "species", 
+                      scaling = 1) ) # 注意参数 scaling ?????
+(spe.pca.sc2 <- scores(spe.pca, 
+                      display = "species", 
+                      scaling = 2) ) # 注意参数 scaling ?????
+
+# https://stackoverflow.com/questions/37128140/correlation-biplot-scaling-2-and-distance-biplot-scaling-1-pca-not-in-the-ri
+# 绘制 triplot 三序图 ?
+# par(mfrow = c(1, 2))
+cleanplot.pca(spe.pca, 
+              scaling = 1, # distance
+              mar.percent = 0.06)
+cleanplot.pca(spe.pca, 
+              scaling = 2, # correlationship
+              mar.percent = 0.06)
+```
 
 #### 5.3.3.2 使用环境变量对轴进行事后解释(Passive -'post hoc'- Explanation)
 
 ```{r}
-biplot(spe.h.pca, # 默认 scaling 2
+biplot(spe.h.pca, # 默认 scaling 2 | correlationship
        main = "PCA fish abundances - scaling 2")
 # envfit() https://www.rdocumentation.org/packages/vegan/versions/2.4-2/topics/envfit
 # 将环境变量或因子拟合到排序结果上
+# envfit() 寻找 环境变量中的向量或者因子平均值
+# ? 点向量的投影与相应的环境变量具有最大的相关性, 这些因子表示因子水平的平均值 
+# envfit() 对 环境变量 进行 置换检验, 计算 变量的 p-value
+(spe.h.pca.env <- envfit(spe.h.pca, 
+                         env, 
+                         scaling = 1)) # ??
 (spe.h.pca.env <- envfit(spe.h.pca, 
                          env, 
                          scaling = 2)) # ??
-# 看绘制显著性变量
-plot(spe.h.pca.env, 
+# 重点突出 - 显著性的变量
+plot(spe.h.pca.env, # scaling = 2 的处理结果
      p.max = 0.05, 
-     col = 3) # 添加显著的环境变量
+     col = 3) # 添加显著性的环境变量
 ```
 
+> 最佳方法 - 检验解释变量 - **响应变量列表** ? *第六章有所涉及*
 
 ### 5.3.4 主成分分析(PCA)的主要应用
 
+PCA 也有很多使用限制, 比如对偏多项分布不敏感. 
+PCA 运算的主要步骤是 **对方差矩阵(线性协方差或者相关性)进行奇异值分解 (eigen-decomposition)**, 协方差务必由 **定量数据** 计算而来. 
 
+- 输入数据类型必须是 **维度均质化的变量表** -- 变量方差和 需要分解成 特征值; 只有度量相一致的变量 产生的 方差才有意义(方差的单位 -- 变量单位的平方), 数据转换处理之后的变量没有 *量纲* (dimensionless). 
+- 不能用于计算 **转置数据矩阵** -- 对象之间的协方差或者相关性 无意义
+- 协方差 和 相关性 由定量变量确定 -- PCA对数据精度的变化具有很强的鲁棒性 
+- 二元数据(有无)可应用 PCA
+- 对 物种有无数据 进行 PCA 之间, 需要进行数据变换(chord, Hellinger or log-chord transformation)
+- 避免错误地解释变量之间的关系 -- 根据向量箭头的顶部(尖端)的近似值, 而不是它们在双序图中的角度. 
 
 ### 5.3.5 使用 PCA.newr() 进行主成分分析(PCA)
+
+本书提供了 *快速分析脚本 -- PCA.newr() 和 biplot.PCA.newr()*
 
 ```{r}
 # 使用 PCA.newr() 和 biplot.PCA.newr() 对环境数据集进行主成分分析(PCA)
 # 其中, PCA 相关函数默认使用 scaling 1 -- distance biplot
 # Scaling 2 - correlation biplot
-env.PCA.PL <- PCA.newr(env, stand = TRUE)
-
+(env.PCA.PL <- PCA.newr(env, stand = TRUE))
 biplot.PCA.newr(env.PCA.PL)
 biplot.PCA.newr(env.PCA.PL, 
                 scaling = 2) # scaling 2 -- correlation biplot
 ```
 
-
 ### 5.3.6 主成分分析中的缺省值处理 
+
+PCA 无法对 非完整数据矩阵 进行计算. 
+**缺失值 - 估计 - 替换填充** 
+PCA - 迭代计算 - 复杂运算可以避免 *过拟合* 和 *方差估计不足* 等问题. 
 
 ```{r}
 # 使用 NA 替换缺省值 
@@ -579,54 +638,25 @@ mean(env.miss3[, 5], na.rm = TRUE)
 mean(env.miss3[, 7], na.rm = TRUE)
 mean(env.miss3[, 11], na.rm = TRUE)
 
-# 类似于设置罚分
-env.imp <- imputePCA(env.miss3)
-# 类似设置罚分
+# https://www.rdocumentation.org/packages/missMDA/versions/1.14/topics/imputePCA
+# 用主成分分析模型输入数据集的缺失值
+(env.imp <- imputePCA(env.miss3))
 env.imp$completeObs[2, 5]    # 初始值: 8.0
 env.imp$completeObs[18, 7]   # 初始值: 0.60
 env.imp$completeObs[22, 11]  # 初始值: 16.4
 
-# 对已'罚分'数据进行主成分分析(PCA)
 env.imp3 <- env.imp$completeObs
-# 规则判别分析
-# https://www.rdocumentation.org/packages/klaR/versions/0.6-14/topics/rda
 env.imp3.pca <- rda(env.imp3, 
                     scale = TRUE) # 进行分析之前应将变量缩放 | 数据变换
 
-# 原始数据和已'罚分'数据的比较
 # Procrustes analysis
 # https://en.wikipedia.org/wiki/Procrustes_analysis
-pca.proc <- procrustes(env.pca, 
+# https://www.rdocumentation.org/packages/vegan/versions/2.4-2/topics/procrustes
+# 将配置旋转到与其他配置的最大相似性
+(pca.proc <- procrustes(env.pca, 
                        env.imp3.pca, 
-                       scaling = 1) # scaling 1 -- distance biplot
-
-# 缺省值随机替换
-rnd <- matrix(sample(c(rep(1, 32), rep(0, 287))), 29, 11)
-env.miss32 <- env
-env.miss32[rnd == 1] <- NA
-# 统计每个变量的缺省值数量(位点方向)
-summary(t(env.miss32))
-# 统计的替代方法
-sapply(as.data.frame(t(env.miss32)), function(x) sum(is.na(x)))
-
-# 进行'罚分'处理
-env.imp2 <- imputePCA(env.miss32)
-
-# 对已'罚分'数据进行主成分分析(PCA)
-env.imp32 <- env.imp2$completeObs
-# rda() 规则判别分析
-# https://www.rdocumentation.org/packages/klaR/versions/0.6-14/topics/rda
-env.imp32.pca <- rda(env.imp32, 
-                     scale = TRUE) # 进行分析之前应将变量缩放 | 数据变换
-
-# Procrustes analysis 
-# https://en.wikipedia.org/wiki/Procrustes_analysis
-# 对两种不同的数据处理进行比较分析
-pca.proc32 <- procrustes(env.pca, 
-                         env.imp32.pca, 
-                         scaling = 1) # scaling 1 -- distance biplot
-
-# par(mfrow = c(1, 2))
+                       scaling = 1)) # scaling 1 -- distance biplot ??
+# 通过可视化分析 真实数据 PCA 结果 与 推算数据 PCA 结果 的差异
 plot(pca.proc, 
      main = "Procrustes rotation of original and imputed PCA\n3 missing values")
 points(pca.proc, display = "target", col = "red")
@@ -637,6 +667,29 @@ text(
   pos = 4,
   cex = 0.6
   )
+
+# 缺省值随机替换
+rnd <- matrix(sample(c(rep(1, 32), rep(0, 287))), 29, 11)
+env.miss32 <- env
+env.miss32[rnd == 1] <- NA
+# 统计每个变量的缺省值数量(位点方向)
+summary(t(env.miss32))
+# 统计的替代方法
+sapply(as.data.frame(t(env.miss32)), function(x) sum(is.na(x)))
+
+(env.imp2 <- imputePCA(env.miss32))
+env.imp32 <- env.imp2$completeObs
+env.imp32.pca <- rda(env.imp32, 
+                     scale = TRUE) # 进行分析之前应将变量缩放 | 数据变换
+
+# Procrustes analysis
+# https://en.wikipedia.org/wiki/Procrustes_analysis
+# https://www.rdocumentation.org/packages/vegan/versions/2.4-2/topics/procrustes
+# 将配置旋转到与其他配置的最大相似性
+pca.proc32 <- procrustes(env.pca, 
+                         env.imp32.pca, 
+                         scaling = 1) # scaling 1 -- distance biplot ??
+# 通过可视化分析 真实数据 PCA 结果 与 推算数据 PCA 结果 的差异
 plot(pca.proc32, 
      main = "Procrustes rotation of original and imputed PCA\n32 missing values")
 points(pca.proc32, display = "target", col = "red")
@@ -656,8 +709,6 @@ biplot(env.pca,
 biplot(env.imp32.pca, 
        main = "Imputed PCA, scaling 2")
 ```
-
-
 
 
 
