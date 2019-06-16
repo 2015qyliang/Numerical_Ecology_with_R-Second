@@ -765,8 +765,12 @@ plot(spe.ca,
 
 #### 5.4.2.2 使用对应分析双序图预测 Sulementar 位点或物种
 
+将新增加的位点(对象, 行方向)信息和物种(变量, 列方向)信息投影到对应分析的双序图中, 即新增信息(对象或者变量在坐标系中的位置), 分析与原始数据的点(位点或者物种)之间的关系. 
+
+使用分析包 stats 中的 predict() 函数. 
+
 ```{r}
-# 预测对应分析中的补充物种 - scaling 2
+# 预测对应分析中的补充物种 
 spe.small <- spe[, -c(1, 3, 10)]  # 物种数据集进行删减
 spesmall.ca <- cca(spe.small)
 plot(spesmall.ca, 
@@ -789,8 +793,15 @@ text(
   )
 ```
 
-
 #### 5.4.2.3 环境变量的事后曲线拟合 
+
+在 5.3.3.2 中使用 envfit() 函数将环境变量投影到了 PCA 双序图中; 
+但是, 线性拟合和箭头的投影只能解释**线性的物种-环境关系**. 
+有时, 会研究 **特定的环境变量** 在非线性的基础上如何与排序结果相关联. 
+可以通过在排序图上拟合这些环境变量的表面来实现. 
+
+使用 envfit() 函数作为第一步处理, 模型的拟合限制在两个变量之间; 
+使用分析包 vegan 中的 ordisurf() 函数进行曲线拟合, 通过广义加法模型(generalized additive models, GAM)拟合平滑的二维曲线. 
 
 ```{r}
 # 在对应分析的双序图中进行曲线拟合(Curve fitting) 
@@ -799,10 +810,14 @@ plot(spe.ca,
      sub = "Fitted curves: discharge (red), ammonium (green)")
 # envfit() https://www.rdocumentation.org/packages/vegan/versions/2.4-2/topics/envfit
 # 将环境变量或因子拟合到排序结果上
-spe.ca.env <- envfit(spe.ca ~ dis + amm, 
+# envfit() 寻找 环境变量中的向量或者因子平均值
+# ? 点向量的投影与相应的环境变量具有最大的相关性, 这些因子表示因子水平的平均值 
+# envfit() 对 环境变量 进行 置换检验, 计算 变量的 p-value
+spe.ca.env <- envfit(spe.ca ~ dis + amm, # 保留两个变量 
                      env) # 注意这种表示!!!
 plot(spe.ca.env)
 # 在排序结果上绘制拟合曲线
+# ordisurf https://www.rdocumentation.org/packages/vegan/versions/2.4-2/topics/ordisurf
 ordisurf(spe.ca, 
          env$dis, 
          add = TRUE) # 添加轮廓 | 重新绘制 - False
@@ -812,8 +827,11 @@ ordisurf(spe.ca,
          col = "green")
 ```
 
-
 #### 5.4.2.4 在排序结果轴的基础上重新对数据表进行排序
+
+对应分析的结果有时会根据第一排序轴对数据表进行重新排序. 
+可以使用分析包 vegan 中的 vegemite() 函数比较重新排序表和原始表. 
+还可以通过 tabasco() 函数将有序丰度表通过热图的形式进行展示. 
 
 ```{r}
 # 对应分析之后的物种数据表 
@@ -825,7 +843,6 @@ vegemite(spe, spe.ca)
 # 展示紧凑的群落表 - 热图形式
 tabasco(spe, spe.ca)
 ```
-
 
 ### 5.4.3 使用 CA.newr() 进行对应分析(CA)
 
@@ -852,15 +869,50 @@ spe.CA.PL$fit$cumulfit.spe
 spe.CA.PL$fit$cumulfit.obj
 ```
 
+### 5.4.4 弓形效应与去趋势对应分析 -- Arch Effect and Detrended Correspondence Analysis (DCA)
 
-### 5.4.4 Arch Effect and Detrended Correspondence Analysis (DCA)
+长期的环境梯度通常支持一系列物种. 
+由于受环境因素控制的物种往往具有**单峰分布**, 因此 长梯度 可能包含在梯度的两端没有共同物种的位点;  
+因此, 它们的不相似性具有最大可能值(或它们的相似性为0). 
+但是如果从梯度的任何一个点开始并慢慢走向终点, 那么连续的站点会比起始点越来越不同, 直到达到D的最大值. 
+因此, 梯度表示为一对CA轴上的弓形, 而不是直线. 
+下文将介绍几种**去趋势技术**来解决这种效应, 并使整理图中的梯度变直; 
 
+- https://link.springer.com/article/10.1007/BF00048870
+- https://en.wikipedia.org/wiki/Detrended_correspondence_analysis
+- **https://mb3is.megx.net/gustame/indirect-gradient-analysis/detrended-correspondence-analysis**
+- https://www.pisces-conservation.com/caphelp/index.html?decorana.html
+- http://ecology.msu.montana.edu/labdsv/R/labs/lab10/lab10.html
+- https://cran.r-project.org/web/packages/vegan/vignettes/intro-vegan.pdf
+- http://cc.oulu.fi/~jarioksa/softhelp/vegan/html/decorana.html
 
+去趋势对应分析(DCA): 
+
+- **通过与非线性重新缩放相结合的段去趋势: **轴-1 被分成任意数量的段, 并且在每个段内, 沿 轴-2 的对象得分的平均值等于零. *任意选择的段数对结果有很大影响*. 文献中提出的 DCA 结果表明沿 *第二轴* 的分数基本上意味着更少. 强烈反对使用这种形式的 DCA 作为排序分析技术: 然而, 它可以用于估计 *第一排序轴* 的"辐射长度", 以物种周转的标准偏差单位表示. **梯度长度大于 4** 表示某些物种沿轴线具有单峰响应. 
+- **通过多项式去除: **关于 *弓效应* 的起源的另一推理线 导致 观察到当发生弓时, 第二轴可以被视为与第一轴成二次方相关(第二轴是第一轴的二次幂), 这解释了点的散射的抛物线形状. 
+因此, 一种解决方案是使第二轴不仅是 线性的, 而且与第一轴呈现 **二次独立**. 
+虽然具有直观的吸引力, 但应谨慎应用这种去除趋势的方法, 因为它实际上对数据施加了约束模型(本章节所介绍的是**非约束性分析**). 
+
+使用分析包 vegan 中的 decorana() 函数对数据进行 第一种方法的 DCA 分析, 输出结果中的 轴长度 叫作为 "Axis length". 
+
+鉴于 DCA 分析中的种种问题, 本文不再讨论. 
+即使有很长的生态梯度, 也可以通过使用 弦,Hellinger或对数-弦 变换物种数据的 PCA 获得有意义的排序. 
+
+PCA 中存在同类的更极端的效果, 它被称为马蹄形效应 -- 因为在强梯度的情况下, 两端的位置向内弯曲并且看起来比其他对更近. 
+这是因为 PCA 将 **双零** 视为相似性; 因此, 位于具有许多 **双零的生态梯度** 的相对端的位点在这方面彼此"相似". 
+Hellinger  或 弦变换 的物种数据 可部分地缓解这个问题. 
 
 ### 5.4.5 多重对应分析(Multiple Correspondence Analysis, MCA)
 
+多重对应分析(MCA)是与 PCA 的相对应的分析方法, 用于分类变量表的排序, 即数据框中的所有变量都是因子. 
+它是一种特殊形式的对应分析, 其中变量是分类的(类别属性). 
+它主要用于分析一系列个体(例如调查中的人,分类学研究中的标本), 其特征在于定性变量(例如, 答案选择的问题,或形态特征), 
+如果通过定性变量描述场地, 多重对应分析(Multiple Correspondence Analysis, MCA)也可用于*环境研究* 
 
-
+在多重对应分析(Multiple Correspondence Analysis, MCA)中, 数据的变化表示为惯性(inertia, 惯量) (和在对应分析中一样). 
+在大多数实际情况中, 与 CA轴的惯性或 PCA轴的方差 相比, 前几个轴的惯性 相对较低, 因为 MCA 计算涉及数据矩阵的扩展, 因此所有 p 的水平 变量由 虚拟二进制变量 表示. 
+这种矩阵称为 *完全析取表*. 
+MCA 在通过分析包 MASS 中的 mca() 函数实现; 在分析包 FactoMineR 中的 MCA() 函数中亦可实现. 
 
 #### 5.4.5.1 对甲螨数据集(Oribatid Mite Data Set)进行多重对应分析(MCA) 
 
