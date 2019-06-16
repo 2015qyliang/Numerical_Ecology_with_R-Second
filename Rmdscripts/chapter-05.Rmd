@@ -916,6 +916,10 @@ MCA 在通过分析包 MASS 中的 mca() 函数实现; 在分析包 FactoMineR �
 
 #### 5.4.5.1 对甲螨数据集(Oribatid Mite Data Set)进行多重对应分析(MCA) 
 
+添加两组补充变量: 
+- 1> 两个定量环境变量基质密度和含水量; 
+- 2> Hellinger 转化的 Oribatid 螨虫数据集的 4 组分类进行 Ward 最小方差层次聚类
+
 ```{r}
 mite.h <- decostand(mite, "hel") # 进行数据变换
 mite.h.ward <- hclust(dist(mite.h), "ward.D2") # 对距离矩阵进行 ward 最小方差聚类分析
@@ -929,14 +933,15 @@ mite.envplus <- data.frame(mite.env, mite.h.w.g) # 整合数据框信息
 mite.env.MCA <- MCA(mite.envplus, 
                     quanti.sup = 1:2, 
                     quali.sup = 6)
-mite.env.MCA
+```
 
+> **重点在于对结果的解读**
+
+```{r}
+mite.env.MCA
 # 展示列联表 - 变量 "Shrub" & "Topo"
 table(mite.env$Shrub, mite.env$Topo)
 ```
-
-
-
 
 ---
 
