@@ -880,7 +880,7 @@ spe.CA.PL$fit$cumulfit.obj
 
 - https://link.springer.com/article/10.1007/BF00048870
 - https://en.wikipedia.org/wiki/Detrended_correspondence_analysis
-- **https://mb3is.megx.net/gustame/indirect-gradient-analysis/detrended-correspondence-analysis**
+- ** https://mb3is.megx.net/gustame/indirect-gradient-analysis/detrended-correspondence-analysis **
 - https://www.pisces-conservation.com/caphelp/index.html?decorana.html
 - http://ecology.msu.montana.edu/labdsv/R/labs/lab10/lab10.html
 - https://cran.r-project.org/web/packages/vegan/vignettes/intro-vegan.pdf
