@@ -175,44 +175,67 @@ names(envchem)
 spe.hel <- decostand(spe, "hellinger") # 物种数据集数据变换
 ```
 
-
-
-
-
-
 #### 6.3.2.2 使用 vegan 分析包进行冗余分析(RDA)
 
+分析包 vegan 中对 RDA 有两种不同的方法(简单 & 复杂): 
+
+- 1> simpleRDA <- rda(Y, X, W) 
+Y - 响应变量的矩阵, X - 解释性变量的矩阵, W - 协变量矩阵(matrix of covariables, 偏RDA分析需要); 
+虽然简单, 但有缺陷: 解释性变量矩阵或者协变量矩阵中不能含有因子类型的定量变量.
+
+- 2> formulaRDA <- rda(Y ~ var1 + factorA + var2*var3 + Condition(var4), data = XWdata) 
+如果含有定量类型的变量, 使用复杂版本; 
+
 ```{r}
-# https://www.rdocumentation.org/packages/klaR/versions/0.6-14/topics/rda
 (spe.rda <- rda(spe.hel ~ ., env3)) # 注意观察 'spe.hel ~ .' 这种快捷方式 !!!
 summary(spe.rda) # Scaling 2 (默认)
 coef(spe.rda) # 冗余分析结果对象的典型系数(Canonical coefficients) 
 ```
 
+> 结果内容的解读:
+
+- Partitioning of variance: 方差分解 - 总方差 分为两部分: 约束性 & 非约束性. 约束性部分(双多元冗余统计, bimultivariate redundancy statistic) - 响应变量 Y矩阵 的总方差能被 解释变量 解释的部分; 如果使用比例表示, 相当于 多元回归中的 R方; RDA 的R方, 有偏差, 需要校正; 
+- Eigenvalues and their contribution to the variance: 特征根及对方差的贡献率 -- 典型排序轴的累积解释率 等于 解释性变量所能解释的部分; 
+- *值得注意的特征值的一个特点*: 如果第一残差特征值 大于 最后的典型残差值, 也就是说 -- 第一个非约束性的轴承载的方差大于 大部分典型轴 承载的方差. 原因: 可能还有重要的解释性变量尚未考虑, 或是解释性变量之间存在交互作用, 或者响应变量与解释性变量之间存在高阶线性关系 (?? 多重线性关系 ??)
+- 两种特征值的区别: RDAx(典型特征值) - 响应变量总方差中能被RDA模型解释的部分; PCx(残差特征值) - 响应变量总方差中能被残差解释的部分, 与 RDA 模型无关. 
+- Site constraints (linear combinations of constraining variables): 解释变量的线性组合, 使用解释性变量矩阵 X 计算获得的位点坐标
+- Centroids for factor constraints: 质心因子约束 - 因子变量的质心坐标 
+
+**使用 coef() 提取典型特征系数**
 
 #### 6.3.2.3 从 vegan 分析包的冗余分析(RDA)结果中检索&解读&可视化
 
+多重回归分析的原始 R方 -- 有偏差 ==>> 需要校正. 
+如果 R2adj 接近 0, 解释性矩阵X 对 响应变量矩阵Y的方差的 解释部分 不如 随机正常偏差 解释的多. 
+如果 R2adj 为负数, 解释性矩阵X 则不如 随机正常偏差 解释的好. 
 
 ```{r}
 # RsquareAdj
 # https://www.rdocumentation.org/packages/vegan/versions/2.4-2/topics/RsquareAdj
 (R2 <- RsquareAdj(spe.rda)$r.squared) # 从 rda 结果对象中提取未调整的 R方
 (R2adj <- RsquareAdj(spe.rda)$adj.r.squared) # 从 rda 结果对象中提取调整的 R方
+```
 
+位点, 响应变量, 解释变量 ==>> 三序图; 
+解释变量 - 箭头; 响应变量 - 线. 
+
+- display=c(...) -- **1>** "sp" stands for species, **2>** "lc" for fitted site scores (linear combinations of explanatory variables), **3>** "wa" for site scores in the species space (weighted averages in CCA or weighted sums in RDA), and **4>** "cn" for constraints (i.e., the explanatory variables).
+
+```{r}
 # 绘制三序图
 # 位点得分作为环境变量的线性组合
 # par(mfrow = c(2, 1))
 plot(spe.rda,
-  scaling = 1,
-  display = c("sp", "lc", "cn"),
+  scaling = 1, # distance
+  display = c("sp", "lc", "cn"), 
   main = "Triplot RDA spe.hel ~ env3 - scaling 1 - lc scores"
   )
 # scores 使用某种排序方法获取物种或者位点得分
 # https://www.rdocumentation.org/packages/vegan/versions/2.4-2/topics/scores
 spe.sc1 <-  scores(spe.rda, 
-                   choices = 1:2, 
+                   choices = 1:2, # which axes are to be selected
                    scaling = 1, 
-                   display = "sp"
+                   display = "sp" 
                    )
 arrows(0, 0, 
   spe.sc1[, 1] * 0.92,
@@ -222,8 +245,12 @@ arrows(0, 0,
   col = "red"
   )
 text(-0.75, 0.7, "a", cex = 1.5)
+```
 
-# Scaling 2
+> 无论选择哪种类型的位点坐标, 三序图的解释都需要依据统计显著性检验结果. 与多元回归一样, 不显著性的回归结果不能被解释, 必须丢弃. 
+
+```{r}
+# Scaling 2 - correlation
 plot(spe.rda, 
   display = c("sp", "lc", "cn"), 
   main = "Triplot RDA spe.hel ~ env3 - scaling 2 - lc scores"
@@ -232,7 +259,7 @@ plot(spe.rda,
 # https://www.rdocumentation.org/packages/vegan/versions/2.4-2/topics/scores
 spe.sc2 <- scores(spe.rda, # 默认使用 scaling = 2
                   choices = 1:2, 
-                  display = "sp"
+                  display = "sp" 
                   )
 arrows(0, 0, 
   spe.sc2[, 1] * 0.92, 
@@ -242,7 +269,11 @@ arrows(0, 0,
   col = "red"
   )
 text(-0.82, 0.55, "b", cex = 1.5)
+```
 
+> 无论选择哪种类型的位点坐标, 三序图的解释都需要依据统计显著性检验结果. 与多元回归一样, 不显著性的回归结果不能被解释, 必须丢弃. 
+
+```{r}
 # 位点得分作为加权平均值 (vegan's default)
 # Scaling 1 :  distance triplot - 距离三序图
 plot(spe.rda, 
@@ -267,7 +298,13 @@ arrows(0, 0,
   lty = 1, 
   col = "red"
   )
+```
 
+- Scaling 1 - distance triplot: 1> 响应变量和解释变量之间的夹角反映相关关系(不反映响应变量之间的关系); 2> 定性解释变量的质心和响应变量(物种)之间的关系是通过将质心以直角投射到响应变量上来找到的; 3> 质心间的距离, 质心与个体对象之间的距离, 近似与它们之间的欧式距离; 
+
+- Scaling 2 - correlation triplot: 1> 在响应或定量解释变量上以直角投影对象近似于该变量上的对象的值; 2> 响应变量与解释性变量之间的夹角, 响应变量之间的夹角, 解释性变量之间的夹角, 反映它们之间的相互关系; 3> 定性解释变量的质心与响应变量(物种)之间的关系是通过在响应变量上以直角投影质心来找到的(对于单个对象); 4> 质心间的距离, 质心与个体对象之间的距离, 不近似与它们之间的欧式距离;
+
+```{r}
 # 在由轴1和2形成的排序平面中选择具有至少0.6的拟合优度的物种
 # goodness 评估物种或者位点的适合度
 # https://www.rdocumentation.org/packages/vegan/versions/2.4-2/topics/goodness.cca
@@ -299,9 +336,14 @@ triplot.rda(spe.rda,
 text(-2.82, 2, "b", cex = 2)
 ```
 
-
 #### 6.3.2.4 对冗余分析(RDA)结果进行置换检验
 
+对于生态学研究而言, 所有的 RDA 都必须进行置换检验分析. 
+对各个轴的重要性的检验是建立在相同的原则基础上的. 
+
+置换检验的三个关键要素: 1> permutable units - 置换单元: 响应变量(随机置换响应变量矩阵中的行), 但有时置换单元也会重新定义; 2> test statistic - 检验统计量(pseudo-F); 3> permutation scheme - 置换方案: 置换单元如何被置换, 大多数是自由置换 - 所有的单元无区别且能够自由交换位置. 
+
+- 使用的函数 anova() 与传统的方差分析 ANOVA 容易造成混淆, 实际上与方差分析无关. 
 
 ```{r}
 # 全局检验冗余分析结果
@@ -311,28 +353,40 @@ anova(spe.rda,
 anova(spe.rda, 
       by = "axis", 
       permutations = how(nperm = 999))
-
-# The Kaiser-Guttman rule states that components based on eigenvalues greater than 1 should be retained. This is based on the notion that, since the sum of the eigenvalues is p, an eigenvalue larger than 1 represents an ``above average’’ component.
+# 置换检验能够对典型轴进行很好的取舍 => 使用其他标准(broken-stick or Kaiser-Guttman’s criterion)的意义不大
+# 对于 RDA 的非约束性的残差轴, 其他标准仍然有用
 # http://www.statpower.net/Content/312/R%20Stuff/PCA.html
 # 将Kaiser-Guttman准则应用于残余轴
 # 特征值只与残差特征值的平均值进行比较
 spe.rda$CA$eig[spe.rda$CA$eig > mean(spe.rda$CA$eig)]
 ```
 
+仍有一些变化未被环境变量解释
 
 #### 6.3.2.5 偏(部分)冗余分析(Partial RDA)
 
-
+偏典型排序(Partial canonical ordination)相当于多元偏线性回归分析. 
+事例说明: **以气候变量Y 为解释性变量, 土壤因子变量W 为协变量, 对植物物种数据矩阵Y 进行RDA分析 => 目的: 控制土壤因子影响后, 展示单独能够被气候变量线性模型解释的物种分布格局.** 
 
 ```{r}
+# 简单输入模式: X & W 分离的定量变量表格
 (spechem.physio <- rda(spe.hel, envchem, envtopo))
 summary(spechem.physio)
-
-# https://www.rdocumentation.org/packages/klaR/versions/0.6-14/topics/rda
+# 复杂输入模式(公式输入): X & W 在同一个数据框 spe.hel 中
+# 允许更好地控制模型和使用约束(X)或条件(W)之间的因素和相互作用(W)
 (spechem.physio2 <- 
   rda(spe.hel ~ pH + har + pho + nit + amm + oxy + bod 
       + Condition(ele + slo + dis), data = env2))
+```
 
+> 偏RDA分析结果的简明解读:
+
+- 方差分解: 响应变量总惯量 - 总方差; Conditioned - 被协变量解释的方差; Constrained - 能单独被解释变量解释的方差; Unconstrained - 残差方差
+- 特征值和剔除协变量影响之后, 特征值对方差的贡献
+
+> 检验 偏RDA 的显著性, 如果结果显著, 则绘制前两轴的三序图
+
+```{r}
 # 检验偏冗余分析
 anova(spechem.physio2, 
       permutations = how(nperm = 999))
@@ -362,8 +416,6 @@ triplot.rda(spechem.physio,
   )
 text(-3.34, 3.44, "b", cex = 2)
 ```
-
-
 
 ```{r}
 # Scaling 1 -- 距离? distance
@@ -407,7 +459,6 @@ arrows(0, 0,
   )
 ```
 
-
 #### 6.3.2.6 选择解释性变量
 
 
@@ -417,10 +468,13 @@ arrows(0, 0,
 vif.cca(spe.rda)
 # 偏冗余分析(Partial RDA – 生理学变量 physiographic variables only)
 vif.cca(spechem.physio) 
+```
 
+
+
+```{r}
 # # https://www.rdocumentation.org/packages/klaR/versions/0.6-14/topics/rda
-spe.rda.all <- rda(spe.hel ~ ., 
-                   data = env2)
+(spe.rda.all <- rda(spe.hel ~ ., data = env2))
 # 全局调整 R方
 # https://www.rdocumentation.org/packages/vegan/versions/2.4-2/topics/RsquareAdj
 (R2a.all <- RsquareAdj(spe.rda.all)$adj.r.squared)
@@ -428,65 +482,79 @@ spe.rda.all <- rda(spe.hel ~ .,
 # 使用 forward.sel() 进行前向选择
 # https://www.rdocumentation.org/packages/adespatial/versions/0.3-4/topics/forward.sel
 # 通过简化模型下的残差置换来执行前向选择 - 针对多元变量
-forward.sel(spe.hel, env2, 
-            adjR2thresh = R2a.all)
+forward.sel(spe.hel, env2,adjR2thresh = R2a.all)
+```
 
+
+```{r}
 # 使用 ordistep() 进行前向选择; 允许使用因子
-mod0 <- rda(spe.hel ~ 1, 
-            data = env2)
+(mod0 <- rda(spe.hel ~ 1, data = env2))
 # ordistep 在约束排序(cca, rda, capscale)中通过置换检验选择模型
 # https://www.rdocumentation.org/packages/vegan/versions/2.4-2/topics/ordistep
-step.forward <- 
+(step.forward <- 
   ordistep(mod0, 
            scope = formula(spe.rda.all), 
            direction = "forward", 
            permutations = how(nperm = 499)
-           )
+           ))
 # https://www.rdocumentation.org/packages/vegan/versions/2.4-2/topics/RsquareAdj
 RsquareAdj(step.forward)
+```
 
+
+```{r}
 # 使用 vegan 中的 ordistep() 函数进行向后消除; 默认使用 - 向后消除 backward
 # ordistep 在约束排序(cca, rda, capscale)中通过置换检验选择模型
 # https://www.rdocumentation.org/packages/vegan/versions/2.4-2/topics/ordistep
-step.backward <-
-  ordistep(spe.rda.all,
-           permutations = how(nperm = 499))
+(step.backward <-
+  ordistep(spe.rda.all, permutations = how(nperm = 499)))
 # https://www.rdocumentation.org/packages/vegan/versions/2.4-2/topics/RsquareAdj
 RsquareAdj(step.backward)
+```
 
+
+```{r}
 # 使用 vegan 中的 ordistep() 函数进行前向选择
 # 使用双重停止标准(a double stopping criterion) (Blanchet et al. 2008a)
 # 环境变量中仅包含定量变量
 # ordistep 在约束排序(cca, rda, capscale)中通过置换检验选择模型
 # https://www.rdocumentation.org/packages/vegan/versions/2.4-2/topics/ordistep
-step2.forward <- 
+(step2.forward <- 
   ordiR2step(mod0, 
              scope = formula(spe.rda.all), 
              direction = "forward", 
              R2scope = TRUE,
              permutations = how(nperm = 199)
-             )
+             ))
 # https://www.rdocumentation.org/packages/vegan/versions/2.4-2/topics/RsquareAdj
 RsquareAdj(step2.forward)
+```
 
+
+
+```{r}
 # 使用 vegan 中的 ordistep() 函数进行前向选择
 # using a double stopping criterion (Blanchet et al. 2008a)
 # and object env3 containing a factor.
-mod00 <- rda(spe.hel ~ 1, 
-             data = env3)
-spe.rda2.all <- rda(spe.hel ~ ., 
-                    data = env3)
+(mod00 <- rda(spe.hel ~ 1, data = env3))
+(spe.rda2.all <- rda(spe.hel ~ ., data = env3))
 # ordistep 在约束排序(cca, rda, capscale)中通过置换检验选择模型
 # https://www.rdocumentation.org/packages/vegan/versions/2.4-2/topics/ordistep
-step3.forward <- 
+(step3.forward <- 
   ordiR2step(mod00, 
              scope = formula(spe.rda2.all), 
              direction = "forward", 
              permutations = how(nperm = 199)
-             )
+             ))
 # https://www.rdocumentation.org/packages/vegan/versions/2.4-2/topics/RsquareAdj
 RsquareAdj(step3.forward)
+```
 
+- ** Partial forward selection - 部分前向选择**
+
+使用 ordistep() & ordiR2step() 对偏RDA结果进行前向选择; 保持其他变量不变的同时选择其他解释性变量
+
+```{r}
 # 完全模型的调整R方 比 仅仅与定量变量相关的完全冗余分析 要小
 # 数据转换过程中可能会导致部分信息丢失
 # 带有变量 slo 的部分前向选择保持不变
@@ -494,17 +562,19 @@ mod0p <- rda(spe.hel ~ Condition(slo), data = env2)
 mod1p <- rda(spe.hel ~ . + Condition(slo), data = env2)
 # ordistep 在约束排序(cca, rda, capscale)中通过置换检验选择模型
 # https://www.rdocumentation.org/packages/vegan/versions/2.4-2/topics/ordistep
-step.p.forward <- 
+(step.p.forward <- 
   ordiR2step(mod0p, 
              scope = formula(mod1p), 
              direction = "forward", 
              permutations = how(nperm = 199)
-             )
+             ))
 ```
 
+- **吝啬冗余分析 - Parsimonious RDA**
+
+上述分析表明, *最节俭的态度* 是接受一个只包含三个解释变量的模型
 
 ```{r}
-# 吝啬冗余分析 - Parsimonious RDA
 (spe.rda.pars <- rda(spe.hel ~ ele + oxy + bod, 
                      data = env2))
 anova(spe.rda.pars, 
@@ -516,7 +586,11 @@ anova(spe.rda.pars,
 # 比较方差通胀因子(Compare the variance inflation factors)
 vif.cca(spe.rda.all)
 vif.cca(spe.rda.pars)
+```
 
+> 展示了一种简约的方法是如何帮助提高模型的质量的 | 没有有害的共线性(所有的 vif 都远低于 10)
+
+```{r}
 # 吝啬冗余分析的三序图(带有拟合的位点得分)
 # par(mfrow = c(2, 1))
 # Scaling 1 -- 距离
@@ -539,8 +613,6 @@ triplot.rda(spe.rda.pars,
   mar.percent = -0.02
   )
 ```
-
-
 
 ```{r}
 # 绘制吝啬冗余分析的三序图
@@ -585,7 +657,6 @@ arrows(0, 0,
   col = "red"
   )
 ```
-
 
 #### 6.3.2.7 环境重构(Environmental Reconstruction): 在冗余分析中设计新位点评估解释性变量的值
 
