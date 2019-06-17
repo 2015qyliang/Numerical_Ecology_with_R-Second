@@ -1118,17 +1118,19 @@ spe.brayc.pcoa$values # 观察特征值(eigenvalues) & col. 1 & col. 2
 - 大多数 NMDS 程序使用 PCA 作为最终解决方案, 以便于结果的解释
 
 对于少量轴(例如, m = 2 或 3), 在相同数量的维度中, NMDS 比 PCoA 获得更少的 对象之间的 相异性关系的 变形表示. 
-NMDS 的迭代运算对计算资源的要求比较苛刻, 通常获得结果也只是局部最小值, 并非真正的最小值.
-
+NMDS 的迭代运算对计算资源的要求比较苛刻, 通常获得结果也只是局部最小值, 并非真正的最小值. 
 ### 5.6.2 使用非度量多维尺度分析鱼类数据集
 
-```{r}
-# 对鱼类数据集的百分比差异相异矩阵进行非度量多维尺度分析(NMDS)
-spe.nmds <- metaMDS(spe, 
-                    distance = "bray")
-spe.nmds
-spe.nmds$stress
+使用分析包 vegan 中的 metaMDS() 函数进行非度量多维尺度分析(Nonmetric Multidimensional Scaling, NMDS); 
+使用 wascores() 函数也可以将物种信息添加到排序结果图中; 
+解释性变量可以通过 envfit() 函数进行添加.
 
+```{r}
+# https://www.rdocumentation.org/packages/vegan/versions/2.4-2/topics/metaMDS
+# 对鱼类数据集的百分比差异相异矩阵进行非度量多维尺度分析(NMDS)
+(spe.nmds <- metaMDS(spe, 
+                    distance = "bray"))
+spe.nmds$stress
 plot(
   spe.nmds,
   type = "t",
@@ -1137,20 +1139,40 @@ plot(
     round(spe.nmds$stress, 3)
     )
   )
+```
 
+- **注意比较分析 NMDS & PCA & CA & PCoA 之间的异同**
+
+如果相异性矩阵中含有缺失值, 使用 isoMDS() 函数进行 NMDS 分析. 
+默认情况下, isoMDS() 函数会调用 cmdscale() 函数的 PCoA 分析进行初始配置. 
+为避免获得局部最小值, 建议使用分析包 labdsv 中的 bestnmds() 进行分析(该函数是 isoMDS 的一个包装器, 通过随机初始值进行分析; 该函数保留了最小应力值的解) 
+
+通过 Shepard diagram 对 NMDS 分析结果图进行比较 -- 排序图中对象之间的相异性 与 原始相异性; 排序结果的优劣程度通过线性或者非线性回归的 R方 进行评估. 
+使用分析包 vegan 中的 stressplot() & goodness() 都可获得相应评估参数. 
+
+- https://www.displayr.com/goodness-of-fit-in-mds-and-t-sne-with-shepard-diagrams/
+- http://www.analytictech.com/borgatti/mds.htm
+- https://rdrr.io/cran/vegan/man/goodness.metaMDS.html
+- https://rdrr.io/github/vmikk/metagMisc/man/shepard_plot.html
+
+```{r}
 # par(mfrow = c(1, 2))
 # stressplot() https://www.rdocumentation.org/packages/vegan/versions/2.4-2/topics/stressplot.wcmdscale
 # https://www.rdocumentation.org/packages/vegan/versions/2.4-2/topics/goodness.metaMDS
 stressplot(spe.nmds, 
            main = "Shepard plot")
-gof <- goodness(spe.nmds)
+(gof <- goodness(spe.nmds))
 plot(spe.nmds, 
      type = "t", 
      main = "Goodness of fit")
 points(spe.nmds, 
        display = "sites", 
        cex = gof * 300)
+```
 
+与其他的排序方法一样, NMDS 排序图中可以添加聚类结果的信息(根据分组通过颜色进行区分). 
+
+```{r}
 # 对百分比相异矩阵进行 Ward 最小方差聚类分析, 并划分出 4 组
 spe.bray.ward <- hclust(spe.bray, 
                         "ward.D") 
@@ -1178,7 +1200,6 @@ ordicluster(p,
             spe.bray.ward, 
             col = "dark grey")
 ```
-
 
 ### 5.6.3 如何选择主坐标分析与非度量多维尺度分析? PCoA or NMDS ?
 
