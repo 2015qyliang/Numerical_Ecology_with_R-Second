@@ -971,6 +971,8 @@ PCOA 结果图的解读 -- 相似相近原则: 对象在图上的距离的远近
 
 ### 5.5.2 使用 vegan 分析包的 cmdscale() 函数对河流数据集进行主坐标分析(PCoA) 
 
+*投影处理*
+
 ```{r}
 # 对鱼类物种数据集的百分差异相异矩阵进行主坐标分析(PCOA)
 # vegdist() 对群落数据进行相异指数的计算
@@ -988,13 +990,19 @@ abline(h = 0,
        lty = 3) # 添加线
 abline(v = 0, 
        lty = 3)
-# 添加物种的加权平均预测值
+# 添加物种的加权平均预测值 | 计算加权平均值用于排序配置或环境变量的物种得分
+# https://www.rdocumentation.org/packages/vegan/versions/2.4-2/topics/wascores
 spe.wa <- wascores(spe.b.pcoa$points[, 1:2], spe)
 text(spe.wa, 
      rownames(spe.wa), 
      cex = 0.7, 
      col = "red")
 # 对环境变量进行事后预测检验 - posteriori projection 
+# envfit() https://www.rdocumentation.org/packages/vegan/versions/2.4-2/topics/envfit
+# 将环境变量或因子拟合到排序结果上
+# envfit() 寻找 环境变量中的向量或者因子平均值
+# ? 点向量的投影与相应的环境变量具有最大的相关性, 这些因子表示因子水平的平均值 
+# envfit() 对 环境变量 进行 置换检验, 计算 变量的 p-value
 (spe.b.pcoa.env <- envfit(spe.b.pcoa, env))
 # 绘制显著变量
 plot(spe.b.pcoa.env, 
@@ -1002,24 +1010,35 @@ plot(spe.b.pcoa.env,
      col = 3)
 ```
 
-
 ### 5.5.3 使用 pcoa() 对河流数据集进行主坐标分析(PCoA) 
 
+还有另一种方法可进行 *双投影* (基于环境变量与 PCOA 排序轴的相关关系). 
+由 Euclidean 距离计算而来的 PCoA 产生了对应于在相同数据的 scaling-1 PCA 双序图中获得的特征向量. 
+
+分析包 ape 中可使用 pcoa() 和 biplot.pcoa() 函数. 
+
 ```{r}
+# https://www.rdocumentation.org/packages/ape/versions/5.3/topics/pcoa
 # 使用 pcoa() 函数对物种向量进行主坐标分析和预测
-spe.h.pcoa <- pcoa(dist(spe.h))
+(spe.h.pcoa <- pcoa(dist(spe.h)))
 # par(mfrow = c(1, 2))
 # 第一个双序图: Hellinger-transformed species data
+# https://www.rdocumentation.org/packages/ape/versions/5.3/topics/pcoa
+# https://github.com/cran/ape/blob/master/R/biplot.pcoa.R
 biplot.pcoa(spe.h.pcoa, 
             spe.h, 
-            dir.axis1 = -1)
+            dir.axis1 = -1) # 反转轴1直接生成结果与 PCA 结果相当 - 相互比较; 排序轴的符号可任意
 abline(h = 0, lty = 3)
 abline(v = 0, lty = 3)
 text(-0.5, 
      0.45, 
      "a", 
      cex = 2)
+```
 
+- **为了将物种数据投影到 PCoA 图上, 使用具有与用于计算相异度矩阵变换相同的变换(如果有的话)的物种数据**
+
+```{r}
 # 第二个双序图: standardized Hellinger-transformed species data - 标准化
 spe.std <- scale(spe.h)
 biplot.pcoa(spe.h.pcoa, 
@@ -1035,7 +1054,6 @@ text(-2.7,
 
 # 第三个双序图: standardized Hellinger-transformed species data;
 # 只绘制 4 个物种
-
 spe.std <- scale(spe.h)
 biplot.pcoa(spe.h.pcoa, 
             spe.h[, c(2, 5, 11, 21)], 
@@ -1044,12 +1062,14 @@ abline(h = 0,
        lty = 3)
 abline(v = 0, 
        lty = 3)
+```
 
+对非欧式距离进行排序, 首选 PCoA; 分析包 ade4 在 Jaccard & Sørensen 相异性度量中计算了 相异度的平方根, 完全的欧式距离排序; 分析包 vegan 中使用 bray 方法进行百分量差异相异度计算, 其相异性度量可能不是欧式距离. 
+这种情况导致了一些 **负特征值**. 
+分析包 ape 中 pcoa() 函数可对其进行校正. 
 
-
+```{r}
 # 比较 欧式(Euclidean)和非欧式相异矩阵的主坐标分析(PCOA)结果
-# PCoA on a Hellinger distance matrix
-
 # https://www.rdocumentation.org/packages/ade4/versions/1.7-13/topics/is.euclid
 is.euclid(dist(spe.h)) # 检查距离矩阵是否是欧式的 - Euclidean
 summary(spe.h.pcoa)
@@ -1065,7 +1085,6 @@ is.euclid(sqrt(spe.bray))
 spe.braysq.pcoa <- pcoa(sqrt(spe.bray))
 spe.braysq.pcoa$values	# 观察特征值 - eigenvalues
 
-# PCoA on a percentage difference dissimilarity matrix with Lingoes correction
 # 对百分差异的相异矩阵进行Lingoes校正-主坐标分析(PCoA)
 spe.brayl.pcoa <- pcoa(spe.bray, 
                        correction = "lingoes")
@@ -1077,7 +1096,6 @@ spe.brayc.pcoa <- pcoa(spe.bray,
 spe.brayc.pcoa$values # 观察特征值(eigenvalues) & col. 1 & col. 2
 
 ```
-
 
 ---
 
