@@ -853,10 +853,29 @@ plot(spe.part2,
 
 #### 6.3.2.9 冗余分析(RDA)可作为多元方差分析(Multivariate ANOVA)的一种工具
 
+在其经典的参数形式中, 多变量方差分析(MANOVA)具有严格的应用条件和限制条件(例如, 每组数据的多元正态性, 方差-协方差矩阵的同质性, 响应变量的数量小于对象的数量减去 MANOVA模型的自由度数). 
+尽管对生态实验结果的分析成效显而易见, 但实际上从未完全适应于生态数据分析. 
+
+对于 MANOVA, RDA 提供了参数分析的替代方案, 同时增加了置换检验,以及在三序图中表示结果的可能性. 
+使用因子变量及其相互作用作为RDA中的解释变量. 
+
+在下面的示例中, 因子被编码为正交Helmert对比, 以允许以提供正确F值的方式测试因子和相互作用. 
+相互作用由编码主要因素的变量的乘积表示. 
+Helmert对比的属性如下, 用于均衡设计: 
+-1> 每个编码变量的总和为零; 
+-2> 编码因子或相互作用的所有变量都是正交的(它们的标量积均为零); 
+-3> 编码主要因子及其相互作用的变量组彼此正交; 
+
+即使采用这种置换方法, 方差-协方差矩阵的同质性条件仍然适用. 
+分析包 vegan 中的 betadisper() 函数可用于检测该方法. 
+可以分别测试关于每个因子的方差的均匀性. 
+但是, 在交叉设计的情况下存在风险. 
+*当两个因素之间存在相互作用时, 可以拒绝相对于一个因子没有方差异质性的假设, 因为组内分散由于另一个因子的水平的变化影响而不同. *
+*为了避免这种情况, 可以创建跨越两个真实因子的人工因子(artificial factor) -- 定义数据的逐个细胞属性(cell-by-cell attribution).* 
+*该测试成为细胞内分散体(within-cell dispersions)均匀性的测试. *
 
 ```{r}
 # 双向多元方差分析(Two-way MANOVA by RDA)
-
 # 创建向量 'elevation' (3 levels, 9 sites each)
 ele.fac <- gl(3, 9, labels = c("high", "mid", "low"))
 # 创建一个模拟 'pH' 的因子
@@ -865,7 +884,6 @@ pH.fac <-
               1, 1, 2, 3, 2, 1, 2, 3, 2, 1, 1, 3, 3))
 # 双向因子化设计的是否平衡 ?
 table(ele.fac, pH.fac) # 列联表
-
 # model.matrix 创建矩阵
 # https://www.rdocumentation.org/packages/stats/versions/3.6.0/topics/model.matrix
 (ele.pH.helm <- 
@@ -877,27 +895,35 @@ table(ele.fac, pH.fac) # 列联表
      contrasts = list(ele.fac = "contr.helmert", 
                       pH.fac = "contr.helmert"))[, -1])
 colnames(ele.pH.helm2)
+```
 
+```{r}
 # 检查 helmert 对比属性 1 : 所有变量总和等于 0
 apply(ele.pH.helm, 2, sum) # 按照列方向
 # 检查 helmert 对比属性 2 : 组间组内的交叉集为 0 (factors & interaction)
-# ?crossprod
+# ?crossprod - 矩阵交叉积
+# https://www.rdocumentation.org/packages/base/versions/3.6.0/topics/crossprod
 crossprod(ele.pH.helm)
+```
 
+```{r}
 # 使用 vegan 中的 betadisper() 验证组内协方差矩阵的多元变量同质性
 # 为了避免由于在另一个因素中的分散（在相互作用的情况下）相对于一个因子的方差的异质性，产生跨越两个因子的因子，即定义数据的逐个细胞属性 -- google translate
 # To avoid the rist of heterogeneity of variances with respect to one factor because of the dispersion in the other (in case of interaction), creation of a factor crossing the two factors, i.e. defining the cell-by-cell attribution of the data
-
 cell.fac <- gl(9, 3) # 创建因子水平, 向量形式保存; 9 个数, 每个重复 3 次 
 spe.hel.d1 <- dist(spe.hel[1:27, ]) # 计算距离矩阵
+```
 
+```{r}
 # 检验组内分散的同质性
 # 群体分散的多元同质性 - https://www.rdocumentation.org/packages/vegan/versions/2.4-2/topics/betadisper
 (spe.hel.cell.MHV <- betadisper(spe.hel.d1, 
                                 cell.fac))
 anova(spe.hel.cell.MHV) # 参数测试 - Parametric test (not recommended here)
 permutest(spe.hel.cell.MHV) # 置换检验
+```
 
+```{r}
 # 在每个因子内检验分散的同质性
 # 这些检验对于小样本更加稳健
 # Factor "elevation"
@@ -906,18 +932,19 @@ permutest(spe.hel.cell.MHV) # 置换检验
 (spe.hel.ele.MHV <- betadisper(spe.hel.d1, ele.fac))
 anova(spe.hel.ele.MHV) # 参数测试 - Parametric test (not recommended here)
 permutest(spe.hel.ele.MHV) # 置换检验(Permutation test)
-
 # Factor "pH"
 # 群体分散的多元同质性 betadisper
 # https://www.rdocumentation.org/packages/vegan/versions/2.4-2/topics/betadisper
 (spe.hel.pH.MHV <- betadisper(spe.hel.d1, pH.fac))
 anova(spe.hel.pH.MHV) # 方差分析
 permutest(spe.hel.pH.MHV) # 置换检验(Permutation test)
+```
 
+> 组内分散是均匀的
 
+```{r}
 # 使用 rda() 步步为营进行冗余分析
 # 首先检验相互影响
-
 # 使用因子 ele & pH (列 1-4)组合成协变量(covariables)矩阵来进行检验
 interaction.rda <- 
   rda(spe.hel[1:27, ], 
@@ -925,7 +952,11 @@ interaction.rda <-
       ele.pH.helm[, 1:4])
 anova(interaction.rda, 
       permutations = how(nperm = 999))
+```
 
+> 交互作用是否显著? 一个显著的相互作用将排除对主要因素检验的全局解释 <<== 显著的相互作用表明一个因素的影响取决于另一个因素的水平. 
+
+```{r}
 # 检验主要因子 - ele. 
 # 因子 pH 和相互影响组合成协变量矩阵(matrix of covariables)
 factor.ele.rda <- 
@@ -936,7 +967,11 @@ anova(factor.ele.rda,
       permutations = how(nperm = 999), 
       strata = pH.fac
       )
+```
 
+> 因子关系是否显著?
+
+```{r}
 # 检验主要因子 - pH.
 # 因子 ele 和相互影响组合成协变量矩阵(matrix of covariables)
 factor.pH.rda <- 
@@ -947,7 +982,11 @@ anova(factor.pH.rda,
   permutations = how(nperm = 999), 
   strata = ele.fac
   )
+```
 
+> 因子关系是否显著?
+
+```{r}
 # 显著因子 ele 的冗余分析 - RDA with the significant factor ele
 ele.rda.out <- rda(spe.hel[1:27, ]~ ., 
                    as.data.frame(ele.fac))
@@ -960,7 +999,7 @@ plot(ele.rda.out,
 # https://www.rdocumentation.org/packages/vegan/versions/2.4-2/topics/ordihull
 # 排序图中展示组或者因子水平
 ordispider(ele.rda.out, ele.fac, 
-  scaling = 1, 
+  scaling = 1, # distance
   label = TRUE, 
   col = "blue"
   )
@@ -985,16 +1024,21 @@ text(
   cex = 0.8, 
   col = "red"
   )
+```
 
+```{r}
 # 使用 adonis2() 进行置换多元方差分析(Permutational MANOVA)
 # 基于距离矩阵的方差置换多元分析
 # https://www.rdocumentation.org/packages/vegan/versions/2.4-2/topics/adonis
 adonis2(spe.hel[1:27, ] ~ ele.fac * pH.fac, 
   method = "euc", 
-  by = "term"
+  by = "term" # 平方和, 并按照代码中提及的顺序评估术语的显著性
   )
 ```
 
+> 在平衡设计中, 这并不重要(by = "term"): 颠倒两个因素的顺序将产生完全相同的结果; 在不平衡设计的情况下, **由于因子的非正交性, 改变顺序会改变结果** -- 尽可能避免不平衡设计的另一个好理由. 
+
+**[manovRDa.R](http://www.elaliberte.info/code) 也可以通过 RDA 计算固定和随机因子的 two-way MANOVA**
 
 #### 6.3.2.10 冗余分析中的非线性关系
 
