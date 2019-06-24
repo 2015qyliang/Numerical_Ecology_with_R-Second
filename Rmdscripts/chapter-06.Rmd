@@ -461,8 +461,31 @@ arrows(0, 0,
 
 #### 6.3.2.6 选择解释性变量
 
+(小 n 大 p ??) 
+减少解释性变量 -- 搜索简约性, 先验假设很差但是数据很丰富, 记录很少(?); 或者产生大量解释变量的方法必须在之后减少(如基于特征向量的空间分析, 见第7章). 
+
+针对河流数据集, 减少解释性变量的数量的方法大概有两种: 1> 搜索简约性, 2> 冗余分析(RDA)中解释性变量之间的强依赖性(相关性), 可能导致回归模型中解释性变量的系数不稳定. 
+
+可以变量 X 的方差膨胀因子(variance inflation factors, VIF)来探索线性依赖性(变量之间共线性问题的探讨). 
+高方差膨胀因子 -- 两变量之间高相互关联性, 或者一个变量与其他几个变量具有强线性相关性. 
+VIF -- 20 -- 强共线性(collinearity), 避免使用 10, 但至少应该检查. 
+**在生态推理中, 可以删除高度关联的变量中的一个(有些类似于逐一剔除).** 
+
+在变量选择之前, 不应该对高VIF值的变量 X 进行剔除处理. 
+实际上, 两个高度相关的变量既是一个或几个响应变量Y的强预测变量, 也可能以互补的方式对这些响应变量的线性模型做出显着贡献. 
+*变量选择 -- 基于选择标准的选秀!!!*
 
 ```{r}
+# 只包含定量变量的矩阵 X, 计算变量之间的 方差膨胀因子(VIF)
+# vif <- diag(solve(cor(X)))
+```
+
+VIFs也可以在 RDA 或者 CCA 分之后再进行计算, 使用的是分析包 vegan 中的 vif.cca() 函数. 
+vif.cca() 对输入数据类型的兼容性比较好, 可以含有因子变量, 也可以将每个变量分解成虚拟变量之后再计算 VIFs, 如果矩阵 X 中只含有定量变量也会产生相同的结果. 
+**分析过程中, VIF 值通常选择 >10 或者 =20 ==>> 解释变量的数目减少是合理的**
+
+```{r}
+# https://rdrr.io/cran/vegan/src/R/vif.cca.R
 # 方差通胀系数(Variance inflation factors, VIF) 
 # 除了 dfs 其他的所有环境变量; (该章中的第一冗余分析结果?)
 vif.cca(spe.rda)
@@ -470,21 +493,48 @@ vif.cca(spe.rda)
 vif.cca(spechem.physio) 
 ```
 
+除了检验变量之间所有的可能, 没有简单完美的方法来减少解释变量的数量. 
+在多元回归分析中, 三种常用的变量选择的方法: **前向选择, 后向消除和逐步选择解释变量(前两者的结合).** 
+在 RDA 分析中, 前向选择是最常应用的方法, 甚至在解释变量的数量大于(你- 1)的情况下也起作用. 这种方法的分析流程如下: 
 
+- 依次使用 m 个解释变量计算响应变量的 m 个 RDAs. 
+- 根据下面制定的标准选择"最佳"解释变量. 如果它很重要...
+- ...接下来的任务是寻找第二个(第3个, 第4个等)变量来包含在解释模型. 计算包含先前选择的变量的所有模型以及其余解释变量之一. 确定"最佳"新变量; 如果其部分贡献在预先选择的显着性水平上是显著的, 则将其包括在模型中. 
+- 该过程继续, 直到没有更重要的变量可以进入模型
+
+存在若干标准来决定何时停止变量选择. 
+传统的一个是预先选择的显着性水平 α (当没有附加变量具有小于或等于 α 的部分置换 p 值时停止选择). 
+然而, 已知这个标准过于宽松, 或者有时候选择一个"显著"模型, 当没有人应该被识别时(因此膨胀 I 型错误, swell type I errors), 或者通过在模型中包含太多的解释变量(因此膨胀解释方差的数量). 
+Blanchet等人(2008a)解决了这个**双问题**, 并提出了改进这种技术的解决方案: 
+
+- 为了防止整体 I 类错误的膨胀问题, 首先运行使用所有解释变量的全局测试. 如果且仅当该测试很显著时, 执行前向选择; 
+- 为降低过多变量进入模型分析中, 计算全局模型(包含所有潜在的解释性变量)的调整后的多重确定系数(R2adj) -- 第二停止标准. 如果达到 α 显著性或者全局调整后的多重确定系数(R2adj), 前向选择停止; 
+
+第一种模型选择的参考标准是[**Akaike’s information criterion, AIC**](https://www.youtube.com/results?search_query=Akaike%E2%80%99s+information+criterion). 
+根据 Oksanen (vegan 中的 ordistep() 函数文档), 在像 RDA 之类的多元变量分析中, AIC-like 标准可以计算, 但是其结果并不完全可信. 经验表明, 该方法的使用相对自由(?). 
+
+解释性变量选择过程中常用的函数: adespatial 中的 forward.sel() 函数, vegan 中的 ordistep() 和 ordiR2step() 函数. 
+
+- **使用 forward.sel() 进行前向选择**
+
+forward.sel() 需要一个响应变量矩阵和一个解释性数据矩阵(必须只包含定量类型的变量, 因子类型的变量必须通过虚拟变量进行重新编码). 
 
 ```{r}
-# # https://www.rdocumentation.org/packages/klaR/versions/0.6-14/topics/rda
 (spe.rda.all <- rda(spe.hel ~ ., data = env2))
 # 全局调整 R方
 # https://www.rdocumentation.org/packages/vegan/versions/2.4-2/topics/RsquareAdj
 (R2a.all <- RsquareAdj(spe.rda.all)$adj.r.squared)
-
 # 使用 forward.sel() 进行前向选择
 # https://www.rdocumentation.org/packages/adespatial/versions/0.3-4/topics/forward.sel
 # 通过简化模型下的残差置换来执行前向选择 - 针对多元变量
-forward.sel(spe.hel, env2,adjR2thresh = R2a.all)
+forward.sel(spe.hel, env2,adjR2thresh = R2a.all) # 结果表明: 可以设计一种比涉及所有解释性变量的更为简洁的解释模型
 ```
 
+- **使用 ordistep() 进行前向选择**
+
+既可以接受定量类型的解释性变量, 又可以接受因子类型的解释性变量; 允许前向 & 后向 & 逐步式的选择. 可以对 RDA & CCA & db-RDA 结果进行解释性变量选择的分析. 
+首先提供"空"模型--"empty" model, 即仅具有截距的模型, 以及包含所有候选变量的"范围"模型--"scope" model. 
+*后向选择 -- 从完整模型中删除变量, 直到只剩下重要变量*
 
 ```{r}
 # 使用 ordistep() 进行前向选择; 允许使用因子
@@ -501,6 +551,9 @@ forward.sel(spe.hel, env2,adjR2thresh = R2a.all)
 RsquareAdj(step.forward)
 ```
 
+- **使用 ordistep() 进行后向消除选择**
+
+在这种情况下, *只有包含所有候选解释变量的模型必须提供给该函数.* 
 
 ```{r}
 # 使用 vegan 中的 ordistep() 函数进行向后消除; 默认使用 - 向后消除 backward
@@ -512,6 +565,9 @@ RsquareAdj(step.forward)
 RsquareAdj(step.backward)
 ```
 
+- **使用 ordiR2step() 进行前向选择**
+
+仅限于对 RDA & db-RDA 结果进行解释性变量的前向选择分析, 不能进行后向消除分析. 
 
 ```{r}
 # 使用 vegan 中的 ordistep() 函数进行前向选择
@@ -523,21 +579,16 @@ RsquareAdj(step.backward)
   ordiR2step(mod0, 
              scope = formula(spe.rda.all), 
              direction = "forward", 
-             R2scope = TRUE,
+             R2scope = TRUE, # 使用与 forward.sel() 相同的选择标准
              permutations = how(nperm = 199)
              ))
 # https://www.rdocumentation.org/packages/vegan/versions/2.4-2/topics/RsquareAdj
 RsquareAdj(step2.forward)
 ```
 
-
-
 ```{r}
-# 使用 vegan 中的 ordistep() 函数进行前向选择
-# using a double stopping criterion (Blanchet et al. 2008a)
-# and object env3 containing a factor.
-(mod00 <- rda(spe.hel ~ 1, data = env3))
 (spe.rda2.all <- rda(spe.hel ~ ., data = env3))
+(mod00 <- rda(spe.hel ~ 1, data = env3))
 # ordistep 在约束排序(cca, rda, capscale)中通过置换检验选择模型
 # https://www.rdocumentation.org/packages/vegan/versions/2.4-2/topics/ordistep
 (step3.forward <- 
@@ -550,9 +601,7 @@ RsquareAdj(step2.forward)
 RsquareAdj(step3.forward)
 ```
 
-- ** Partial forward selection - 部分前向选择**
-
-使用 ordistep() & ordiR2step() 对偏RDA结果进行前向选择; 保持其他变量不变的同时选择其他解释性变量
+- **使用 ordistep() & ordiR2step() 对偏RDA结果进行前向选择; 保持其他变量不变的同时选择其他解释性变量** 
 
 ```{r}
 # 完全模型的调整R方 比 仅仅与定量变量相关的完全冗余分析 要小
@@ -567,7 +616,7 @@ mod1p <- rda(spe.hel ~ . + Condition(slo), data = env2)
              scope = formula(mod1p), 
              direction = "forward", 
              permutations = how(nperm = 199)
-             ))
+             )) # 因为在开始前向选择时会考虑斜率的影响, 所以结果与上面得到的结果不同
 ```
 
 - **吝啬冗余分析 - Parsimonious RDA**
@@ -576,7 +625,7 @@ mod1p <- rda(spe.hel ~ . + Condition(slo), data = env2)
 
 ```{r}
 (spe.rda.pars <- rda(spe.hel ~ ele + oxy + bod, 
-                     data = env2))
+                     data = env2)) # 只包含三个解释变量
 anova(spe.rda.pars, 
       permutations = how(nperm = 999))
 anova(spe.rda.pars, 
@@ -584,6 +633,7 @@ anova(spe.rda.pars,
       by = "axis")
 (R2a.pars <- RsquareAdj(spe.rda.pars)$adj.r.squared)
 # 比较方差通胀因子(Compare the variance inflation factors)
+# vif.cca() 对输入数据类型的兼容性比较好, 可以含有因子变量, 也可以将每个变量分解成虚拟变量之后再计算 VIFs, 如果矩阵 X 中只含有定量变量也会产生相同的结果. 
 vif.cca(spe.rda.all)
 vif.cca(spe.rda.pars)
 ```
@@ -657,6 +707,8 @@ arrows(0, 0,
   col = "red"
   )
 ```
+
+> 对以上三个三序图结果的进一步解读延伸...
 
 #### 6.3.2.7 环境重构(Environmental Reconstruction): 在冗余分析中设计新位点评估解释性变量的值
 
