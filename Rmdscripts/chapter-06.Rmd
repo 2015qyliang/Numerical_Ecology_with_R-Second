@@ -1181,24 +1181,42 @@ triplot.rda(spe.envsq.fwd.rda,
 
 ### 6.3.3 基于距离的冗余分析(Distance-Based Redundancy Analysis, db-RDA)
 
+生态学家长期以来一直需要在多变量框架中分析群落组成数据的方法. 
+生态实验中的需求特别严重, 旨在通过多因素方差分析进行分析. 
+在进行多元方差分析(MANOVA)或者基于欧氏距离的模型分析之前, 需要都零膨胀的群落组成型数据进行变换(比如, 对已进行 RDA 数据变换的物种数据进行 ANOVA ). 
+生态学家可能想要根据其他不同的指数计算RDA, 这些指标不能通过数据转换和欧几里得距离的计算来计算 -- 基于距离的冗余分析解决了这个问题. 该方法的分析流程如下: 
+
+- 1> 计算响应数据的 Q-模式的相异性矩阵; 
+- 2> 计算相异性矩阵的主坐标分析(PCoA), 如有必要则使用Lines校正负特征值; 保留所有的主坐标, 通过相异性度量来表示数据的所有方差; 
+- 3> 运行并测试上面创建的主坐标的RDA(作为响应数据)受到研究中可用的解释变量的约束. 例如, 解释变量可以代表操作或测量实验的因素
+
+- vegan 中的 capscale(): 如果用户在参数comm中提供物种数据矩阵, 则此函数允许直接绘制加权平均物种分数; 
+- vegan 中的 dbrda(): 不需要经过 PCoA, 也可以直接对相异性响应矩阵进行分析. 绘图中不能直接添加物种得分. 
+
+基于通过**Lingoes校正**获得的PCoA数据的方法具有相同的属性, 而使用**Cailliez校正**获得的数据的测试产生膨胀的I类错误率
+
+双重目标: 希望测试具有正确的I类错误率，并且也想要用物种分数绘制结果.  应用于平方根差异矩阵的函数dbrda()符合第一标准, 而使用Lingoes校正的函数capscale()符合第二标准. 
 
 ```{r}
 colnames(ele.pH.helm) <- 
   c("ele1", "ele2", "pH1", "pH2", "ele1pH1", "ele1pH2", 
     "ele2pH1", "ele2pH2" )
-
 # 创建协变量矩阵
 covariables <- ele.pH.helm[, 3:8]
-
 # 使用 vegan 中的 vegdist() 计算相异响应矩阵
-spe.bray27 <- vegdist(spe[1:27, ], "bray")
+# https://www.rdocumentation.org/packages/vegan/versions/2.4-2/topics/vegdist
+(spe.bray27 <- vegdist(spe[1:27, ], "bray"))
 # 或者使用 adespatial 中的 dist.ldc() 计算相异响应矩阵
-spe.bray27 <- dist.ldc(spe[1:27, ], "percentdiff")
+# https://www.rdocumentation.org/packages/adespatial/versions/0.3-4/topics/dist.ldc
+(spe.bray27 <- dist.ldc(spe[1:27, ], "percentdiff"))
+```
 
+
+
+```{r}
 # 1. 队平方根相异矩阵进行基于距离的冗余分析 dbrda()
-bray.ele.dbrda <- dbrda(
-    sqrt(spe.bray27) ~ ele.pH.helm[, 1:2] + Condition(covariables))
-
+(bray.ele.dbrda <- dbrda(
+    sqrt(spe.bray27) ~ ele.pH.helm[, 1:2] + Condition(covariables)))
 anova(bray.ele.dbrda, 
       permutations = how(nperm = 999)) 
 
@@ -1206,27 +1224,31 @@ anova(bray.ele.dbrda,
 # 非约束性; [Partial] Distance-Based Redundancy Analysis
 # https://www.rdocumentation.org/packages/vegan/versions/2.4-2/topics/capscale
 ele.fac. <- ele.fac
-bray.env.cap <- 
+# https://www.rdocumentation.org/packages/vegan/versions/2.4-2/topics/capscale
+# 基于距离的冗余分析
+(bray.env.cap <- 
   capscale(spe[1:27, ] ~ ele.fac. + Condition(covariables), 
            data = as.data.frame(ele.pH.helm), 
            distance = "bray", 
-           add = "lingoes", 
-           comm = spe[1:27, ])
+           add = "lingoes", # 校正方式
+           comm = spe[1:27, ]))
 anova(bray.env.cap, 
       permutations = how(nperm = 999))
-
 # Plot with "wa" scores to see dispersion of sites around the factor levels
 # 绘制三序图
 triplot.rda(bray.env.cap, 
             site.sc = "wa", 
-            scaling = 1)
+            scaling = 1) # distance
 ```
 
+在 capscale() 和 dbrda() 中, 协变量可以通过两种方式获得: 
+- 1> 约束变量和协变量可以在同一个对象中找到, 该对象必须是一个数据框, 并且公式必须完整, 所有变量和协变量都明确说明, 协变量可以是定量的或因素; 
+- 2> 如果所有协变量都是定量的(或者所有因子都被编码为R感知的虚拟变量, 如上面的对象协变量), 可以简化编码: 约束变量在数据框中, 并且协变量在一个单独的对象中必须是类矩阵; 在这种情况下, 可以全局调用对象, 而无需按名称详细说明协变量. 当使用原始响应数据时, 关联系数由参数距离确定; 
 
+> 两个分析的结果略有不同, 因为-1> 测试不是以相同的方式进行的, -2> 校正使得响应矩阵欧式距离不相同
 
 ```{r}
-### 不在本书中 --> ###
-
+# 不在本书中 ==>>
 # 基于距离的冗余分析 db-RDA -- 替代方案
 
 # 1. 使用 capscale() 对原始数据(site by species)进行基于距离的冗余分析
@@ -1260,19 +1282,19 @@ spe.lingoes2 <- wcmdscale(spe.bray27,
 anova(
   rda(spe.lingoes2 ~ ele.pH.helm[, 1:2] + Condition(covariables))
   )
-
-### 不在本书中 ###
+# <<== 不在本书中
 ```
 
 
 ### 6.3.4 手写冗余分析(RDA)函数
 
-
-
 ```{r}
 myRDA <- function(Y, X) {
   ## 1. 数据预处理
   Y.mat <- as.matrix(Y)
+  # scale() 对矩阵相似对象进行缩放或者居中
+  # https://www.rdocumentation.org/packages/base/versions/3.6.0/topics/scale
+  # 默认 center = T, 减去列平均值然后 centered
   Yc <- scale(Y.mat, scale = FALSE)
 
   X.mat <- as.matrix(X)
@@ -1369,13 +1391,9 @@ myRDA <- function(Y, X) {
   result
   }
 
-doubs.myRDA <- myRDA(spe.hel, env2)
+(doubs.myRDA <- myRDA(spe.hel, env2))
 summary(doubs.myRDA)
-
-# 检索调整后的R方
-doubs.myRDA$R2adj
 ```
-
 
 ---
 
