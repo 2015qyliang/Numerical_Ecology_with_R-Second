@@ -1401,47 +1401,88 @@ summary(doubs.myRDA)
 
 ### 6.4.1 简介
 
+典型对应分析(Canonical Correspondence Analysis, CCA) -- 约束性分析, 一直以来备受好评. 
+该方法与 RDA 具有许多共同特征, 此处不再赘述. 
+它是 RDA 的加权形式, 应用于与 CA 中使用的 χ2 统计量相同的矩阵 Q. 
+CCA 拥有 CA 的基本属性, 并与受限制的排序相结合 -- 约束性排序. 
+CCA 保留了位点之间的 χ2 距离, 在三序图中物种使用点表示. 
+ter Braak 已经证明, 只要满足某些条件, CCA 就是**多元高斯回归的良好近似值**. 
+CCA 三序图最引人注目的一个特征就是: **物种按照其生态最佳值沿着规范轴排序**. 
+这允许对物种组合进行相对容易的生态解释. 
+此外, 在排序图中可以加入物种聚类分析的结果(例如 k-均值划分), 产生直观的物种分组图. 
+
+CCA 也有一些缺点, 与 χ2 距离的数学属性相关. 
+Legendre & Gallagher 指出: **普通物种的丰度值之间的差异对于距离的贡献 小于 稀有物种的相同差异, 因此-稀有物种-可能对分析产生过大的影响**. 
+尽管其被广泛使用, 但是生态学家没有完全接受"χ2 距离" (广泛应用, 但没有广泛接受); 
+借助模拟分析, Faith (1987) 认为 χ2 距离是群落组成型数据中最差的一种距离. 
+**对稀有物种的采样良好以及将其视为生态系统特定特征的潜在生物指标限制了 CCA 的使用; **
+此外, 在进行 CCA 之间应该剔除掉**稀有物种** (??). 
+上述这些问题*促进了*物种数据预转换的发展, 进而将这些数据应用到 RDA, ANOVA 等其他线性分析方法中. 
+惯量(inertia )是 CCA 中数据变化的度量, 由惯量所解释的总惯量比例 -- R^2 -- 也有偏差, 但是不能使用 Ezekiel’s 校正. 
+可使用自展分析(bootstrap )方式进行估计. 
+
 ### 6.4.2 河流数据集的典型对应分析(CCA)
 
 #### 6.4.2.1 使用 vegan 分析包进行典型对应分析(CCA)
 
+Hellinger, log-chord, or chord-transformed 数据类型与 RDA 一起使用; 不使用 χ2 距离则无法对结果进行解释. 
+此外, 数据表的行总和(在 CCA 回归中用作权重)对此类转换数据没有可识别的含义. 
 
 ```{r}
-
 # 原始鱼类物种数据集的典型对应分析(Canonical Correspondence Analysis, CCA)
 # 受 env3 数据集中的所有环境变量的约束
 # cca - Correspondence Analysis And Redundancy Analysis
 # https://www.rdocumentation.org/packages/vegan/versions/2.4-2/topics/cca
 (spe.cca <- cca(spe ~ ., env3))
 summary(spe.cca)
-
 # 未调整 & 调整 的R方
 # https://www.rdocumentation.org/packages/vegan/versions/2.4-2/topics/RsquareAdj
-RsquareAdj(spe.cca)
+RsquareAdj(spe.cca) # 默认使用 1000 次置换检验 | 结果因不同的运行而各异
 ```
 
+在 CCA 中, 可解释的变差的度量不是真正的 R2, 而是惯量(inertias)的比例. 
+此外, 通过自展分析评估校正的 R2, 
+
+与 RDA 分析结果的不同之处在于:
+
+- CCA 使用均方应变系数(Mean squared contingency coefficient)表示方差; 
+- CCA 中的最大典型轴的编号为 min[( p-1), m, n-1], 残差轴的最小编号为 min[( p-1), n-1]; RDA 中两者一样; 
+- CCA 的三序图中, 物种得分使用点表示; 
+- 位点得分是物种得分的加权均值(不是加权和); 
 
 #### 6.4.2.2 绘制典型对应分析的三序图(CCA Triplot)
 
+响应变量(物种)使用点表示, 箭头不可使用. 
 
 ```{r}
 # par(mfrow = c(2, 1))
-# Scaling 1: species scores scaled to the relative eigenvalues, sites are weighted averages of the species
-# 物种得分缩放至相对特征值, 位点是物种的加权平均值
 plot(spe.cca, 
   scaling = 1, 
   display = c("sp", "lc", "cn"), 
   main = "Triplot CCA spe ~ env3 - scaling 1"
   )
 text(-2.3, 4.1, "a", cex = 1.5)
+```
 
-# 默认使用 scaling 2: site scores scaled to the relative eigenvalues, species are weighted averages of the sites
-# 位点得分缩放至相对特征值, 物种是位点的加权平均指标
+*本版中的解释:*
+
+- Scaling 1: 1> 在定量解释变量上以直角投影对象近似于对象沿该变量的位置; 2> 在表示定性解释变量类的质心的点附近找到的对象更可能拥有该变量的类; 3> 定性解释变量的质心之间以及中心与个体之间的距离大约为 χ2 个距离; 
+- Scaling 2: 1> 通过将物种以直角投射到变量上, 可以获得沿着定量环境变量的物种的最佳值; 2> 在一类定性环境变量的质心附近发现的物种很可能在拥有该类变量的地点经常(或以较大的丰度)被发现; 3> 质心之间以及质心和单个物体之间的距离不近似 χ2 距离
+
+```{r}
+# 默认使用 Scaling 2
 plot(spe.cca, 
   display = c("sp", "lc", "cn"), 
   main = "Triplot CCA spe ~ env3 - scaling 2")
 text(-2.3, 2.6, "b", cex = 1.5)
+```
 
+*第一版中的解释:*
+
+- Scaling 1: 1> 位点垂直投影到定量解释性变量的箭头或者延长线上, 投影点的位置接近该位点内该解释性变量数值的位置; 2> 如果一个定性解释性变量的形心接近某个位点的点, 表示该变量中此位点内很可能标注为 1 ; 3> 定性解释性变量的形心之间或者形心与位点之间的距离近似 χ2 距离;
+- Scaling 2: 1> 将物种的点垂直投影到定量解释性变量的箭头或者延长线上, 投影点位置表示物种在该环境变量梯度上的最适区域; 2> 如果物种点接近某个定性变量形心, 表示该物种在于此变量标注为 1 的位点内更常见, 或者具有高多度; 3> 定性解释变量的形心之间或者形心与位点之间的距离不代表 χ2 距离;
+
+```{r}
 # par(mfrow = c(1, 2))
 # scaling 1
 # 典型对应分析(CCA)的双序图, 使用位点得分, 非物种
@@ -1450,7 +1491,9 @@ plot(spe.cca,
   display = c("lc", "cn"), 
   main = "Biplot CCA spe ~ env3 - scaling 1"
   )
+```
 
+```{r}
 # scaling 2 
 # 典型对应分析(CCA)的双序图, 使用物种得分, 非物种
 plot(spe.cca, 
@@ -1460,28 +1503,32 @@ plot(spe.cca,
   )
 ```
 
-
 #### 6.4.2.3 置换检验(典型对应分析 - CCA, 前向选择 - Forward Selection, 吝啬典型对应分析 - Parsimonious CCA)
 
+和 RDA 一样, CCA 也可以通过置换检验进行显著性检验. 
 
 ```{r}
-# 对所有的分析进行置换检验
+# 对所有的分析进行置换检验 - 全局
 anova(spe.cca, 
       permutations = how(nperm = 999))
 # 对每个轴进行置换检验
 anova(spe.cca, by = "axis", 
       permutations = how(nperm = 999))
+```
 
+```{r}
 # 使用 vegan 的 ordistep() 函数进行 基于典型对应分析(CCA)的前向选择
-cca.step.forward <- 
+# https://www.rdocumentation.org/packages/vegan/versions/2.4-2/topics/ordistep
+(cca.step.forward <- 
   ordistep(cca(spe ~ 1, data = env3), 
            scope = formula(spe.cca), 
            direction = "forward", 
-           permutations = how(nperm = 199))
+           permutations = how(nperm = 199)))
+```
 
-
-# 使用 ele, oxy and bod 4个变量进行吝啬典型对应分析(Parsimonious CCA)
-spe.cca.pars <- cca(spe ~ ele + oxy + bod, data = env3)
+```{r}
+# 使用 ele, oxy, bod 4个变量进行吝啬典型对应分析(Parsimonious CCA)
+(spe.cca.pars <- cca(spe ~ ele + oxy + bod, data = env3))
 anova(spe.cca.pars, 
       permutations = how(nperm = 999))
 anova(spe.cca.pars, 
@@ -1489,10 +1536,10 @@ anova(spe.cca.pars,
 # R-square – like statistics | 未调整, 调整? R方
 RsquareAdj(spe.cca.pars)
 # 比较方差的通胀系数 - Compare variance inflation factors
+# https://www.rdocumentation.org/packages/vegan/versions/2.4-2/topics/goodness.cca
 vif.cca(spe.cca)
 vif.cca(spe.cca.pars)
 ```
-
 
 ```{r}
 # compute CCA-based variation partitioning  with bootstrap adjusted R-square
@@ -1528,7 +1575,6 @@ varpart.cca <- function(Y, X, W) {
   res
   }
 ```
-
 
 #### 6.4.2.4 三维交互图(Three-Dimensional Interactive Plots)
 
@@ -1576,7 +1622,6 @@ varpart.cca <- function(Y, X, W) {
 #          type = "t", 
 #          col = gs + 1)
 ```
-
 
 ---
 
