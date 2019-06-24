@@ -1042,11 +1042,21 @@ adonis2(spe.hel[1:27, ] ~ ele.fac * pH.fac,
 
 #### 6.3.2.10 冗余分析中的非线性关系
 
+RDA 进行多元线性回归分析, 然后进行拟合值的 PCA. 因此, 基于多元回归方程的其他方法也可用于 RDA. 上面提出的所有RDA模型仅使用一阶的解释性变量. 
 
+原始物种经常在环境梯度上具有单峰分布的特点, 从而表现出**生态最优和对给定环境约束**的变化的一些容忍度 -- 有最适合的生态区域. 
+
+在这种情况下, 严格线性模型会严重受到缺乏拟合的影响. 绘制所有可能的响应对与解释变量对以检测这种非线性将过于繁琐. 
+
+*识别和拟合单峰响应的简单方法是在一阶函数基础之上添加二阶解释性变量(二次项), 然后对解释性变量进行前向选择. 通过解释性变量的前向选择可以保留某些一阶或者二阶变量. 然后, 含有二阶解释性变量的 RDA 结果难以解读, 所以只有充分理由认为变量直接具有非线性关系时方可使用 非线性的 RDA. 三阶的解释性变量也可以用于拟合单峰响应关系, 但需要高偏态分布的响应变量*
+
+第一个例子: 涉及单个解释变量, 将二度项结合到模型; 
+第二个例子: 一个完整的 RDA, 其中包含所有解释变量(dfs除外)及其二级项, 然后对解释性变量进行前向选择. 
+
+- **1> 一个解释性变量**
 
 ```{r}
 # 冗余分析具有单个二度解释变量(a single second degree explanatory variable)
-
 # 使用 poly() 创建 dfs矩阵 与其 正交二度项(orthogonal second degree term)
 # https://www.rdocumentation.org/packages/stats/versions/3.6.0/topics/poly
 # poly() 创建正交多项式
@@ -1054,27 +1064,29 @@ dfs.df <- poly(dfs, 2)
 colnames(dfs.df) <- c("dfs", "dfs2")
 # 验证多项式的正交特性 - Verify that the polynomial terms are orthogonal
 cor(dfs.df) # 计算矩阵的相关性 & 方差 & 协方差
-
 # 找出矩阵之间的显著性变量
 # forward.sel 通过简化模型下的残差置换进行前向选择
 # https://www.rdocumentation.org/packages/adespatial/versions/0.3-4/topics/forward.sel
 forward.sel(spe.hel, dfs.df)
-
 # 冗余分析并进行方差分析
 spe.dfs.rda <- rda(spe.hel ~ ., as.data.frame(dfs.df))
 anova(spe.dfs.rda)
+```
 
+```{r}
 # 绘制三序图 -- 使用 triplot.rda()
 triplot.rda(spe.dfs.rda, 
   site.sc = "lc", 
-  scaling = 2, 
+  scaling = 2, # correlation ??
   plot.sites = FALSE, 
   pos.env = 1, 
   mult.arrow = 0.9, 
   move.origin = c(-0.25, 0), 
   mar.percent = 0
   )
+```
 
+```{r}
 # 绘制三序图 -- 使用 plot()
 plot(spe.dfs.rda, 
   scaling = 2, 
@@ -1094,7 +1106,9 @@ arrows(0, 0,
   lty = 1, 
   col = "red"
   )
+```
 
+```{r}
 # 四种物种的地图
 # par(mfrow = c(2, 2))
 plot(spa, 
@@ -1133,10 +1147,13 @@ plot(spa,
   main = "Tench"
   )
 lines(spa, col = "light blue")
+```
 
+- **2> 包含所有解释性变量及其二级项的 RDA**
+
+```{r}
 # 所有环境变量的 多项RDA & 二度项 & 前向选择
-env.square <- polyvars(env2, degr = 2)
-names(env.square)
+(env.square <- polyvars(env2, degr = 2))
 spe.envsq.rda <- rda(spe.hel ~ ., env.square)
 R2ad <- RsquareAdj(spe.envsq.rda)$adj.r.squared
 (spe.envsq.fwd <- 
@@ -1151,7 +1168,7 @@ summary(spe.envsq.fwd.rda)
 # 三序图
 triplot.rda(spe.envsq.fwd.rda, 
   site.sc = "lc", 
-  scaling = 2, 
+  scaling = 2, # correlation ??
   plot.sites = FALSE, 
   pos.env = 1, 
   mult.arrow = 0.9, 
@@ -1160,6 +1177,7 @@ triplot.rda(spe.envsq.fwd.rda,
   )
 ```
 
+*在空间分析的框架内, 高阶解释性变量的应用非常普遍, 因为解释性变量通常有空间坐标, 而高阶变量可以构建趋势面分析模型(第七章)*
 
 ### 6.3.3 基于距离的冗余分析(Distance-Based Redundancy Analysis, db-RDA)
 
