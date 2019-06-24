@@ -712,6 +712,11 @@ arrows(0, 0,
 
 #### 6.3.2.7 环境重构(Environmental Reconstruction): 在冗余分析中设计新位点评估解释性变量的值
 
+RDA 模型通常用于解释响应数据的结构, 如由一组独立变量所解释的. 
+但是, 如果模型是由作为解释变量所代表的环境条件的生物指示物的物种构建的, 并且如果模型解释了相当大的方差, 那么 RDA 可以以相反的方式应用, 即估计(定量)的值. 基于物种丰度的解释变量. **!! 反向应用 !!** 
+这有时也称为校准或生物指示. 
+使用分析包 vegan 中的 calibrate() 函数进行计算. 
+
 ```{r}
 # 借助鱼类物种丰度数据虚拟分析对象
 # 变量(物种)必须与原始数据的标签相匹配
@@ -719,17 +724,18 @@ site1.new <- round(apply(spe[1:15, ], 2, mean)) # 列方向 | 小数点位数
 site2.new <- round(apply(spe[16:29, ], 2, mean)) # 列方向 | 小数点位数
 obj.new <- t(cbind(site1.new, site2.new)) # 转置数据
 obj.new.hel <- decostand(obj.new, "hel") # 数据变换
-
-# Calibration
+# Calibration - 适合和绘制变量光滑的表面
+# https://www.rdocumentation.org/packages/vegan/versions/2.4-2/topics/ordisurf
+# (spe.rda.pars <- rda(spe.hel ~ ele + oxy + bod, 
+#                      data = env2)) # 只包含三个解释变量 -- 吝啬冗余分析 parsimonious RDA
 calibrate(spe.rda.pars, 
           obj.new.hel)
-
-# 比较位点数据 
+# 比较位点数据 | 校准后的值是否符合实际? 哪些是好的? 哪些不具真正的价值?
 env2[7:9, c(1, 9, 10)]
 env2[22:24, c(1, 9, 10)]
 ```
 
-
+*分析包 [rioja](https://rdrr.io/cran/rioja/) -- 地层数据的重建分析*
 
 #### 6.3.2.8 方差分解(Variation Partitioning)
 
