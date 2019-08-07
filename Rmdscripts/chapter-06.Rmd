@@ -1810,8 +1810,21 @@ X.sc <- as.data.frame(scale(X))
 
 ## 6.6 其他的非对称分析(Asymmetric Analyses)
 
+上述介绍的内容中并不包括所有可能的多元分析模型.
+
 ### 6.6.1 主响应曲线(Principal Response Curves, PRC)
 
+*https://link.springer.com/article/10.1007/s10452-016-9604-1* 
+*http://edild.github.io/prc1/* 
+*https://www.youtube.com/watch?v=-EOZkJTXn7U* 
+
+通过跟踪试验中对照与处理之间的差异随时间的变化, 分析处理产生的影响. 
+可以图形展示的方式表现群落和物种水平产生的效应. 
+vegan 工具包中 prc() 函数. 
+
+以往的单因素研究思路已经不能完全适应现在的多因素实验设计的群落生态学研究. 
+
+主响应曲线侧重于对照和处理之间的差异.
 
 ```{r}
 # 导入数据 (vegan 内置)
@@ -1829,7 +1842,7 @@ dose <-
 ditch <- gl(12, 1, length = 132)
 
 # Modified RDA - 调整过的冗余分析
-# ?prc - Principal Response Curves, PRC 主响应曲线
+# ?prc - Principal Response Curves, PRC 主响应曲线 / vegan 工具包
 # 冗余分析的特例
 (mod <- prc(pyrifos, dose, week))
 summary(mod)
@@ -1838,7 +1851,9 @@ summary(mod)
 (logabu <- colSums(pyrifos))
 class(logabu) # 向量
 plot(mod, select = logabu > 200)
+```
 
+```{r}
 # 统计检验
 # 因子 ditches 随机化; 时间序列, 仅对第一轴感兴趣
 ctrl <- 
@@ -1850,41 +1865,45 @@ anova(mod,
       first = TRUE)
 ```
 
+### 6.6.2 协对应分析(Co-correspondence Analysis, CoCA)
 
-### 6.6.2 共对应分析(Co-correspondence Analysis, CoCA)
+协对应分析是基于对应分析发展的一种分析方法, 对相同位点的两个群落进行同时排序. 
+不对称分析的形式可允许通过一个群落预测另一个. 
+这种方法填补了一个分析空白: 生态学家通过多种不同类型的环境变量数据的均值(或者采用反向校正和预测的方法)来解释群落数据, 通过生物指标物种或群落来估算环境变量的价值. 
+
+(在对称的分析模式中, 两个群落之间没有解释和被解释的关系)
+
+cocorresp 分析包, 既可以进行对称分析(Symmetric), 又可以进行非对称分析( asymmetric). 
 
 ```{r}
 data(bryophyte)
 data(vascular)
-
 # method = "predictive" 默认
 # method = c("predictive", "symmetric") 预测 & 对称
 # https://www.rdocumentation.org/packages/cocorresp/versions/0.4-0/topics/coca
 # 拟合共对应分析模型 - 共对应分析(Co-correspondence Analysis, CoCA)
 (carp.pred <- coca(bryophyte ~ ., 
                    data = vascular))
-
 # 留一交叉验证 - Leave-one-out cross-validation
 # 预测性共对应分析的交叉验证
 # https://www.rdocumentation.org/packages/cocorresp/versions/0.4-0/topics/crossval
 crossval(bryophyte, vascular)
-
 # 置换检验 - Permutation test
 (carp.perm <- permutest(carp.pred, 
                         permutations = 99))
-
 # 改装(refit) - 只有两个重要的轴
 (carp.pred <- coca(bryophyte ~ ., 
                    data = vascular, 
                    n.axes = 2))
-
 # 提取信息- -位点得分 & 物种符合 species loadings
 # https://www.rdocumentation.org/packages/cocorresp/versions/0.4-0/topics/loadings
 # loadings - 从拟合的对象中提取物种负荷
 carp.scores <- scores(carp.pred)
 load.bryo <- carp.pred$loadings$Y
 load.plant <- carp.pred$loadings$X
+```
 
+```{r}
 # ?plot.predcoca  
 # https://www.rdocumentation.org/packages/cocorresp/versions/0.4-0/topics/plot.predcoca
 # 绘制响应值和预测值的双序图(该部分结果来自预测性协同对应分析, co-correspondence analysis)
@@ -1917,14 +1936,12 @@ text(load.plant,
   cex = 0.7, 
   col = "blue"
   ) 
-
 # 未避免分析包中函数的使用冲突, 接触 cocorresp 分析包的调用
 # Detach package cocorresp to avoid conflicts with ade4:
 detach("package:cocorresp", unload = TRUE)
 # 或者
 unloadNamespace("cocorresp")
 ```
-
 
 ---
 
