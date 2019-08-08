@@ -2048,7 +2048,19 @@ plot(coia.chem.topo)
 
 ### 6.10.1 简介
 
-### 6.10.2 使用 FactoMineR 分析包进行多因素分析
+MFA 是另一种**对称分析**方法(基于两个以上的数据集), 该方法侧重的还是相关性分析, 不涉及对数据集中的任何因果推断的假设分析. 
+分析的数据变量必须属于相同的数据类型(要么是定量, 要么是定性). 
+如果所有的变量都是定量的, 那么 MFA 分析基本上就是应用于每一个自己加权的整组变量的主成分分析(PCA). 
+**(注, 该处不要与 多元对应分析 multiple correspondence analysis, MCA 相混淆, MCA 分析中针对 单一矩阵中的定量变量进行分析)**. 
+
+MFA 分析步骤: -1> 对定量变量数据(中心化, 最适为标准化)进行 PCA 分析, -2> 重组已加权的数据, 将结果数据集进行 全局PCA 分析, -3> 将变量的不同子集投影到全局结果中, 评估对象和变量的共有结构和差异. 
+
+计算: ade4 工具包中的 mfa() 函数, 或者 FactoMineR 工具包中的 MFA() *(该方法的优点更多)*. 
+
+MFA的分析方法可以扩展到层次数据结构中, 进而形成等级多因素分析(Hierarchical Multiple Factor Analysis, HMFA), 可用于探索高山森林生态系统中植被+土壤+动物+腐殖质之间的结构关系. 
+HMFA 的原理是变量最低级层次开始计算每一个级别的MFA, 计算结果被更高一级的层次计算所使用, 其中根据组的数量进行新的加权. 可使用 FactoMineR 工具包中的 HMFA() 进行相应的计算. 
+
+### 6.10.2 使用 FactoMineR 分析包进行多因素分析(MFA)
 
 ```{r}
 # 对变量的 3 个分组进行多因素分 
@@ -2080,10 +2092,14 @@ graphics.off()
  name.group = c("Fish community", "Physiography", "Water quality"),
  graph = FALSE
  ))
+```
 
+```{r}
 summary(t3.mfa)
 t3.mfa$ind
+```
 
+```{r}
 plot(t3.mfa,
      choix = "axes",
      habillage = "group",
@@ -2098,8 +2114,9 @@ plot(t3.mfa,
      habillage = "group",
      shadowtext = TRUE)
 plot(t3.mfa, choix = "group")
+```
 
-
+```{r}
 # RV coefficients with tests (p-values above the diagonal of 
 # the matrix)
 rvp <- t3.mfa$group$RV
@@ -2109,7 +2126,6 @@ rvp[2, 3] <- coeffRV(scale(envtopo), scale(envchem))$p.value
 round(rvp[-4, -4], 6)
 ```
 
-
 ```{r}
 # 特征值, 碎石图和破碎棒模型 - Eigenvalues, scree plot and broken stick model
 ev <- t3.mfa$eig[, 1]
@@ -2117,8 +2133,6 @@ names(ev) <- paste("MFA", 1 : length(ev))
 # ?screestick
 screestick(ev, 
            las = 2)
-
-
 # 替代性绘图
 # 只绘制显著的变量 (相关性)
 # 选择最特征的的变量
@@ -2170,9 +2184,6 @@ for (v in 1 : nrow(varsig)) {
        pos = pos)
   }
 ```
-
-
----
 
 ## 6.11 关于物种特征和环境
 
