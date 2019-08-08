@@ -2185,14 +2185,42 @@ for (v in 1 : nrow(varsig)) {
   }
 ```
 
-## 6.11 关于物种特征和环境
+## 6.11 关联物种特征和环境
+
+生态位理论会预测已适应 环境的定植的 物种的生态和行为特征. 
+功能生态学主要研究物种特征和环境之间的相互关系. 
+这种研究方法, 由于要检验假设, 因此面临方法学上的挑战, 必须通过适合的方法评估物种特征与环境特征之间的关系, 如物种的有无或丰度所导致的群落结构特征与环境之间的相互关系. 
+
+下文将介绍两种解决上述问题的方法: -1> RLQ, -2> fourth-corner methods. 
+这两种方法具有互补的特性: RLQ 是一种排序方法, 允许三种数据表组合的数据结构的可视化, 但只是一种简单的全局检验; fourth-corner methods 是一系列个体特征与环境相互关系的统计检验, 不考虑个体特征与环境变量之间的协方差, 同时没有关于位点和物种的输出结果. 
+
+本书中介绍了一些提高两种方法互补性的调整: 整体数据由三种矩阵组成, -1> 矩阵A(或者矩阵L) -- 物种有无或者丰度数据 (n 个位点, p 个物种) , -2> 矩阵B(或者矩阵Q) -- 生物学或者行为特征数据 (p 个物种, s 个生物学特征或者行为特征), -3> 矩阵C(或者矩阵R) -- 栖息地特征数据 (n 个位点, m 个栖息地特征).
+
+> 主要目的是为了研究物种特征和环境之间的相互关系. 
+
+RLQ 方法是分析由矩阵L连接起来的矩阵R和矩阵Q (矩阵L在此处起到了链接作用), s*m 矩阵的交叉特征和环境变量 是第四个矩阵(也成为 矩阵D, 第四角)
 
 ### 6.11.1 四角法分析(The Fourth-Corner Method)
 
+该方法的原理在于: -1> 估计矩阵D的参数, -2> 检验参数的显著性(差异性), 在六种置换模型中选择最适合的一种.
+
+Model 1: environmental control over individual species. 
+Model 2: environmental control over species assemblages. 
+Model 3: lottery. 
+Model 4: random species attributes. 
+Model 5: permute rows and columns. 
+Model 6: this is actually a combination of models 2 and 4. 
+
 ### 6.11.2 物种功能属性与环境因子关系分析( RLQ Analysis)
+
+RLQ 分析方法是共惯量(co-inertia analysis, CoIA)分析的一个扩展. 
 
 ### 6.11.3 在 R 中的应用
 
+该部分数据的科研背景: 阿尔卑斯山上的植物性状对积雪融化梯度的响应. 
+主要的科学问题是: 根据植物物种的功能特征评估, 积雪的持续时间及其所有后果如何影响高山草原? 
+
+> 结果图的解读是**重点!!!**
 
 ```{r}
 data(aravo)
@@ -2218,7 +2246,6 @@ rlq.aravo <- rlq(
 plot(rlq.aravo)
 # Traits by environment crossed table
 rlq.aravo$tab
-
 # 单一绘图拥挤, 逐个绘制
 s.label(rlq.aravo$lR, 
   plabels.boxes.draw = FALSE, 
@@ -2271,7 +2298,9 @@ fourth.aravo.adj <- p.adjust.4thcorner(
 plot(fourth.aravo.adj, 
      alpha = 0.05, 
      stat = "D2")
+```
 
+```{r}
 # Biplot combining RLQ and fourth-corner results
 plot(fourth.aravo.adj, 
   x.rlq = rlq.aravo, 
@@ -2280,7 +2309,6 @@ plot(fourth.aravo.adj,
   type = "biplot"
   )
 ```
-
 
 ```{r}
 summary(fishtraits)
@@ -2342,7 +2370,6 @@ randtest(rlq.doubs,
          nrepet = 999, 
          modeltype = 6)
 
-
 # 四象限分析 - Fourth-corner analysis
 # ?fourthcorner
 # https://www.rdocumentation.org/packages/ade4/versions/1.7-13/topics/fourthcorner
@@ -2385,7 +2412,9 @@ plot(fourth.doubs2,
      stat = "D2")
 plot(fourth.doubs2, 
      stat = "G")
+```
 
+```{r}
 # Biplot combining RLQ and fourth-corner results
 plot(fourth.doubs.adj, 
      x.rlq = rlq.doubs, 
@@ -2393,7 +2422,6 @@ plot(fourth.doubs.adj,
      stat = "D2", 
      type = "biplot"
      )
-
 plot(fourth.doubs2,
      x.rlq = rlq.doubs,
      alpha = 0.05,
@@ -2402,12 +2430,29 @@ plot(fourth.doubs2,
      )
 ```
 
-
 ---
 
 ## 6.12 结论
 
+排序, 查看生态数据信息的一种方式, 同时也是在涉及多个数据矩阵的多环境变量中揭示,解释,检验和模拟生态关系的有力的方法家族. 
 
+>本书汇总了作者认为最重要且最有用的方法. 
+
+Name, acronym | Use (examples) | R functions(packages) | Data; implementation; limitations
+- | - | - | - 
+A. Asymmetric analyses -- 非对称分析 |  |  |  
+ Redundancy analysis, RDA | Predict Y with X (Variation partitioning) | rda{vegan} / varpart{vegan} | All types; species data with prior transformation; m < (n-1). Linear model.  
+ Canonical correspondence analysis, CCA | Predict Y with X | cca {vegan} | Y: species abundances; X: all types; m < (n-1); unimodal response to latent variables.  
+ Linear discriminant analysis, LDA | Explain classification with quantitative variables | lda{MASS} | Y: classification; X: quantitative variables. Linear model.  
+ Principal response curves, PRC | Model community response through time in controlled experiments | prc{vegan} | Y: community data; factor “treatment”; factor “time”.  
+ Co-correspondence analysis (asymmetricform), CoCA | Predict one community on the basis of another | coca{cocorresp} | Y: data for community 1; X: data for community 2; both at the same sites. Unimodal response to latent variables
+B. Symmetric analyses -- 对称分析 |  |  |  
+ Co-correspondence analysis (symmetric form), CoCA | Optimized comparison of two communities (descriptive approach) | coca{cocorresp} | Y1: data for community 1; Y2: data for community 2; both at the same sites. Unimodal response to latent variables  
+ Canonical correlation analysis, CCorA | Common structures of two data matrices. | CCorA{vegan} | Two matrices of quantitative data. Linear model.  
+ Co-inertia analysis, CoIA | Common structures of two or more data matrices. | coinertia{ade4} | Very general and flexible; many types of data and ordination methods.  
+ Multiple factor analysis, MFA | Common structures of two or more data matrices. | mfa{ade4} / MFA{FactoMineR} | Simultaneous ordination of 2 or more weighted tables. Mathematical type must be homogeneous within each table.  
+ RLQ analysis, RLQ | Species traits related to environmental variables | rlq{ade4} | 3 tables: species-by-sites, sites-by-environment; species-by-traits  
+ Fourth-corner analysis | Species traits related to environmental variables | fourthcorner, fourthcorner2{ade4} | 3 tables: species-by-sites, sites-by-environment; species-by-traits  
 
 ---
 
