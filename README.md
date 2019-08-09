@@ -16,7 +16,11 @@
 
 * 2019 年春于山东·威海 转译
 
-#### 注: 第七章的笔记内容, 转述了'赖江山'老师翻译的<数量生态学--R语言的应用_第一版>相关的内容
+### 关于这份转译输出工作:
+
+输出这一部分的转译工作, **一是**2016年加入课题组的郑维爽博士(博后)引入了"费曼型学习输出", **二是**深受2019年3月份加入的 [**openbiox**](https://openbiox.org/)团队宗旨 -- **Inventing, Optimizing, Sharing** -- 的影响(团队宗旨由李剑峰博士等初创人员起草, 小生不才, 提炼汇总了这三个词; 坚守岗位, 践行原则), **三是**课题组对人才培养的宽松环境([课题组链接](https://sdum.wh.sdu.edu.cn/index.html); 自硕导--陈冠军老师--习得"坚守科学创作底线", 自博导--杜宗军老师--习得"谋定而后动")
+
+#### 注: 第七章的笔记, 转述了'赖江山'老师翻译的<数量生态学--R语言的应用_第一版>相关的内容
 
 #### 其他相关资源
 
@@ -24,6 +28,12 @@
 - https://github.com/zdealveindy/anadat-r/tree/master/scripts
 - https://github.com/JoeyBernhardt/NumericalEcology
 - https://github.com/CMET-UGent/CMETNGS/tree/master/R
+
+#### 推荐资源
+
+推荐李笑来老师发布的"自学是门手艺", 该书是python的入门及进阶书籍
+
+- https://github.com/selfteaching/the-craft-of-selfteaching
 
 ---
 
