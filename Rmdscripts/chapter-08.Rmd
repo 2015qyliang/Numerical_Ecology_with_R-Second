@@ -19,15 +19,25 @@
 
 ## 8.1 目标
 
-
+- 获取生态学中多样性的基本概念
+- 通过多种方式计算 α-物种多样性
+- 探索 β-多样性 的概念
+- 将 β-多样性 划分为局部和物种贡献
+- 将 β-多样性 划分为替换、丰富度差异和嵌套
+- 简要介绍功能多样性的概念
 
 ---
 
 ## 8.2 关于多样性的介绍
 
-
-
 ### 8.2.1 简介
+
+基于分类学多样性研究群落水平的物种多样性. 
+[Biodiversity & Human Well-being](https://www.greenfacts.org/en/biodiversity/l-3/1-define-biodiversity.htm) 
+[Biodiversity](https://en.wikipedia.org/wiki/Biodiversity) 
+[Ecosystem biodiversity](https://www.khanacademy.org/science/high-school-biology/hs-ecology/hs-community-ecology/v/ecosystem-biodiversity) 
+[Microbial Diversity](https://pdfs.semanticscholar.org/f2d9/70d4ca8a5069cf95df1da44322dcaa01353a.pdf) 
+[MICROBIAL DIVERSITY - book](http://downloads.lww.com/wolterskluwer_vitalstream_com/sample-content/9781605476735_engelkirk/samples/chapter04.pdf) 
 
 ### 8.2.2 简单数字统计的物种多样性
 
@@ -38,7 +48,6 @@
 ### 8.2.3 分类学多样性指标的实际应用(Taxonomic Diversity Indices)
 
 #### 8.2.3.1 河流数据集中鱼类群落的物种多样性指标(Species Diversity Indices)
-
 
 ```{r}
 # 解决警告信息的显示问题
@@ -80,8 +89,6 @@ env <- env[-8, ]
 spa <- spa[-8, ]
 ```
 
-
-
 ```{r}
 # Alpha 物种多样性
 # ?diversity
@@ -110,9 +117,7 @@ pairs(div[-1, ],
       )
 ```
 
-
 #### 8.2.3.2 甲螨群落的稀疏性分析(Rarefaction Analysis)
-
 
 ```{r}
 # 稀疏性分析
@@ -161,20 +166,15 @@ rarecurve(
   )
 ```
 
-
-
 ---
 
 ## 8.3 与空间相关的多样性: Alpha, Beta and Gamma 多样性
-
-
 
 ---
 
 ## 8.4 β-多样性(Beta Diversity)
 
 ### 8.4.1 简单数字统计的β-多样性
-
 
 ```{r}
 # Beta diversity, LCBD and SCBD of the fish data
@@ -207,7 +207,6 @@ d(spe, lev = "gamma", q = 1)
 d(spe, lev = "gamma", q = 2, boot = TRUE)
 ```
 
-
 ```{r}
 # 绘图 - multiplicative beta diversity vs order
 mbeta <- data.frame(order = 0:20, beta = NA, se = NA)
@@ -227,7 +226,6 @@ ggplot(mbeta, aes(order, beta)) +
      width = 0.2) + labs(y = "Multiplicative beta diversity", 
                          x = "Order of the diversity measure")
 ```
-
 
 ```{r}
 # MacArthur's homogeneity 同质化 measure (MacArthur 1965)
@@ -254,7 +252,6 @@ ggplot(hom, aes(order, homogeneity)) +
                              x = "Order of the diversity measure")
 ```
 
-
 ### 8.4.2 将 β-多样性作为群落组成表中的变量: SCBD & LCBD 指标
 
 #### 8.4.2.1 简介
@@ -269,7 +266,6 @@ ggplot(hom, aes(order, homogeneity)) +
 
 #### 8.4.2.6 使用 adespatial 分析包中的 beta.div() 函数计算 LCBD & SCBD 
 
-
 ```{r}
 # 对经过数据变化的群落物种数据进行 beta.div 统计
 # https://www.rdocumentation.org/packages/adespatial/versions/0.3-4/topics/beta.div
@@ -282,7 +278,6 @@ spe.beta$beta  # SSTotal and BDTotal
 # Which species have a SCBD larger than the mean SCBD?
 spe.beta$SCBD[spe.beta$SCBD >= mean(spe.beta$SCBD)]
 ```
-
 
 ```{r}
 ### 不在本书中 --->>> ###
@@ -342,8 +337,6 @@ lines(spa, col = "light blue")
 ### <<<--- 不在本书中 ###
 ```
 
-
-
 ```{r}
 # local contributions of the sites to beta diversity (LCBD indices)
 spe.beta$LCBD
@@ -381,7 +374,6 @@ text(80, 92, "***", cex = 1.2, col = "red")
 
 #### 8.4.3.4 使用 adespatial 分析包中的 beta.div.comp() 函数计算替换 & 丰富度差异 & 嵌套组成(Replacement & Richness Difference & Nestedness)
 
-
 ```{r}
 # Jaccard-based Podani indices (presence-absence data)
 # https://www.rdocumentation.org/packages/adespatial/versions/0.3-4/topics/beta.div.comp
@@ -414,7 +406,6 @@ points(
 text(3, 0.85, "Upstream", cex = 1, col = "red")
 text(27, 0.85, "Downstream", cex = 1, col = "red")
 ```
-
 
 ```{r}
 # 提取替代矩阵 - Extraction of the replacement matrix
@@ -588,8 +579,6 @@ colMeans(fish.pod.qJ.3[, c(3, 1, 2)])
 colMeans(fish.pod.qS.3[, c(3, 1, 2)])
 ```
 
-
-
 #### 8.4.3.5 解释性替代与丰富度差异(Explaining Replacement and Richness Difference)
 
 ```{r}
@@ -613,7 +602,6 @@ rich.dbrda <- dbrda(fish.rich ~ .,
 anova(rich.dbrda)
 RsquareAdj(rich.dbrda)
 
- 
 plot(
   rich.dbrda,
   scaling = 1,
@@ -622,13 +610,11 @@ plot(
   )
 ```
 
-
 ---
 
 ## 8.5 群落的功能性多样性 & 功能性组成 & 系统进化多样性
 
 ### 8.5.1 α-功能多样性(Alpha Functional Diversity)
-
 
 ```{r}
 summary(fishtraits)
@@ -638,107 +624,6 @@ names(fishtraits)
 (tra <- fishtraits[ , 6:15])
 ```
 
-
-```{r}
-# # 基于距离的功能多样性指标 - Distance-based functional diversity indices
-# # ?dbFD https://www.rdocumentation.org/packages/FD/versions/1.0-12/topics/dbFD
-# res <-
-#   dbFD(
-#     tra,
-#     as.matrix(spe),
-#     asym.bin = 5:10,
-#     stand.FRic = TRUE,
-#     clust.type = "ward.D",
-#     CWM.type = "all",
-#     calc.FGR = TRUE
-#   )
-# # g  # cut the dendrogram using the number of groups as criterion
-# # 10 # choose the number of functional groups
-# 
-# # par(mfrow = c(1, 2))
-# plot(spa,
-#      asp = 1,
-#      pch = 21,
-#      cex.axis = 0.8,
-#      col = "white",
-#      bg = "brown",
-#      cex = res$FRic * 5,
-#      main = "Functional richness",
-#      xlab = "x coordinate (km)",
-#      ylab = "y coordinate (km)"
-#      )
-# lines(spa, col = "light blue")
-# plot(spa,
-#      asp = 1,
-#      pch = 21,
-#      cex.axis = 0.8,
-#      col = "white",
-#      bg = "brown",
-#      cex = res$FEve * 6,
-#      main = "Functional evenness",
-#      xlab = "x coordinate (km)",
-#      ylab = "y coordinate (km)"
-#      )
-# lines(spa, col = "light blue")
-# plot(spa,
-#      asp = 1,
-#      pch = 21,
-#      cex.axis = 0.8,
-#      col = "white",
-#      bg = "brown",
-#      cex = res$FDiv * 5,
-#      main = "Functional divergence",
-#      xlab = "x coordinate (km)",
-#      ylab = "y coordinate (km)"
-#      )
-# lines(spa, col = "light blue")
-# plot(spa,
-#      asp = 1,
-#      pch = 21,
-#      cex.axis = 0.8,
-#      col = "white",
-#      bg = "brown",
-#      cex = res$FDis * 1.5,
-#      main = "Functional dispersion",
-#      xlab = "x coordinate (km)",
-#      ylab = "y coordinate (km)"
-#      )
-# lines(spa, col = "light blue")
-# plot(spa,
-#      asp = 1,
-#      pch = 21,
-#      cex.axis = 0.8,
-#      col = "white",
-#      bg = "brown",
-#      cex = res$RaoQ / 2,
-#      main = "Rao quadratic entropy",
-#      xlab = "x coordinate (km)",
-#      ylab = "y coordinate (km)"
-#      )
-# lines(spa, col = "light blue")
-# plot(spa,
-#      asp = 1,
-#      pch = 21,
-#      cex.axis = 0.8,
-#      col = "white",
-#      bg = "brown",
-#      cex = res$FGR / 2,
-#      main = "Functional group richness",
-#      xlab = "x coordinate (km)",
-#      ylab = "y coordinate (km)"
-#      )
-# lines(spa, col = "light blue")
-# # 添加其他指标
-# div$FRic <- res$FRic
-# div$FEve <- res$FEve
-# div$FDiv <- res$FDiv
-# div$FDis <- res$FDis
-# div$RaoQ <- res$RaoQ
-# div$FGR <- res$FGR
-# div
-```
-
-
 ```{r}
 # 群落加权平均特征值 - Community-weighted mean trait values (CWMs)
 # 功能性组成 - https://www.rdocumentation.org/packages/FD/versions/1.0-12/topics/functcomp
@@ -746,7 +631,6 @@ functcomp(tra,
           as.matrix(spe),
           CWM.type = "all")
 ```
-
 
 ### 8.5.2 β 分类学 & 系统发育学 & 功能性多样性(Beta Taxonomic, Phylogenetic and Functional Diversities)
 
@@ -894,13 +778,6 @@ div$alphaFD <- spe.rao$FD$Alpha
 # Save the species classification as a CSV file
 # write.csv(tr$classification, file = "classification.csv", quote = FALSE)
 ```
-
-
----
-
-## 8.6 结论
-
-
 
 ---
 
