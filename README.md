@@ -16,6 +16,8 @@
 
 * 2019 年春于山东·威海 转译
 
+#### 注: 第七章的笔记内容, 转述了'赖江山'老师翻译的<数量生态学--R语言的应用_第一版>相关的内容
+
 #### 其他相关资源
 
 - https://www.davidzeleny.net/anadat-r/doku.php/en:numecolr
