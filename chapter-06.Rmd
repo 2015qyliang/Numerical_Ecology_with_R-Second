@@ -1,0 +1,2473 @@
+<font face="微软雅黑">
+
+---
+
+# **第六章：典型排序 -- Canonical Ordination | 约束性排序**
+
+---
+
+本章内容简介：
+
+- 6.1 目标
+- 6.2 典型排序简介
+- 6.3 冗余分析(Redundancy Analysis, RDA)
+- 6.4 典型对应分析(Canonical Correspondence Analysis, CCA)
+- 6.5 线性判别分析(Linear Discriminant Analysis, LDA)
+- 6.6 其他的不对称分析(Asymmetric Analyses)
+- 6.7 两个(或多个)数据集的对称分析(Symmetric Analysis)
+- 6.8 典型相关分析(Canonical Correlation Analysis, CCorA)
+- 6.9 共惯性分析(Co-inertia Analysis, CoIA)
+- 6.10 多因素分析(Multiple Factor Analysis, MFA)
+- 6.11 关于物种特征和环境
+- 6.12 结论
+
+---
+
+## 6.1 目标
+
+简单(非约束性)排序方法分析一个数据矩阵 & 通过一系列降维的正交轴揭示重要结构. 
+因此, 该系列方法属于一种被动分析, 只能解释排序之后的后验结果. 
+典型排序分析, 则可以关联两个以上的的数据集进行排序分析. 
+通过典型排序分析可以提取与另一个数据集相关的数据集的结构, 并对相关性进行统计假设检验, 
+
+典型排序分析方法可以分成 - 对称性 & 非对称性 两种. 
+
+- 如何选择典型排序分析方法; 
+- 探索研究物种性状与环境关系的方法; 
+- 使用正确的参数计算, 并正确地解释结果; 
+- 使用多种典型排序分析方法对河流和其他数据集进行分析; 
+- 探索几种典型排序方法的具体应用(比如 RDA方差划分及方差的多变量分析)
+- 自制冗余分析(Redundancy Analysis, RDA)函数
+
+---
+
+## 6.2 典型排序简介(Canonical Ordination Overview)
+
+第 5 章中介绍的非约束性排序方法不受外部变量的影响; 
+外部数据只能通过排序分析结束之后才能进行分析. 
+非约束性分析的只表示对象和变量之间的非约束性的相互关系. 
+
+典型排序分析(约束性分析)相反, 可探索分析两种矩阵之间的相互关系(比如 响应矩阵和解释性矩阵 -- 非对称性分析, 或者两个对称性矩阵). 依据不同的分析方法整合两种不同的矩阵信息. 
+
+> 非对称性典型排序分析:
+
+- redundancy analysis (RDA)
+- canonical correspondence analysis (CCA)
+- linear discriminant analysis (LDA)
+- principal response curves (PRC)
+- co-correspondence analysis (CoCA)
+
+> 对称性典型排序分析:
+
+- canonical correlation analysis (CCorA)
+- co-inertia analysis (CoIA)
+- multiple factor analysis (MFA)
+
+**两种专门研究物种特性与环境之间关系的方法 -- 第四角法和RLQ分析法(the fourth-corner method & the RLQ analysis)**
+
+---
+
+## 6.3 冗余分析(Redundancy Analysis, RDA)
+
+### 6.3.1 简介
+
+RDA 是一种结合 回归分析 & 主成分分析(PCA) 的综合分析方法, 
+是对多元响应数据进行多元回归分析的直接扩展, 是生态学分析中的一个强有力的工具.
+
+从概念上讲, RDA 是多元多重线性回归的拟合值矩阵的 PCA 分析. 矩阵 Y -- 中心化的响应数据矩阵; 矩阵 X -- 中心化的解释性变量矩阵. RDA 简明分析流程如下:
+
+- 计算矩阵 Y 中的每个响应变量与所有解释性变量的多元回归, 获得拟合值矩阵; 
+- 对 拟合值矩阵 进行 PCA 分析, 获得一个典范特征根向量和典范特征向量矩阵 U;
+- 使用矩阵 U 计算位点得分排序结果的两种类型: 位点约束 - Site constraints (linear combinations of constraining variables, lc) & 位点得分 - Site scores (weighted sums of site scores, wa); 
+- 对第一步多元回归分析获得的残差矩阵进行 PCA 分析, 获得残差非约束性排序; 
+
+RDA 的排序轴是解释性变量的线性组合, 该方法寻找能够最好地解释响应变量的一系列解释性变量的线性组合. 与非约束性排序分析的主要差别在于: 约束性分析中, 解释性变量的矩阵控制排序轴的方向以及权重(特征值). 
+
+在 RDA 分析中, 排序轴的解释或者建模(统计意义)依赖于矩阵的方差; 同时可以检验解释性变量矩阵与响应变量矩阵的线性相关关系 ( PCA 则不可以). 
+
+>RDA 分析产生 min[p, m, n-1] 个排序轴, n - 对象的数量, m - 模型的自由度(定量解释性变量的数量, 包括定性解释性变量的因子水平). 
+每个典型排序轴都是所有解释性变量的线性组合(多元回归模型). 
+RDA 分析中通常使用 标准化之后的解释性变量(解释性变量的标准化不会改变回归的拟合值和典型排序的结果). 
+在分析包 vegan 中的 rda() 函数分析结果中, 不能被环境变量解释的方差使用排在典型排序轴后面的非约束性的 PCA 排序轴来表示. 
+拟合值的协方差矩阵 或者 相关性矩阵 都可作为 RDA 的输入数据; 对相关性矩阵进行 RDA 分析时, rda(... , scale = T). 
+RDA 分析中所有的典型排序轴和每个轴的统计显著性使用**置换检验**.
+
+### 6.3.2 河流数据集的冗余分析(RDA)
+
+将探索RDA的各个方面; 要实现这一点, 首先需要准备数据集, 但也要转换变量并将解释变量分成两个子集. 
+
+#### 6.3.2.1 数据集的预处理
+
+```{r}
+# 解决警告信息的显示问题
+# Warning: Input string not available in this locale
+Sys.setlocale('LC_ALL','C')
+
+# 导入分析包
+# ade4 https://www.rdocumentation.org/packages/ade4/versions/1.7-13
+# 生态型数据分析(多变量数据分析): 环境科学中的探索分析和 Euclidean 方法
+# vegan https://www.rdocumentation.org/packages/vegan/versions/2.4-2
+# 群落生态分析包: 排序方法, 多样性分析等
+# ape https://www.rdocumentation.org/packages/ape/versions/5.3
+# 系统发育与进化分析
+# adegraphics https://www.rdocumentation.org/packages/adegraphics/versions/1.0-15
+# 表示多变量数据的图形功能,  'ade4' 的重新集成
+# adespatial https://www.rdocumentation.org/packages/adespatial/versions/0.3-4
+# 多元多尺度空间分析
+# cocorresp https://www.rdocumentation.org/packages/cocorresp/versions/0.4-0
+# 拟合预测性和对称性共同对应分析(co-correspondence analysis, CoCA)模型, 将一个数据矩阵与另一个数据矩阵相关联
+# MASS -  "Modern Applied Statistics with S" (4th edition, 2002)
+# https://www.rdocumentation.org/packages/MASS/versions/7.3-51.4
+# 提供 MASS 这本书中使用到的函数
+# ellipse https://www.rdocumentation.org/packages/ellipse/versions/0.4.1
+# 绘制椭圆或者椭圆状置信区域
+# FactoMineR https://www.rdocumentation.org/packages/FactoMineR/versions/1.41
+# 多变量探索性分析和数据挖掘
+# rrcov https://www.rdocumentation.org/packages/rrcov/versions/1.4-7
+# 稳健的位置和散点估计及鲁棒的多变量分析 ??
+library(ade4)
+library(adegraphics)
+library(adespatial)
+library(cocorresp)
+library(vegan)
+# library(vegan3d) # 运行容易死机
+library(ape)
+library(MASS)
+library(ellipse)
+library(FactoMineR)
+library(rrcov)
+```
+
+```{r}
+# 导入分析脚本与数据集
+source("Functions/hcoplot.R")
+source("Functions/triplot.rda.R")
+source("Functions/plot.lda.R")
+source("Functions/polyvars.R")
+source("Functions/screestick.R")
+load("Data/Doubs.RData")  
+```
+
+```{r}
+spe <- spe[-8, ] # 物种数据集
+env <- env[-8, ] # 环境变量数据集
+spa <- spa[-8, ] # 空间位置数据集
+dfs <- env[, 1] # 环境变量数据集
+env2 <- env[, -1]
+
+slo2 <- rep(".very_steep", nrow(env)) # 生成重复性的向量
+
+# quantile() 计算向量的四分位数
+# https://www.rdocumentation.org/packages/stats/versions/3.6.0/topics/quantile
+slo2[env$slo <= quantile(env$slo)[4]] <- ".steep"
+slo2[env$slo <= quantile(env$slo)[3]] <- ".moderate"
+slo2[env$slo <= quantile(env$slo)[2]] <- ".low"
+slo2 <- factor(slo2, # 因子化
+               levels = c(".low", ".moderate", ".steep", ".very_steep"))
+table(slo2) # 统计频数
+env3 <- env2
+env3$slo <- slo2
+# 生理学(上游 - 下游梯度)
+envtopo <- env2[, c(1 : 3)] # Physiography (upstream-downstream gradient)
+names(envtopo)
+envchem <- env2[, c(4 : 10)] # 水质
+names(envchem)
+spe.hel <- decostand(spe, "hellinger") # 物种数据集数据变换
+```
+
+#### 6.3.2.2 使用 vegan 分析包进行冗余分析(RDA)
+
+分析包 vegan 中对 RDA 有两种不同的方法(简单 & 复杂): 
+
+- 1> simpleRDA <- rda(Y, X, W) 
+Y - 响应变量的矩阵, X - 解释性变量的矩阵, W - 协变量矩阵(matrix of covariables, 偏RDA分析需要); 
+虽然简单, 但有缺陷: 解释性变量矩阵或者协变量矩阵中不能含有因子类型的定量变量.
+
+- 2> formulaRDA <- rda(Y ~ var1 + factorA + var2*var3 + Condition(var4), data = XWdata) 
+如果含有定量类型的变量, 使用复杂版本; 
+
+```{r}
+(spe.rda <- rda(spe.hel ~ ., env3)) # 注意观察 'spe.hel ~ .' 这种快捷方式 !!!
+summary(spe.rda) # Scaling 2 (默认)
+coef(spe.rda) # 冗余分析结果对象的典型系数(Canonical coefficients) 
+```
+
+> 结果内容的解读:
+
+- Partitioning of variance: 方差分解 - 总方差 分为两部分: 约束性 & 非约束性. 约束性部分(双多元冗余统计, bimultivariate redundancy statistic) - 响应变量 Y矩阵 的总方差能被 解释变量 解释的部分; 如果使用比例表示, 相当于 多元回归中的 R方; RDA 的R方, 有偏差, 需要校正; 
+- Eigenvalues and their contribution to the variance: 特征根及对方差的贡献率 -- 典型排序轴的累积解释率 等于 解释性变量所能解释的部分; 
+- *值得注意的特征值的一个特点*: 如果第一残差特征值 大于 最后的典型残差值, 也就是说 -- 第一个非约束性的轴承载的方差大于 大部分典型轴 承载的方差. 原因: 可能还有重要的解释性变量尚未考虑, 或是解释性变量之间存在交互作用, 或者响应变量与解释性变量之间存在高阶线性关系 (?? 多重线性关系 ??)
+- 两种特征值的区别: RDAx(典型特征值) - 响应变量总方差中能被RDA模型解释的部分; PCx(残差特征值) - 响应变量总方差中能被残差解释的部分, 与 RDA 模型无关. 
+- Site constraints (linear combinations of constraining variables): 解释变量的线性组合, 使用解释性变量矩阵 X 计算获得的位点坐标
+- Centroids for factor constraints: 质心因子约束 - 因子变量的质心坐标 
+
+**使用 coef() 提取典型特征系数**
+
+#### 6.3.2.3 从 vegan 分析包的冗余分析(RDA)结果中检索&解读&可视化
+
+多重回归分析的原始 R方 -- 有偏差 ==>> 需要校正. 
+如果 R2adj 接近 0, 解释性矩阵X 对 响应变量矩阵Y的方差的 解释部分 不如 随机正常偏差 解释的多. 
+如果 R2adj 为负数, 解释性矩阵X 则不如 随机正常偏差 解释的好. 
+
+```{r}
+# RsquareAdj
+# https://www.rdocumentation.org/packages/vegan/versions/2.4-2/topics/RsquareAdj
+(R2 <- RsquareAdj(spe.rda)$r.squared) # 从 rda 结果对象中提取未调整的 R方
+(R2adj <- RsquareAdj(spe.rda)$adj.r.squared) # 从 rda 结果对象中提取调整的 R方
+```
+
+位点, 响应变量, 解释变量 ==>> 三序图; 
+解释变量 - 箭头; 响应变量 - 线. 
+
+- display=c(...) -- **1>** "sp" stands for species, **2>** "lc" for fitted site scores (linear combinations of explanatory variables), **3>** "wa" for site scores in the species space (weighted averages in CCA or weighted sums in RDA), and **4>** "cn" for constraints (i.e., the explanatory variables).
+
+```{r}
+# 绘制三序图
+# 位点得分作为环境变量的线性组合
+# par(mfrow = c(2, 1))
+plot(spe.rda,
+  scaling = 1, # distance
+  display = c("sp", "lc", "cn"), 
+  main = "Triplot RDA spe.hel ~ env3 - scaling 1 - lc scores"
+  )
+# scores 使用某种排序方法获取物种或者位点得分
+# https://www.rdocumentation.org/packages/vegan/versions/2.4-2/topics/scores
+spe.sc1 <-  scores(spe.rda, 
+                   choices = 1:2, # which axes are to be selected
+                   scaling = 1, 
+                   display = "sp" 
+                   )
+arrows(0, 0, 
+  spe.sc1[, 1] * 0.92,
+  spe.sc1[, 2] * 0.92,
+  length = 0, 
+  lty = 1, 
+  col = "red"
+  )
+text(-0.75, 0.7, "a", cex = 1.5)
+```
+
+> 无论选择哪种类型的位点坐标, 三序图的解释都需要依据统计显著性检验结果. 与多元回归一样, 不显著性的回归结果不能被解释, 必须丢弃. 
+
+```{r}
+# Scaling 2 - correlation
+plot(spe.rda, 
+  display = c("sp", "lc", "cn"), 
+  main = "Triplot RDA spe.hel ~ env3 - scaling 2 - lc scores"
+  )
+# scores 使用某种排序方法获取物种或者位点得分
+# https://www.rdocumentation.org/packages/vegan/versions/2.4-2/topics/scores
+spe.sc2 <- scores(spe.rda, # 默认使用 scaling = 2
+                  choices = 1:2, 
+                  display = "sp" 
+                  )
+arrows(0, 0, 
+  spe.sc2[, 1] * 0.92, 
+  spe.sc2[, 2] * 0.92,
+  length = 0,
+  lty = 1,
+  col = "red"
+  )
+text(-0.82, 0.55, "b", cex = 1.5)
+```
+
+> 无论选择哪种类型的位点坐标, 三序图的解释都需要依据统计显著性检验结果. 与多元回归一样, 不显著性的回归结果不能被解释, 必须丢弃. 
+
+```{r}
+# 位点得分作为加权平均值 (vegan's default)
+# Scaling 1 :  distance triplot - 距离三序图
+plot(spe.rda, 
+  scaling = 1, 
+  main = "Triplot RDA spe.hel ~ env3 - scaling 1 - wa scores"
+  )
+arrows(0, 0, 
+  spe.sc1[, 1] * 0.92, 
+  spe.sc1[, 2] * 0.92, 
+  length = 0, 
+  lty = 1, 
+  col = "red"
+  )
+
+# Scaling 2 (default) :  correlation triplot - 相关性三序图
+plot(spe.rda, 
+  main = "Triplot RDA spe.hel ~ env3 - scaling 2 - wa scores")
+arrows(0, 0, 
+  spe.sc2[, 1] * 0.92, 
+  spe.sc2[, 2] * 0.92, 
+  length = 0, 
+  lty = 1, 
+  col = "red"
+  )
+```
+
+- Scaling 1 - distance triplot: 1> 响应变量和解释变量之间的夹角反映相关关系(不反映响应变量之间的关系); 2> 定性解释变量的质心和响应变量(物种)之间的关系是通过将质心以直角投射到响应变量上来找到的; 3> 质心间的距离, 质心与个体对象之间的距离, 近似与它们之间的欧式距离; 
+
+- Scaling 2 - correlation triplot: 1> 在响应或定量解释变量上以直角投影对象近似于该变量上的对象的值; 2> 响应变量与解释性变量之间的夹角, 响应变量之间的夹角, 解释性变量之间的夹角, 反映它们之间的相互关系; 3> 定性解释变量的质心与响应变量(物种)之间的关系是通过在响应变量上以直角投影质心来找到的(对于单个对象); 4> 质心间的距离, 质心与个体对象之间的距离, 不近似与它们之间的欧式距离;
+
+```{r}
+# 在由轴1和2形成的排序平面中选择具有至少0.6的拟合优度的物种
+# goodness 评估物种或者位点的适合度
+# https://www.rdocumentation.org/packages/vegan/versions/2.4-2/topics/goodness.cca
+spe.good <- goodness(spe.rda)
+sel.sp <- which(spe.good[, 2] >= 0.6)
+
+# par(mfrow = c(2, 1))
+triplot.rda(spe.rda, 
+  site.sc = "lc", 
+  scaling = 1, 
+  cex.char2 = 0.7, 
+  pos.env = 3, 
+  pos.centr = 1, 
+  mult.arrow = 1.1, 
+  mar.percent = 0.05, 
+  select.spe = sel.sp
+  )
+text(-0.92, 0.72, "a", cex = 2)
+triplot.rda(spe.rda, 
+  site.sc = "lc", 
+  scaling = 2, 
+  cex.char2 = 0.7, 
+  pos.env = 3, 
+  pos.centr = 1, 
+  mult.arrow = 1.1, 
+  mar.percent = 0.05, 
+  select.spe = sel.sp
+  )
+text(-2.82, 2, "b", cex = 2)
+```
+
+#### 6.3.2.4 对冗余分析(RDA)结果进行置换检验
+
+对于生态学研究而言, 所有的 RDA 都必须进行置换检验分析. 
+对各个轴的重要性的检验是建立在相同的原则基础上的. 
+
+置换检验的三个关键要素: 1> permutable units - 置换单元: 响应变量(随机置换响应变量矩阵中的行), 但有时置换单元也会重新定义; 2> test statistic - 检验统计量(pseudo-F); 3> permutation scheme - 置换方案: 置换单元如何被置换, 大多数是自由置换 - 所有的单元无区别且能够自由交换位置. 
+
+- 使用的函数 anova() 与传统的方差分析 ANOVA 容易造成混淆, 实际上与方差分析无关. 
+
+```{r}
+# 全局检验冗余分析结果
+anova(spe.rda, 
+      permutations = how(nperm = 999))
+# 检验所有的典型轴(canonical axes)
+anova(spe.rda, 
+      by = "axis", 
+      permutations = how(nperm = 999))
+# 置换检验能够对典型轴进行很好的取舍 => 使用其他标准(broken-stick or Kaiser-Guttman’s criterion)的意义不大
+# 对于 RDA 的非约束性的残差轴, 其他标准仍然有用
+# http://www.statpower.net/Content/312/R%20Stuff/PCA.html
+# 将Kaiser-Guttman准则应用于残余轴
+# 特征值只与残差特征值的平均值进行比较
+spe.rda$CA$eig[spe.rda$CA$eig > mean(spe.rda$CA$eig)]
+```
+
+仍有一些变化未被环境变量解释
+
+#### 6.3.2.5 偏(部分)冗余分析(Partial RDA)
+
+偏典型排序(Partial canonical ordination)相当于多元偏线性回归分析. 
+事例说明: **以气候变量Y 为解释性变量, 土壤因子变量W 为协变量, 对植物物种数据矩阵Y 进行RDA分析 => 目的: 控制土壤因子影响后, 展示单独能够被气候变量线性模型解释的物种分布格局.** 
+
+```{r}
+# 简单输入模式: X & W 分离的定量变量表格
+(spechem.physio <- rda(spe.hel, envchem, envtopo))
+summary(spechem.physio)
+# 复杂输入模式(公式输入): X & W 在同一个数据框 spe.hel 中
+# 允许更好地控制模型和使用约束(X)或条件(W)之间的因素和相互作用(W)
+(spechem.physio2 <- 
+  rda(spe.hel ~ pH + har + pho + nit + amm + oxy + bod 
+      + Condition(ele + slo + dis), data = env2))
+```
+
+> 偏RDA分析结果的简明解读:
+
+- 方差分解: 响应变量总惯量 - 总方差; Conditioned - 被协变量解释的方差; Constrained - 能单独被解释变量解释的方差; Unconstrained - 残差方差
+- 特征值和剔除协变量影响之后, 特征值对方差的贡献
+
+> 检验 偏RDA 的显著性, 如果结果显著, 则绘制前两轴的三序图
+
+```{r}
+# 检验偏冗余分析
+anova(spechem.physio2, 
+      permutations = how(nperm = 999))
+anova(spechem.physio2, 
+      permutations = how(nperm = 999), 
+      by = "axis")
+
+# 绘制偏冗余分析的三序图
+# Scaling 1 -- distance triplot
+# par(mfrow = c(2, 1))
+triplot.rda(spechem.physio, 
+  site.sc = "lc", 
+  scaling = 1, 
+  cex.char2 = 0.8, 
+  pos.env = 3, 
+  mar.percent = 0
+  )
+text(-0.58, 0.64, "a", cex = 2)
+# Scaling 2 -- correlation triplot
+triplot.rda(spechem.physio, 
+  site.sc = "lc", 
+  scaling = 2, 
+  cex.char2 = 0.8, 
+  pos.env = 3, 
+  mult.spe = 1.1, 
+  mar.percent = 0.04
+  )
+text(-3.34, 3.44, "b", cex = 2)
+```
+
+```{r}
+# Scaling 1 -- 距离? distance
+plot(spechem.physio, 
+     scaling = 1, 
+     display = c("sp", "lc", "cn"), 
+     main = "Triplot RDA spe.hel ~ chem | Topo - scaling 1 - lc scores")
+# scores 使用某种排序方法获取物种或者位点得分
+# https://www.rdocumentation.org/packages/vegan/versions/2.4-2/topics/scores
+spe3.sc <- 
+  scores(spechem.physio, 
+         choices = 1:2, 
+         scaling = 1, # <<<--- 
+         display = "sp"
+         )
+arrows(0, 0, 
+  spe3.sc[, 1] * 0.92, 
+  spe3.sc[, 2] * 0.92, 
+  length = 0, 
+  lty = 1, 
+  col = "red"
+  )
+
+# Scaling 2 -- 相关性 ? correlation
+plot(spechem.physio, 
+     display = c("sp", "lc", "cn"), 
+     main = "Triplot RDA spe.hel ~ chem | Topo - scaling 2 - lc scores")
+# scores 使用某种排序方法获取物种或者位点得分
+# https://www.rdocumentation.org/packages/vegan/versions/2.4-2/topics/scores
+spe4.sc <- 
+  scores(spechem.physio, # 默认 Scaling 2 
+  choices = 1:2, 
+  display = "sp"
+  )
+arrows(0, 0, 
+  spe4.sc[, 1] * 0.88, 
+  spe4.sc[, 2] * 0.88, 
+  length = 0, 
+  lty = 1, 
+  col = "red"
+  )
+```
+
+#### 6.3.2.6 选择解释性变量
+
+(小 n 大 p ??) 
+减少解释性变量 -- 搜索简约性, 先验假设很差但是数据很丰富, 记录很少(?); 或者产生大量解释变量的方法必须在之后减少(如基于特征向量的空间分析, 见第7章). 
+
+针对河流数据集, 减少解释性变量的数量的方法大概有两种: 1> 搜索简约性, 2> 冗余分析(RDA)中解释性变量之间的强依赖性(相关性), 可能导致回归模型中解释性变量的系数不稳定. 
+
+可以变量 X 的方差膨胀因子(variance inflation factors, VIF)来探索线性依赖性(变量之间共线性问题的探讨). 
+高方差膨胀因子 -- 两变量之间高相互关联性, 或者一个变量与其他几个变量具有强线性相关性. 
+VIF -- 20 -- 强共线性(collinearity), 避免使用 10, 但至少应该检查. 
+**在生态推理中, 可以删除高度关联的变量中的一个(有些类似于逐一剔除).** 
+
+在变量选择之前, 不应该对高VIF值的变量 X 进行剔除处理. 
+实际上, 两个高度相关的变量既是一个或几个响应变量Y的强预测变量, 也可能以互补的方式对这些响应变量的线性模型做出显着贡献. 
+*变量选择 -- 基于选择标准的选秀!!!*
+
+```{r}
+# 只包含定量变量的矩阵 X, 计算变量之间的 方差膨胀因子(VIF)
+# vif <- diag(solve(cor(X)))
+```
+
+VIFs也可以在 RDA 或者 CCA 分之后再进行计算, 使用的是分析包 vegan 中的 vif.cca() 函数. 
+vif.cca() 对输入数据类型的兼容性比较好, 可以含有因子变量, 也可以将每个变量分解成虚拟变量之后再计算 VIFs, 如果矩阵 X 中只含有定量变量也会产生相同的结果. 
+**分析过程中, VIF 值通常选择 >10 或者 =20 ==>> 解释变量的数目减少是合理的**
+
+```{r}
+# https://rdrr.io/cran/vegan/src/R/vif.cca.R
+# 方差通胀系数(Variance inflation factors, VIF) 
+# 除了 dfs 其他的所有环境变量; (该章中的第一冗余分析结果?)
+vif.cca(spe.rda)
+# 偏冗余分析(Partial RDA – 生理学变量 physiographic variables only)
+vif.cca(spechem.physio) 
+```
+
+除了检验变量之间所有的可能, 没有简单完美的方法来减少解释变量的数量. 
+在多元回归分析中, 三种常用的变量选择的方法: **前向选择, 后向消除和逐步选择解释变量(前两者的结合).** 
+在 RDA 分析中, 前向选择是最常应用的方法, 甚至在解释变量的数量大于(你- 1)的情况下也起作用. 这种方法的分析流程如下: 
+
+- 依次使用 m 个解释变量计算响应变量的 m 个 RDAs. 
+- 根据下面制定的标准选择"最佳"解释变量. 如果它很重要...
+- ...接下来的任务是寻找第二个(第3个, 第4个等)变量来包含在解释模型. 计算包含先前选择的变量的所有模型以及其余解释变量之一. 确定"最佳"新变量; 如果其部分贡献在预先选择的显着性水平上是显著的, 则将其包括在模型中. 
+- 该过程继续, 直到没有更重要的变量可以进入模型
+
+存在若干标准来决定何时停止变量选择. 
+传统的一个是预先选择的显着性水平 α (当没有附加变量具有小于或等于 α 的部分置换 p 值时停止选择). 
+然而, 已知这个标准过于宽松, 或者有时候选择一个"显著"模型, 当没有人应该被识别时(因此膨胀 I 型错误, swell type I errors), 或者通过在模型中包含太多的解释变量(因此膨胀解释方差的数量). 
+Blanchet等人(2008a)解决了这个**双问题**, 并提出了改进这种技术的解决方案: 
+
+- 为了防止整体 I 类错误的膨胀问题, 首先运行使用所有解释变量的全局测试. 如果且仅当该测试很显著时, 执行前向选择; 
+- 为降低过多变量进入模型分析中, 计算全局模型(包含所有潜在的解释性变量)的调整后的多重确定系数(R2adj) -- 第二停止标准. 如果达到 α 显著性或者全局调整后的多重确定系数(R2adj), 前向选择停止; 
+
+第一种模型选择的参考标准是[**Akaike’s information criterion, AIC**](https://www.youtube.com/results?search_query=Akaike%E2%80%99s+information+criterion). 
+根据 Oksanen (vegan 中的 ordistep() 函数文档), 在像 RDA 之类的多元变量分析中, AIC-like 标准可以计算, 但是其结果并不完全可信. 经验表明, 该方法的使用相对自由(?). 
+
+解释性变量选择过程中常用的函数: adespatial 中的 forward.sel() 函数, vegan 中的 ordistep() 和 ordiR2step() 函数. 
+
+- **使用 forward.sel() 进行前向选择**
+
+forward.sel() 需要一个响应变量矩阵和一个解释性数据矩阵(必须只包含定量类型的变量, 因子类型的变量必须通过虚拟变量进行重新编码). 
+
+```{r}
+(spe.rda.all <- rda(spe.hel ~ ., data = env2))
+# 全局调整 R方
+# https://www.rdocumentation.org/packages/vegan/versions/2.4-2/topics/RsquareAdj
+(R2a.all <- RsquareAdj(spe.rda.all)$adj.r.squared)
+# 使用 forward.sel() 进行前向选择
+# https://www.rdocumentation.org/packages/adespatial/versions/0.3-4/topics/forward.sel
+# 通过简化模型下的残差置换来执行前向选择 - 针对多元变量
+forward.sel(spe.hel, env2,adjR2thresh = R2a.all) # 结果表明: 可以设计一种比涉及所有解释性变量的更为简洁的解释模型
+```
+
+- **使用 ordistep() 进行前向选择**
+
+既可以接受定量类型的解释性变量, 又可以接受因子类型的解释性变量; 允许前向 & 后向 & 逐步式的选择. 可以对 RDA & CCA & db-RDA 结果进行解释性变量选择的分析. 
+首先提供"空"模型--"empty" model, 即仅具有截距的模型, 以及包含所有候选变量的"范围"模型--"scope" model. 
+*后向选择 -- 从完整模型中删除变量, 直到只剩下重要变量*
+
+```{r}
+# 使用 ordistep() 进行前向选择; 允许使用因子
+(mod0 <- rda(spe.hel ~ 1, data = env2))
+# ordistep 在约束排序(cca, rda, capscale)中通过置换检验选择模型
+# https://www.rdocumentation.org/packages/vegan/versions/2.4-2/topics/ordistep
+(step.forward <- 
+  ordistep(mod0, 
+           scope = formula(spe.rda.all), 
+           direction = "forward", 
+           permutations = how(nperm = 499)
+           ))
+# https://www.rdocumentation.org/packages/vegan/versions/2.4-2/topics/RsquareAdj
+RsquareAdj(step.forward)
+```
+
+- **使用 ordistep() 进行后向消除选择**
+
+在这种情况下, *只有包含所有候选解释变量的模型必须提供给该函数.* 
+
+```{r}
+# 使用 vegan 中的 ordistep() 函数进行向后消除; 默认使用 - 向后消除 backward
+# ordistep 在约束排序(cca, rda, capscale)中通过置换检验选择模型
+# https://www.rdocumentation.org/packages/vegan/versions/2.4-2/topics/ordistep
+(step.backward <-
+  ordistep(spe.rda.all, permutations = how(nperm = 499)))
+# https://www.rdocumentation.org/packages/vegan/versions/2.4-2/topics/RsquareAdj
+RsquareAdj(step.backward)
+```
+
+- **使用 ordiR2step() 进行前向选择**
+
+仅限于对 RDA & db-RDA 结果进行解释性变量的前向选择分析, 不能进行后向消除分析. 
+
+```{r}
+# 使用 vegan 中的 ordistep() 函数进行前向选择
+# 使用双重停止标准(a double stopping criterion) (Blanchet et al. 2008a)
+# 环境变量中仅包含定量变量
+# ordistep 在约束排序(cca, rda, capscale)中通过置换检验选择模型
+# https://www.rdocumentation.org/packages/vegan/versions/2.4-2/topics/ordistep
+(step2.forward <- 
+  ordiR2step(mod0, 
+             scope = formula(spe.rda.all), 
+             direction = "forward", 
+             R2scope = TRUE, # 使用与 forward.sel() 相同的选择标准
+             permutations = how(nperm = 199)
+             ))
+# https://www.rdocumentation.org/packages/vegan/versions/2.4-2/topics/RsquareAdj
+RsquareAdj(step2.forward)
+```
+
+```{r}
+(spe.rda2.all <- rda(spe.hel ~ ., data = env3))
+(mod00 <- rda(spe.hel ~ 1, data = env3))
+# ordistep 在约束排序(cca, rda, capscale)中通过置换检验选择模型
+# https://www.rdocumentation.org/packages/vegan/versions/2.4-2/topics/ordistep
+(step3.forward <- 
+  ordiR2step(mod00, 
+             scope = formula(spe.rda2.all), 
+             direction = "forward", 
+             permutations = how(nperm = 199)
+             ))
+# https://www.rdocumentation.org/packages/vegan/versions/2.4-2/topics/RsquareAdj
+RsquareAdj(step3.forward)
+```
+
+- **使用 ordistep() & ordiR2step() 对偏RDA结果进行前向选择; 保持其他变量不变的同时选择其他解释性变量** 
+
+```{r}
+# 完全模型的调整R方 比 仅仅与定量变量相关的完全冗余分析 要小
+# 数据转换过程中可能会导致部分信息丢失
+# 带有变量 slo 的部分前向选择保持不变
+mod0p <- rda(spe.hel ~ Condition(slo), data = env2)
+mod1p <- rda(spe.hel ~ . + Condition(slo), data = env2)
+# ordistep 在约束排序(cca, rda, capscale)中通过置换检验选择模型
+# https://www.rdocumentation.org/packages/vegan/versions/2.4-2/topics/ordistep
+(step.p.forward <- 
+  ordiR2step(mod0p, 
+             scope = formula(mod1p), 
+             direction = "forward", 
+             permutations = how(nperm = 199)
+             )) # 因为在开始前向选择时会考虑斜率的影响, 所以结果与上面得到的结果不同
+```
+
+- **吝啬冗余分析 - Parsimonious RDA**
+
+上述分析表明, *最节俭的态度* 是接受一个只包含三个解释变量的模型
+
+```{r}
+(spe.rda.pars <- rda(spe.hel ~ ele + oxy + bod, 
+                     data = env2)) # 只包含三个解释变量
+anova(spe.rda.pars, 
+      permutations = how(nperm = 999))
+anova(spe.rda.pars, 
+      permutations = how(nperm = 999), 
+      by = "axis")
+(R2a.pars <- RsquareAdj(spe.rda.pars)$adj.r.squared)
+# 比较方差通胀因子(Compare the variance inflation factors)
+# vif.cca() 对输入数据类型的兼容性比较好, 可以含有因子变量, 也可以将每个变量分解成虚拟变量之后再计算 VIFs, 如果矩阵 X 中只含有定量变量也会产生相同的结果. 
+vif.cca(spe.rda.all)
+vif.cca(spe.rda.pars)
+```
+
+> 展示了一种简约的方法是如何帮助提高模型的质量的 | 没有有害的共线性(所有的 vif 都远低于 10)
+
+```{r}
+# 吝啬冗余分析的三序图(带有拟合的位点得分)
+# par(mfrow = c(2, 1))
+# Scaling 1 -- 距离
+triplot.rda(spe.rda.pars, 
+  site.sc = "lc", 
+  scaling = 1, 
+  cex.char2 = 0.8, 
+  pos.env = 2, 
+  mult.spe = 0.9, 
+  mult.arrow = 0.92, 
+  mar.percent = 0.01
+  )
+# Scaling 2 -- 相关性
+triplot.rda(spe.rda.pars, 
+  site.sc = "lc", 
+  scaling = 2, 
+  cex.char2 = 0.8, 
+  pos.env = 2, 
+  mult.spe = 1.1, 
+  mar.percent = -0.02
+  )
+```
+
+```{r}
+# 绘制吝啬冗余分析的三序图
+# par(mfrow = c(1, 2))
+# Scaling 1 -- distance 距离
+plot(spe.rda.pars, 
+     scaling = 1, 
+     display = c("sp", "lc", "cn"), 
+     main = "Triplot RDA spe.hel ~ ele+oxy+bod - scaling 1 - lc scores")
+# scores 使用某种排序方法获取物种或者位点得分
+# https://www.rdocumentation.org/packages/vegan/versions/2.4-2/topics/scores
+spe4.sc <- 
+  scores(spe.rda.pars, 
+         choices = 1:2, 
+         scaling = 1, 
+         display = "sp"
+         )
+arrows(0, 0, 
+  spe4.sc[, 1] * 0.92, 
+  spe4.sc[, 2] * 0.92, 
+  length = 0, 
+  lty = 1, 
+  col = "red"
+  )
+
+# Scaling 2 -- correlation 相关性
+plot(spe.rda.pars, 
+     display = c("sp", "lc", "cn"), 
+     main = "Triplot RDA spe.hel ~ ele+oxy+bod - scaling 2 - lc scores")
+# scores 使用某种排序方法获取物种或者位点得分
+# https://www.rdocumentation.org/packages/vegan/versions/2.4-2/topics/scores
+spe5.sc <- 
+  scores(spe.rda.pars, # 默认 Scaling 2
+         choices = 1:2, 
+         display = "sp"
+         )
+arrows(0, 0, 
+  spe5.sc[, 1] * 0.9, 
+  spe5.sc[, 2] * 0.9, 
+  length = 0, 
+  lty = 1, 
+  col = "red"
+  )
+```
+
+> 对以上三个三序图结果的进一步解读延伸...
+
+#### 6.3.2.7 环境重构(Environmental Reconstruction): 在冗余分析中设计新位点评估解释性变量的值
+
+RDA 模型通常用于解释响应数据的结构, 如由一组独立变量所解释的. 
+但是, 如果模型是由作为解释变量所代表的环境条件的生物指示物的物种构建的, 并且如果模型解释了相当大的方差, 那么 RDA 可以以相反的方式应用, 即估计(定量)的值. 基于物种丰度的解释变量. **!! 反向应用 !!** 
+这有时也称为校准或生物指示. 
+使用分析包 vegan 中的 calibrate() 函数进行计算. 
+
+```{r}
+# 借助鱼类物种丰度数据虚拟分析对象
+# 变量(物种)必须与原始数据的标签相匹配
+site1.new <- round(apply(spe[1:15, ], 2, mean)) # 列方向 | 小数点位数
+site2.new <- round(apply(spe[16:29, ], 2, mean)) # 列方向 | 小数点位数
+obj.new <- t(cbind(site1.new, site2.new)) # 转置数据
+obj.new.hel <- decostand(obj.new, "hel") # 数据变换
+# Calibration - 适合和绘制变量光滑的表面
+# https://www.rdocumentation.org/packages/vegan/versions/2.4-2/topics/ordisurf
+# (spe.rda.pars <- rda(spe.hel ~ ele + oxy + bod, 
+#                      data = env2)) # 只包含三个解释变量 -- 吝啬冗余分析 parsimonious RDA
+calibrate(spe.rda.pars, 
+          obj.new.hel)
+# 比较位点数据 | 校准后的值是否符合实际? 哪些是好的? 哪些不具真正的价值?
+env2[7:9, c(1, 9, 10)]
+env2[22:24, c(1, 9, 10)]
+```
+
+*分析包 [rioja](https://rdrr.io/cran/rioja/) -- 地层数据的重建分析*
+
+#### 6.3.2.8 方差分解(Variation Partitioning)
+
+生态学研究中的普遍现象: 两组或者两组以上的解释性变量分解成不同的类组(共线性问题 - 多个解释性变量共同解释一个响应变量). 
+
+```{r}
+# 两组解释变量的方差分解
+# 可选颜色的分类标签
+par(mfrow = c(1, 3), mar = c(1, 1, 1, 1))
+# https://www.rdocumentation.org/packages/vegan/versions/2.4-2/topics/varpart
+showvarparts(2, bg = c("red", "blue"))
+showvarparts(3, bg = c("red", "blue", "yellow"))
+showvarparts(4, bg = c("red", "blue", "yellow", "green"))
+```
+
+> 交并集运算 - 集合运算 
+
+校正的解释性方差的分数计算:
+
+- fraction [a]adj = [a+b+c]adj - [b+c]adj
+- fraction [b]adj =  [a+b+c]adj - [a+b]adj
+- fraction [c]adj =  [a+b]adj - [a]adj = [b+c]adj - [c]adj
+- fraction [d]adj =  1 - [a+b+c]adj
+
+对于偏 RDA 分析(partial RDA), 不存在直接计算调整后的R方. 
+上述的减法过程可以解决这个问题. 
+调整后的R方, 可以是负值; 对于生态学研究, 负值的R方可以被忽略. 
+
+```{r}
+# 1>. 所有可解释变量的方差分解(除了 dfs)
+# https://www.rdocumentation.org/packages/vegan/versions/2.4-2/topics/varpart
+(spe.part.all <- varpart(spe.hel, envchem, envtopo))
+# 绘制分解结果(partitioning results) 
+plot(spe.part.all, digits = 2, bg = c("red", "blue"))
+```
+
+```{r}
+# 2>. 可解释变量正向选择(前向选择)之后进行方差分解 
+# 每个环境变量子集中单独进行前向(正向)选择
+(spe.chem <- rda(spe.hel, envchem))
+(R2a.all.chem <- RsquareAdj(spe.chem)$adj.r.squared)
+forward.sel(spe.hel, 
+  envchem, 
+  adjR2thresh = R2a.all.chem, 
+  nperm = 9999
+  )
+(spe.topo <- rda(spe.hel, envtopo))
+# https://www.rdocumentation.org/packages/vegan/versions/2.4-2/topics/RsquareAdj
+(R2a.all.topo <- RsquareAdj(spe.topo)$adj.r.squared)
+forward.sel(spe.hel, 
+  envtopo, 
+  adjR2thresh = R2a.all.topo, 
+  nperm = 9999
+  )
+# 基于前向选择的解释性变量的简单(Parsimonious, 吝啬)子集 
+names(envchem)
+(envchem.pars <- envchem[, c(4, 6, 7)])
+names(envtopo)
+(envtopo.pars <- envtopo[, c(1, 2)])
+
+# 方差分解 - Variation partitioning
+# varpart 分解群落矩阵的方差
+# https://www.rdocumentation.org/packages/vegan/versions/2.4-2/topics/varpart
+(spe.part <- varpart(spe.hel, 
+                     envchem.pars, 
+                     envtopo.pars))
+plot(spe.part, 
+  digits = 2, 
+  bg = c("red", "blue"), 
+  Xnames = c("Chemistry", "Physiography"), 
+  id.size = 0.7
+  )
+
+# 检验所有可检验的部分
+# Test of fraction [a+b]
+anova(rda(spe.hel, envchem.pars), 
+      permutations = how(nperm = 999))
+# Test of fraction [b+c]
+anova(rda(spe.hel, envtopo.pars), 
+      permutations = how(nperm = 999))
+# Test of fraction [a+b+c]
+env.pars <- cbind(envchem.pars, envtopo.pars)
+anova(rda(spe.hel, env.pars), 
+      permutations = how(nperm = 999))
+# Test of fraction [a]
+anova(rda(spe.hel, envchem.pars, envtopo.pars), 
+      permutations = how(nperm = 999)
+      )
+# Test of fraction [c]
+anova(rda(spe.hel, envtopo.pars, envchem.pars), 
+      permutations = how(nperm = 999)
+      )
+```
+
+```{r}
+## 3. 无 'nit' 变量的方差分解(Variation partitioning without the 'nit' variable)
+envchem.pars2 <- envchem[, c(6, 7)]
+# varpart 分解群落矩阵的方差
+# https://www.rdocumentation.org/packages/vegan/versions/2.4-2/topics/varpart
+(spe.part2 <- varpart(spe.hel, 
+                      envchem.pars2, 
+                      envtopo.pars))
+plot(spe.part2, 
+     digits = 2)
+```
+
+通过上面的比较, 可以得知:
+
+- 1> 前向选择提供了一个简洁(吝啬, parsimonious)的解决方案, 不牺牲实际的解释能力: 三种分解值的 R2adj 近似相等; 
+- 2> 方差分解的目的在于计算共同解释的方差; 解读过程需谨慎, 共同的部分很难确定与哪组变量相关;  
+- 3> 对所有的解释性变量组合进行前向选择之后在分组, 这种处理与方差分解的思路相悖 -- 除非确定哪些变量对共同解释部分有贡献; 
+- 4> **前向选择**和**方差分解(variation partitioning)**是强大的统计工具. 有助于健全的生态推理, 但无法取代生态推理; 
+
+> 交互作用是双因素方差分析中一个因子不同水平与其他因子不同水平之间的系统作用. 方差分解是由于解释性变量**共线性**问题引起的解释方差的重叠, 而不是协同作用的结果. 如果两组变量之间相互独立(不相关或者正交), 那么共同解释部分 [b] 将等 0.
+
+#### 6.3.2.9 冗余分析(RDA)可作为多元方差分析(Multivariate ANOVA)的一种工具
+
+在其经典的参数形式中, 多变量方差分析(MANOVA)具有严格的应用条件和限制条件(例如, 每组数据的多元正态性, 方差-协方差矩阵的同质性, 响应变量的数量小于对象的数量减去 MANOVA模型的自由度数). 
+尽管对生态实验结果的分析成效显而易见, 但实际上从未完全适应于生态数据分析. 
+
+对于 MANOVA, RDA 提供了参数分析的替代方案, 同时增加了置换检验,以及在三序图中表示结果的可能性. 
+使用因子变量及其相互作用作为RDA中的解释变量. 
+
+在下面的示例中, 因子被编码为正交Helmert对比, 以允许以提供正确F值的方式测试因子和相互作用. 
+相互作用由编码主要因素的变量的乘积表示. 
+Helmert对比的属性如下, 用于均衡设计: 
+-1> 每个编码变量的总和为零; 
+-2> 编码因子或相互作用的所有变量都是正交的(它们的标量积均为零); 
+-3> 编码主要因子及其相互作用的变量组彼此正交; 
+
+即使采用这种置换方法, 方差-协方差矩阵的同质性条件仍然适用. 
+分析包 vegan 中的 betadisper() 函数可用于检测该方法. 
+可以分别测试关于每个因子的方差的均匀性. 
+但是, 在交叉设计的情况下存在风险. 
+*当两个因素之间存在相互作用时, 可以拒绝相对于一个因子没有方差异质性的假设, 因为组内分散由于另一个因子的水平的变化影响而不同. *
+*为了避免这种情况, 可以创建跨越两个真实因子的人工因子(artificial factor) -- 定义数据的逐个细胞属性(cell-by-cell attribution).* 
+*该测试成为细胞内分散体(within-cell dispersions)均匀性的测试. *
+
+```{r}
+# 双向多元方差分析(Two-way MANOVA by RDA)
+# 创建向量 'elevation' (3 levels, 9 sites each)
+ele.fac <- gl(3, 9, labels = c("high", "mid", "low"))
+# 创建一个模拟 'pH' 的因子
+pH.fac <- 
+  as.factor(c(1, 2, 3, 2, 3, 1, 3, 2, 1, 2, 1, 3, 3, 2, 
+              1, 1, 2, 3, 2, 1, 2, 3, 2, 1, 1, 3, 3))
+# 双向因子化设计的是否平衡 ?
+table(ele.fac, pH.fac) # 列联表
+# model.matrix 创建矩阵
+# https://www.rdocumentation.org/packages/stats/versions/3.6.0/topics/model.matrix
+(ele.pH.helm <- 
+  model.matrix(~ ele.fac * pH.fac, 
+               contrasts = list(ele.fac = "contr.helmert", 
+                                pH.fac = "contr.helmert"))[, -1])
+(ele.pH.helm2 <- 
+  model.matrix(~ ele.fac + pH.fac, 
+     contrasts = list(ele.fac = "contr.helmert", 
+                      pH.fac = "contr.helmert"))[, -1])
+colnames(ele.pH.helm2)
+```
+
+```{r}
+# 检查 helmert 对比属性 1 : 所有变量总和等于 0
+apply(ele.pH.helm, 2, sum) # 按照列方向
+# 检查 helmert 对比属性 2 : 组间组内的交叉集为 0 (factors & interaction)
+# ?crossprod - 矩阵交叉积
+# https://www.rdocumentation.org/packages/base/versions/3.6.0/topics/crossprod
+crossprod(ele.pH.helm)
+```
+
+```{r}
+# 使用 vegan 中的 betadisper() 验证组内协方差矩阵的多元变量同质性
+# 为了避免由于在另一个因素中的分散（在相互作用的情况下）相对于一个因子的方差的异质性，产生跨越两个因子的因子，即定义数据的逐个细胞属性 -- google translate
+# To avoid the rist of heterogeneity of variances with respect to one factor because of the dispersion in the other (in case of interaction), creation of a factor crossing the two factors, i.e. defining the cell-by-cell attribution of the data
+cell.fac <- gl(9, 3) # 创建因子水平, 向量形式保存; 9 个数, 每个重复 3 次 
+spe.hel.d1 <- dist(spe.hel[1:27, ]) # 计算距离矩阵
+```
+
+```{r}
+# 检验组内分散的同质性
+# 群体分散的多元同质性 - https://www.rdocumentation.org/packages/vegan/versions/2.4-2/topics/betadisper
+(spe.hel.cell.MHV <- betadisper(spe.hel.d1, 
+                                cell.fac))
+anova(spe.hel.cell.MHV) # 参数测试 - Parametric test (not recommended here)
+permutest(spe.hel.cell.MHV) # 置换检验
+```
+
+```{r}
+# 在每个因子内检验分散的同质性
+# 这些检验对于小样本更加稳健
+# Factor "elevation"
+# 群体分散的多元同质性 betadisper
+# https://www.rdocumentation.org/packages/vegan/versions/2.4-2/topics/betadisper
+(spe.hel.ele.MHV <- betadisper(spe.hel.d1, ele.fac))
+anova(spe.hel.ele.MHV) # 参数测试 - Parametric test (not recommended here)
+permutest(spe.hel.ele.MHV) # 置换检验(Permutation test)
+# Factor "pH"
+# 群体分散的多元同质性 betadisper
+# https://www.rdocumentation.org/packages/vegan/versions/2.4-2/topics/betadisper
+(spe.hel.pH.MHV <- betadisper(spe.hel.d1, pH.fac))
+anova(spe.hel.pH.MHV) # 方差分析
+permutest(spe.hel.pH.MHV) # 置换检验(Permutation test)
+```
+
+> 组内分散是均匀的
+
+```{r}
+# 使用 rda() 步步为营进行冗余分析
+# 首先检验相互影响
+# 使用因子 ele & pH (列 1-4)组合成协变量(covariables)矩阵来进行检验
+interaction.rda <- 
+  rda(spe.hel[1:27, ], 
+      ele.pH.helm[, 5:8], 
+      ele.pH.helm[, 1:4])
+anova(interaction.rda, 
+      permutations = how(nperm = 999))
+```
+
+> 交互作用是否显著? 一个显著的相互作用将排除对主要因素检验的全局解释 <<== 显著的相互作用表明一个因素的影响取决于另一个因素的水平. 
+
+```{r}
+# 检验主要因子 - ele. 
+# 因子 pH 和相互影响组合成协变量矩阵(matrix of covariables)
+factor.ele.rda <- 
+  rda(spe.hel[1:27, ], 
+      ele.pH.helm[, 1:2], 
+      ele.pH.helm[, 3:8])
+anova(factor.ele.rda, 
+      permutations = how(nperm = 999), 
+      strata = pH.fac
+      )
+```
+
+> 因子关系是否显著?
+
+```{r}
+# 检验主要因子 - pH.
+# 因子 ele 和相互影响组合成协变量矩阵(matrix of covariables)
+factor.pH.rda <- 
+  rda(spe.hel[1:27, ], 
+      ele.pH.helm[, 3:4], 
+      ele.pH.helm[, c(1:2, 5:8)]) 
+anova(factor.pH.rda, 
+  permutations = how(nperm = 999), 
+  strata = ele.fac
+  )
+```
+
+> 因子关系是否显著?
+
+```{r}
+# 显著因子 ele 的冗余分析 - RDA with the significant factor ele
+ele.rda.out <- rda(spe.hel[1:27, ]~ ., 
+                   as.data.frame(ele.fac))
+# 三序图: 'wa'位点 - 因子质心; 物种 - 箭头
+plot(ele.rda.out, 
+  scaling = 1, 
+  display = "wa", 
+  main = "Multivariate ANOVA, factor elevation - scaling 1 - 
+          wa scores")
+# https://www.rdocumentation.org/packages/vegan/versions/2.4-2/topics/ordihull
+# 排序图中展示组或者因子水平
+ordispider(ele.rda.out, ele.fac, 
+  scaling = 1, # distance
+  label = TRUE, 
+  col = "blue"
+  )
+# scores 使用某种排序方法获取物种或者位点得分
+# https://www.rdocumentation.org/packages/vegan/versions/2.4-2/topics/scores
+spe.sc1 <- 
+  scores(ele.rda.out, 
+  scaling = 1, 
+  display = "species")
+arrows(0, 0, 
+  spe.sc1[, 1] * 0.3, 
+  spe.sc1[, 2] * 0.3, 
+  length = 0.1, 
+  angle = 10, 
+  col = "red"
+  )
+text(
+  spe.sc1[, 1] * 0.3, 
+  spe.sc1[, 2] * 0.3, 
+  labels = rownames(spe.sc1), 
+  pos = 4, 
+  cex = 0.8, 
+  col = "red"
+  )
+```
+
+```{r}
+# 使用 adonis2() 进行置换多元方差分析(Permutational MANOVA)
+# 基于距离矩阵的方差置换多元分析
+# https://www.rdocumentation.org/packages/vegan/versions/2.4-2/topics/adonis
+adonis2(spe.hel[1:27, ] ~ ele.fac * pH.fac, 
+  method = "euc", 
+  by = "term" # 平方和, 并按照代码中提及的顺序评估术语的显著性
+  )
+```
+
+> 在平衡设计中, 这并不重要(by = "term"): 颠倒两个因素的顺序将产生完全相同的结果; 在不平衡设计的情况下, **由于因子的非正交性, 改变顺序会改变结果** -- 尽可能避免不平衡设计的另一个好理由. 
+
+**[manovRDa.R](http://www.elaliberte.info/code) 也可以通过 RDA 计算固定和随机因子的 two-way MANOVA**
+
+#### 6.3.2.10 冗余分析中的非线性关系
+
+RDA 进行多元线性回归分析, 然后进行拟合值的 PCA. 因此, 基于多元回归方程的其他方法也可用于 RDA. 上面提出的所有RDA模型仅使用一阶的解释性变量. 
+
+原始物种经常在环境梯度上具有单峰分布的特点, 从而表现出**生态最优和对给定环境约束**的变化的一些容忍度 -- 有最适合的生态区域. 
+
+在这种情况下, 严格线性模型会严重受到缺乏拟合的影响. 绘制所有可能的响应对与解释变量对以检测这种非线性将过于繁琐. 
+
+*识别和拟合单峰响应的简单方法是在一阶函数基础之上添加二阶解释性变量(二次项), 然后对解释性变量进行前向选择. 通过解释性变量的前向选择可以保留某些一阶或者二阶变量. 然后, 含有二阶解释性变量的 RDA 结果难以解读, 所以只有充分理由认为变量直接具有非线性关系时方可使用 非线性的 RDA. 三阶的解释性变量也可以用于拟合单峰响应关系, 但需要高偏态分布的响应变量*
+
+第一个例子: 涉及单个解释变量, 将二度项结合到模型; 
+第二个例子: 一个完整的 RDA, 其中包含所有解释变量(dfs除外)及其二级项, 然后对解释性变量进行前向选择. 
+
+- **1> 一个解释性变量**
+
+```{r}
+# 冗余分析具有单个二度解释变量(a single second degree explanatory variable)
+# 使用 poly() 创建 dfs矩阵 与其 正交二度项(orthogonal second degree term)
+# https://www.rdocumentation.org/packages/stats/versions/3.6.0/topics/poly
+# poly() 创建正交多项式
+dfs.df <- poly(dfs, 2)
+colnames(dfs.df) <- c("dfs", "dfs2")
+# 验证多项式的正交特性 - Verify that the polynomial terms are orthogonal
+cor(dfs.df) # 计算矩阵的相关性 & 方差 & 协方差
+# 找出矩阵之间的显著性变量
+# forward.sel 通过简化模型下的残差置换进行前向选择
+# https://www.rdocumentation.org/packages/adespatial/versions/0.3-4/topics/forward.sel
+forward.sel(spe.hel, dfs.df)
+# 冗余分析并进行方差分析
+spe.dfs.rda <- rda(spe.hel ~ ., as.data.frame(dfs.df))
+anova(spe.dfs.rda)
+```
+
+```{r}
+# 绘制三序图 -- 使用 triplot.rda()
+triplot.rda(spe.dfs.rda, 
+  site.sc = "lc", 
+  scaling = 2, # correlation ??
+  plot.sites = FALSE, 
+  pos.env = 1, 
+  mult.arrow = 0.9, 
+  move.origin = c(-0.25, 0), 
+  mar.percent = 0
+  )
+```
+
+```{r}
+# 绘制三序图 -- 使用 plot()
+plot(spe.dfs.rda, 
+  scaling = 2, 
+  display = c("sp", "lc", "cn"), 
+  main = "Triplot RDA spe ~ dfs+dfs2 - scaling 2 - lc scores")
+# scores 使用某种排序方法获取物种或者位点得分
+# https://www.rdocumentation.org/packages/vegan/versions/2.4-2/topics/scores
+spe6.sc <- 
+  scores(spe.dfs.rda, 
+         choices = 1:2, 
+         scaling = 2, 
+         display = "sp")
+arrows(0, 0, 
+  spe6.sc[, 1] * 0.9, 
+  spe6.sc[, 2] * 0.9, 
+  length = 0, 
+  lty = 1, 
+  col = "red"
+  )
+```
+
+```{r}
+# 四种物种的地图
+# par(mfrow = c(2, 2))
+plot(spa, 
+  asp = 1, 
+  col = "brown", 
+  cex = spe$Satr, 
+  xlab = "x (km)", 
+  ylab = "y (km)", 
+  main = "Brown trout"
+  )
+lines(spa, col = "light blue")
+plot(spa, 
+  asp = 1, 
+  col = "brown", 
+  cex = spe$Thth, 
+  xlab = "x (km)", 
+  ylab = "y (km)", 
+  main = "Grayling"
+  )
+lines(spa, col = "light blue")
+plot(spa, 
+  asp = 1, 
+  col = "brown", 
+  cex = spe$Alal, 
+  xlab = "x (km)", 
+  ylab = "y (km)", 
+  main = "Bleak"
+  )
+lines(spa, col = "light blue")
+plot(spa, 
+  asp = 1, 
+  col = "brown", 
+  cex = spe$Titi, 
+  xlab = "x (km)", 
+  ylab = "y (km)", 
+  main = "Tench"
+  )
+lines(spa, col = "light blue")
+```
+
+- **2> 包含所有解释性变量及其二级项的 RDA**
+
+```{r}
+# 所有环境变量的 多项RDA & 二度项 & 前向选择
+(env.square <- polyvars(env2, degr = 2))
+spe.envsq.rda <- rda(spe.hel ~ ., env.square)
+R2ad <- RsquareAdj(spe.envsq.rda)$adj.r.squared
+(spe.envsq.fwd <- 
+   forward.sel(spe.hel, 
+               env.square, 
+               adjR2thresh = R2ad))
+envsquare.red <- env.square[, sort(spe.envsq.fwd$order)]
+(spe.envsq.fwd.rda <- rda(spe.hel ~., envsquare.red))
+RsquareAdj(spe.envsq.fwd.rda)
+summary(spe.envsq.fwd.rda)
+
+# 三序图
+triplot.rda(spe.envsq.fwd.rda, 
+  site.sc = "lc", 
+  scaling = 2, # correlation ??
+  plot.sites = FALSE, 
+  pos.env = 1, 
+  mult.arrow = 0.9, 
+  mult.spe = 0.9,
+  mar.percent = 0
+  )
+```
+
+*在空间分析的框架内, 高阶解释性变量的应用非常普遍, 因为解释性变量通常有空间坐标, 而高阶变量可以构建趋势面分析模型(第七章)*
+
+### 6.3.3 基于距离的冗余分析(Distance-Based Redundancy Analysis, db-RDA)
+
+生态学家长期以来一直需要在多变量框架中分析群落组成数据的方法. 
+生态实验中的需求特别严重, 旨在通过多因素方差分析进行分析. 
+在进行多元方差分析(MANOVA)或者基于欧氏距离的模型分析之前, 需要都零膨胀的群落组成型数据进行变换(比如, 对已进行 RDA 数据变换的物种数据进行 ANOVA ). 
+生态学家可能想要根据其他不同的指数计算RDA, 这些指标不能通过数据转换和欧几里得距离的计算来计算 -- 基于距离的冗余分析解决了这个问题. 该方法的分析流程如下: 
+
+- 1> 计算响应数据的 Q-模式的相异性矩阵; 
+- 2> 计算相异性矩阵的主坐标分析(PCoA), 如有必要则使用Lines校正负特征值; 保留所有的主坐标, 通过相异性度量来表示数据的所有方差; 
+- 3> 运行并测试上面创建的主坐标的RDA(作为响应数据)受到研究中可用的解释变量的约束. 例如, 解释变量可以代表操作或测量实验的因素
+
+- vegan 中的 capscale(): 如果用户在参数comm中提供物种数据矩阵, 则此函数允许直接绘制加权平均物种分数; 
+- vegan 中的 dbrda(): 不需要经过 PCoA, 也可以直接对相异性响应矩阵进行分析. 绘图中不能直接添加物种得分. 
+
+基于通过**Lingoes校正**获得的PCoA数据的方法具有相同的属性, 而使用**Cailliez校正**获得的数据的测试产生膨胀的I类错误率
+
+双重目标: 希望测试具有正确的I类错误率，并且也想要用物种分数绘制结果.  应用于平方根差异矩阵的函数dbrda()符合第一标准, 而使用Lingoes校正的函数capscale()符合第二标准. 
+
+```{r}
+colnames(ele.pH.helm) <- 
+  c("ele1", "ele2", "pH1", "pH2", "ele1pH1", "ele1pH2", 
+    "ele2pH1", "ele2pH2" )
+# 创建协变量矩阵
+covariables <- ele.pH.helm[, 3:8]
+# 使用 vegan 中的 vegdist() 计算相异响应矩阵
+# https://www.rdocumentation.org/packages/vegan/versions/2.4-2/topics/vegdist
+(spe.bray27 <- vegdist(spe[1:27, ], "bray"))
+# 或者使用 adespatial 中的 dist.ldc() 计算相异响应矩阵
+# https://www.rdocumentation.org/packages/adespatial/versions/0.3-4/topics/dist.ldc
+(spe.bray27 <- dist.ldc(spe[1:27, ], "percentdiff"))
+```
+
+
+
+```{r}
+# 1. 队平方根相异矩阵进行基于距离的冗余分析 dbrda()
+(bray.ele.dbrda <- dbrda(
+    sqrt(spe.bray27) ~ ele.pH.helm[, 1:2] + Condition(covariables)))
+anova(bray.ele.dbrda, 
+      permutations = how(nperm = 999)) 
+
+# 2. 使用 capscale() 对原始数据(位点 by 物种)进行 基于距离的冗余分析 
+# 非约束性; [Partial] Distance-Based Redundancy Analysis
+# https://www.rdocumentation.org/packages/vegan/versions/2.4-2/topics/capscale
+ele.fac. <- ele.fac
+# https://www.rdocumentation.org/packages/vegan/versions/2.4-2/topics/capscale
+# 基于距离的冗余分析
+(bray.env.cap <- 
+  capscale(spe[1:27, ] ~ ele.fac. + Condition(covariables), 
+           data = as.data.frame(ele.pH.helm), 
+           distance = "bray", 
+           add = "lingoes", # 校正方式
+           comm = spe[1:27, ]))
+anova(bray.env.cap, 
+      permutations = how(nperm = 999))
+# Plot with "wa" scores to see dispersion of sites around the factor levels
+# 绘制三序图
+triplot.rda(bray.env.cap, 
+            site.sc = "wa", 
+            scaling = 1) # distance
+```
+
+在 capscale() 和 dbrda() 中, 协变量可以通过两种方式获得: 
+- 1> 约束变量和协变量可以在同一个对象中找到, 该对象必须是一个数据框, 并且公式必须完整, 所有变量和协变量都明确说明, 协变量可以是定量的或因素; 
+- 2> 如果所有协变量都是定量的(或者所有因子都被编码为R感知的虚拟变量, 如上面的对象协变量), 可以简化编码: 约束变量在数据框中, 并且协变量在一个单独的对象中必须是类矩阵; 在这种情况下, 可以全局调用对象, 而无需按名称详细说明协变量. 当使用原始响应数据时, 关联系数由参数距离确定; 
+
+> 两个分析的结果略有不同, 因为-1> 测试不是以相同的方式进行的, -2> 校正使得响应矩阵欧式距离不相同
+
+```{r}
+# 不在本书中 ==>>
+# 基于距离的冗余分析 db-RDA -- 替代方案
+
+# 1. 使用 capscale() 对原始数据(site by species)进行基于距离的冗余分析
+# 代替编码(Alternate coding) with 显示协变量(explicit covariables) coming from same object as 约束性变量(the constraining variables): 
+bray.env.capscale <- 
+  capscale(spe[1:27, ] ~ ele1 + ele2 + 
+       Condition(pH1 + pH2 + ele1pH1 + ele1pH2 + ele2pH1 + ele2pH2), 
+       data = as.data.frame(ele.pH.helm), 
+       distance = "bray", 
+       add = "cailliez", 
+       comm = spe[1:27, ])
+anova(bray.env.capscale, 
+      permutations = how(nperm = 999))
+
+# 2. PCoA with Lingoes (1971) correction - 校正方式
+spe.bray27.lin <- pcoa(spe.bray27, correction = "lingoes") 
+spe.bray27.lingoes <- spe.bray27.lin$vectors.cor 
+# 检验因子 ele. 
+# 因子 pH & interaction & Helmert-coded 形成协变量矩阵
+# https://www.rdocumentation.org/packages/klaR/versions/0.6-14/topics/rda  ??
+spe.L.ele.dbrda <- 
+  rda(spe.bray27.lingoes, 
+      ele.pH.helm[, 1:2], 
+      covariables) 
+anova(spe.L.ele.dbrda, 
+      permutations = how(nperm = 999))
+# wcmdscale() 加权经典多维尺度，也称为加权主坐标分析
+# https://www.rdocumentation.org/packages/vegan/versions/2.4-2/topics/wcmdscale
+spe.lingoes2 <- wcmdscale(spe.bray27, 
+                          add = "lingoes") # 添加校正标准
+anova(
+  rda(spe.lingoes2 ~ ele.pH.helm[, 1:2] + Condition(covariables))
+  )
+# <<== 不在本书中
+```
+
+
+### 6.3.4 手写冗余分析(RDA)函数
+
+```{r}
+myRDA <- function(Y, X) {
+  ## 1. 数据预处理
+  Y.mat <- as.matrix(Y)
+  # scale() 对矩阵相似对象进行缩放或者居中
+  # https://www.rdocumentation.org/packages/base/versions/3.6.0/topics/scale
+  # 默认 center = T, 减去列平均值然后 centered
+  Yc <- scale(Y.mat, scale = FALSE)
+
+  X.mat <- as.matrix(X)
+  Xcr <- scale(X.mat)
+
+  # 提取维度信息
+  n <- nrow(Y)
+  p <- ncol(Y)
+  m <- ncol(X)
+
+  ## 2. 计算多元变量线性回归
+  # 回归系数矩阵 (eq. 11.9)
+  B <- solve(t(Xcr) %*% Xcr) %*% t(Xcr) %*% Yc
+
+  # 拟合值矩阵 (eq. 11.10)
+  Yhat <- Xcr %*% B
+
+  # 残差矩阵
+  Yres <- Yc - Yhat
+
+  ## 3. 对拟合值进行主成分分析(PCA on fitted values)
+  # 协方差矩阵 - Covariance matrix (eq. 11.12)
+  S <- cov(Yhat)
+
+  # 特征值分解 - Eigenvalue decomposition
+  eigenS <- eigen(S)
+
+  # 统计有多少典型轴 - How many canonical axes?
+  kc <- length(which(eigenS$values > 0.00000001))
+
+  # 典型轴的特征值 - Eigenvalues of canonical axes
+  ev <- eigenS$values[1 : kc]
+  
+  # 质心化矩阵的总方差Total variance (inertia) of the centred matrix Yc
+  trace = sum(diag(cov(Yc)))
+  
+  # 正交特征向量 - Orthonormal eigenvectors (contributions of response variables, scaling 1)
+  U <- eigenS$vectors[, 1 : kc]
+  row.names(U) <- colnames(Y)
+
+  # 位点得分 (vegan's wa scores, scaling 1; eq.11.17)
+  F <- Yc %*% U
+  row.names(F) <- row.names(Y)
+
+  # 位点约束性 - Site constraints (vegan's 'lc' scores, scaling 1; eq. 11.18)
+  Z <- Yhat %*% U
+  row.names(Z) <- row.names(Y)
+
+  # 典型系数 - 规范系数 - Canonical coefficients (eq. 11.19)
+  CC <- B %*% U
+  row.names(CC) <- colnames(X)
+
+  # 解释变量
+  # 物种环境相关性 - Species-environment correlations
+  corXZ <- cor(X, Z)
+
+  # 权重对角线矩阵Diagonal matrix of weights
+  D <- diag(sqrt(ev / trace))
+
+  # 解释性变量的双序图得分 
+  coordX <- corXZ %*% D    # Scaling 1
+  coordX2 <- corXZ         # Scaling 2
+  row.names(coordX) <- colnames(X)
+  row.names(coordX2) <- colnames(X)
+
+  # 缩放数据至 相对特征值的平方根 - Scaling to sqrt of the relative eigenvalue (for scaling 2)
+  U2 <- U %*% diag(sqrt(ev))
+  row.names(U2) <- colnames(Y)
+  F2 <- F %*% diag(1/sqrt(ev))
+  row.names(F2) <- row.names(Y)
+  Z2 <- Z %*% diag(1/sqrt(ev))
+  row.names(Z2) <- row.names(Y)
+
+  # 未调整 R方
+  R2 <- sum(ev/trace)
+  # 调整 R方
+  R2a <- 1 - ((n - 1)/(n - m - 1)) * (1 - R2)
+
+  # 4. 对残差进行主成分分析 - PCA on residuals
+  # Write your own code as in Chapter 5. It could begin 
+  # with : 
+  #     eigenSres <- eigen(cov(Yres))
+  #     evr <- eigenSres$values
+
+  # 5. 输出结果
+  result <- 
+    list(trace, R2, R2a, ev, CC, U, F, Z, coordX, 
+         U2, F2, Z2, coordX2)
+  names(result) <- 
+    c("Total_variance", "R2", "R2adj", "Can_ev", 
+      "Can_coeff", "Species_sc1", "wa_sc1", "lc_sc1", 
+      "Biplot_sc1", "Species_sc2", "wa_sc2", "lc_sc2", 
+      "Biplot_sc2") 
+  result
+  }
+
+(doubs.myRDA <- myRDA(spe.hel, env2))
+summary(doubs.myRDA)
+```
+
+---
+
+## 6.4 典型对应分析(Canonical Correspondence Analysis, CCA)
+
+### 6.4.1 简介
+
+典型对应分析(Canonical Correspondence Analysis, CCA) -- 约束性分析, 一直以来备受好评. 
+该方法与 RDA 具有许多共同特征, 此处不再赘述. 
+它是 RDA 的加权形式, 应用于与 CA 中使用的 χ2 统计量相同的矩阵 Q. 
+CCA 拥有 CA 的基本属性, 并与受限制的排序相结合 -- 约束性排序. 
+CCA 保留了位点之间的 χ2 距离, 在三序图中物种使用点表示. 
+ter Braak 已经证明, 只要满足某些条件, CCA 就是**多元高斯回归的良好近似值**. 
+CCA 三序图最引人注目的一个特征就是: **物种按照其生态最佳值沿着规范轴排序**. 
+这允许对物种组合进行相对容易的生态解释. 
+此外, 在排序图中可以加入物种聚类分析的结果(例如 k-均值划分), 产生直观的物种分组图. 
+
+CCA 也有一些缺点, 与 χ2 距离的数学属性相关. 
+Legendre & Gallagher 指出: **普通物种的丰度值之间的差异对于距离的贡献 小于 稀有物种的相同差异, 因此-稀有物种-可能对分析产生过大的影响**. 
+尽管其被广泛使用, 但是生态学家没有完全接受"χ2 距离" (广泛应用, 但没有广泛接受); 
+借助模拟分析, Faith (1987) 认为 χ2 距离是群落组成型数据中最差的一种距离. 
+**对稀有物种的采样良好以及将其视为生态系统特定特征的潜在生物指标限制了 CCA 的使用; **
+此外, 在进行 CCA 之间应该剔除掉**稀有物种** (??). 
+上述这些问题*促进了*物种数据预转换的发展, 进而将这些数据应用到 RDA, ANOVA 等其他线性分析方法中. 
+惯量(inertia )是 CCA 中数据变化的度量, 由惯量所解释的总惯量比例 -- R^2 -- 也有偏差, 但是不能使用 Ezekiel’s 校正. 
+可使用自展分析(bootstrap )方式进行估计. 
+
+### 6.4.2 河流数据集的典型对应分析(CCA)
+
+#### 6.4.2.1 使用 vegan 分析包进行典型对应分析(CCA)
+
+Hellinger, log-chord, or chord-transformed 数据类型与 RDA 一起使用; 不使用 χ2 距离则无法对结果进行解释. 
+此外, 数据表的行总和(在 CCA 回归中用作权重)对此类转换数据没有可识别的含义. 
+
+```{r}
+# 原始鱼类物种数据集的典型对应分析(Canonical Correspondence Analysis, CCA)
+# 受 env3 数据集中的所有环境变量的约束
+# cca - Correspondence Analysis And Redundancy Analysis
+# https://www.rdocumentation.org/packages/vegan/versions/2.4-2/topics/cca
+(spe.cca <- cca(spe ~ ., env3))
+summary(spe.cca)
+# 未调整 & 调整 的R方
+# https://www.rdocumentation.org/packages/vegan/versions/2.4-2/topics/RsquareAdj
+RsquareAdj(spe.cca) # 默认使用 1000 次置换检验 | 结果因不同的运行而各异
+```
+
+在 CCA 中, 可解释的变差的度量不是真正的 R2, 而是惯量(inertias)的比例. 
+此外, 通过自展分析评估校正的 R2, 
+
+与 RDA 分析结果的不同之处在于:
+
+- CCA 使用均方应变系数(Mean squared contingency coefficient)表示方差; 
+- CCA 中的最大典型轴的编号为 min[( p-1), m, n-1], 残差轴的最小编号为 min[( p-1), n-1]; RDA 中两者一样; 
+- CCA 的三序图中, 物种得分使用点表示; 
+- 位点得分是物种得分的加权均值(不是加权和); 
+
+#### 6.4.2.2 绘制典型对应分析的三序图(CCA Triplot)
+
+响应变量(物种)使用点表示, 箭头不可使用. 
+
+```{r}
+# par(mfrow = c(2, 1))
+plot(spe.cca, 
+  scaling = 1, 
+  display = c("sp", "lc", "cn"), 
+  main = "Triplot CCA spe ~ env3 - scaling 1"
+  )
+text(-2.3, 4.1, "a", cex = 1.5)
+```
+
+*本版中的解释:*
+
+- Scaling 1: 1> 在定量解释变量上以直角投影对象近似于对象沿该变量的位置; 2> 在表示定性解释变量类的质心的点附近找到的对象更可能拥有该变量的类; 3> 定性解释变量的质心之间以及中心与个体之间的距离大约为 χ2 个距离; 
+- Scaling 2: 1> 通过将物种以直角投射到变量上, 可以获得沿着定量环境变量的物种的最佳值; 2> 在一类定性环境变量的质心附近发现的物种很可能在拥有该类变量的地点经常(或以较大的丰度)被发现; 3> 质心之间以及质心和单个物体之间的距离不近似 χ2 距离
+
+```{r}
+# 默认使用 Scaling 2
+plot(spe.cca, 
+  display = c("sp", "lc", "cn"), 
+  main = "Triplot CCA spe ~ env3 - scaling 2")
+text(-2.3, 2.6, "b", cex = 1.5)
+```
+
+*第一版中的解释:*
+
+- Scaling 1: 1> 位点垂直投影到定量解释性变量的箭头或者延长线上, 投影点的位置接近该位点内该解释性变量数值的位置; 2> 如果一个定性解释性变量的形心接近某个位点的点, 表示该变量中此位点内很可能标注为 1 ; 3> 定性解释性变量的形心之间或者形心与位点之间的距离近似 χ2 距离;
+- Scaling 2: 1> 将物种的点垂直投影到定量解释性变量的箭头或者延长线上, 投影点位置表示物种在该环境变量梯度上的最适区域; 2> 如果物种点接近某个定性变量形心, 表示该物种在于此变量标注为 1 的位点内更常见, 或者具有高多度; 3> 定性解释变量的形心之间或者形心与位点之间的距离不代表 χ2 距离;
+
+```{r}
+# par(mfrow = c(1, 2))
+# scaling 1
+# 典型对应分析(CCA)的双序图, 使用位点得分, 非物种
+plot(spe.cca, 
+  scaling = 1, 
+  display = c("lc", "cn"), 
+  main = "Biplot CCA spe ~ env3 - scaling 1"
+  )
+```
+
+```{r}
+# scaling 2 
+# 典型对应分析(CCA)的双序图, 使用物种得分, 非物种
+plot(spe.cca, 
+  scaling = 2, 
+  display = c("sp", "cn"), 
+  main = "Biplot CCA spe ~ env3 - scaling 2"
+  )
+```
+
+#### 6.4.2.3 置换检验(典型对应分析 - CCA, 前向选择 - Forward Selection, 吝啬典型对应分析 - Parsimonious CCA)
+
+和 RDA 一样, CCA 也可以通过置换检验进行显著性检验. 
+
+```{r}
+# 对所有的分析进行置换检验 - 全局
+anova(spe.cca, 
+      permutations = how(nperm = 999))
+# 对每个轴进行置换检验
+anova(spe.cca, by = "axis", 
+      permutations = how(nperm = 999))
+```
+
+```{r}
+# 使用 vegan 的 ordistep() 函数进行 基于典型对应分析(CCA)的前向选择
+# https://www.rdocumentation.org/packages/vegan/versions/2.4-2/topics/ordistep
+(cca.step.forward <- 
+  ordistep(cca(spe ~ 1, data = env3), 
+           scope = formula(spe.cca), 
+           direction = "forward", 
+           permutations = how(nperm = 199)))
+```
+
+```{r}
+# 使用 ele, oxy, bod 4个变量进行吝啬典型对应分析(Parsimonious CCA)
+(spe.cca.pars <- cca(spe ~ ele + oxy + bod, data = env3))
+anova(spe.cca.pars, 
+      permutations = how(nperm = 999))
+anova(spe.cca.pars, 
+      permutations = how(nperm = 999), by = "axis")
+# R-square – like statistics | 未调整, 调整? R方
+RsquareAdj(spe.cca.pars)
+# 比较方差的通胀系数 - Compare variance inflation factors
+# https://www.rdocumentation.org/packages/vegan/versions/2.4-2/topics/goodness.cca
+vif.cca(spe.cca)
+vif.cca(spe.cca.pars)
+```
+
+```{r}
+# compute CCA-based variation partitioning  with bootstrap adjusted R-square
+# 计算基于典型对应分析的方差分解(自展分析, 调整的R方)
+# 该函数仅限制与两个可解释矩阵
+varpart.cca <- function(Y, X, W) {
+  # 计算 3 个典型对应分析结果
+    yx.cca <- cca(Y, X)
+    yw.cca <- cca(Y, W)
+    yxw.cca <- cca(Y, cbind(X, W))
+
+  # 计算调整的'惯性值' - inertia
+    fract.ab <- RsquareAdj(yx.cca)$adj.r.squared
+    fract.bc <- RsquareAdj(yw.cca)$adj.r.squared
+    fract.abc <- RsquareAdj(yxw.cca)$adj.r.squared
+    fract.a <- fract.abc-fract.bc
+    fract.b <- fract.ab-fract.a
+    fract.c <- fract.abc-fract.ab
+    fract.d <- 1-fract.abc
+
+  # 输出结果
+    res <- matrix(0, 7, 1)
+    rownames(res) <- 
+        c("[ab]", "[bc]", "[abc]", "[a]", "[b]", "[c]", "[d]")
+    colnames(res) <- "Value"
+    res[1, 1] <- round(fract.ab, 4)
+    res[2, 1] <- round(fract.bc, 4)
+    res[3, 1] <- round(fract.abc, 4)
+    res[4, 1] <- round(fract.a, 4)
+    res[5, 1] <- round(fract.b, 4)
+    res[6, 1] <- round(fract.c, 4)
+    res[7, 1] <- round(fract.d, 4)
+  res
+  }
+```
+
+#### 6.4.2.4 三维交互图(Three-Dimensional Interactive Plots)
+
+```{r}
+# # 绘制三维交互排序结果图
+# # library(vegan3d) # 导入是容易死机
+# 
+# # 只绘制位点
+# ordirgl(spe.cca.pars, 
+#         type = "t", 
+#         scaling = 1)
+# 
+# # 连接加权平均得分与线性组合分数 combination scores
+# orglspider(spe.cca.pars, scaling = 1, col = "purple")
+# 
+# # 位点经过聚类分析之后分成 4 组, 并使用不同的颜色进行标识
+# gr <- cutree(hclust(vegdist(spe.hel, "euc"), "ward.D2"), 4)
+# ordirgl(spe.cca.pars, 
+#   type = "t", 
+#   scaling = 1, 
+#   ax.col = "black", 
+#   col = gr + 1
+#   )
+# # 连接位点与分组的质心
+# orglspider(spe.cca.pars, 
+#            gr, 
+#            scaling = 1)
+# 
+# # 绘制 3D 典型对应分析三序图
+# # ordirgl(spe.cca.pars, type = "t", scaling = 2)
+# # orgltext(spe.cca.pars, 
+# #   display = "species", 
+# #   type = "t", 
+# #   scaling = 2, 
+# #   col = "cyan"
+# #   )
+# 
+# # 绘制物种分组 (Jaccard 相异矩阵)
+# gs <- 
+#   cutree(
+#       hclust(vegdist(t(spe), method = "jaccard"), "ward.D2"), 
+#       k = 4)
+# ordirgl(spe.cca.pars, 
+#          display = "species", 
+#          type = "t", 
+#          col = gs + 1)
+```
+
+---
+
+## 6.5 线性判别分析(Linear Discriminant Analysis, LDA)
+
+### 6.5.1 简介
+
+线性判别分析与 RDA 和 CCA 的不同之处在于, 响应变量是将位点分组的单个变量. 
+这种分组可能是通过基于数据集聚类站点获得的, 或者它可以代表生态假设. 
+LDA 试图确定一组独立的定量变量可以在多大程度上解释这种分组. 
+位点类型必须独立于 LDA 中使用的解释变量而获得; 否则程序将是循环的, 测试将无效. 
+LDA 可以提供两种类型的功能: 
+1> 识别函数(Identification functions)从原始(非标准化)描述符获得, 并可用于查找新对象应归属的组; 
+2> 判别函数(Discriminant functions)是从标准化描述符计算的, 用于量化解释性变量对对象分组的相对贡献. 
+
+以下示例是从**识别**和**判别**这两方面进行的展开描述.
+
+在进行**线性判别分析(LDA)**之前, 首先需要确保 组内数据方差齐性, 这种状况在生态学数据中很难实现. 可使用 vegan 分析包中的 betadisper() 函数进行该步分析. 
+
+### 6.5.2 使用 lda() 进行**识别(Discriminant)**分析 
+
+lda() 是 MASS 分析包中的函数. 
+
+初始步骤: 计算组分散的均匀性(协方差齐性)和 Wilks's lambda检验
+
+```{r}
+gr <- cutree(hclust(vegdist(spe.hel, "euc"), # 相异矩阵
+                    "ward.D2"), # Ward 最小方差聚类分析
+             k = 4) # 分成 4 组
+
+# 只含有 3 个变量的环境数据集
+env.pars2 <- as.matrix(env2[, c(1, 9, 10)])
+# 使用 vegan 中的 betadisper() 验证组内协方差矩阵的(covariance matrices)多元变量同质性
+env.pars2.d1 <- dist(env.pars2)
+# 群体分散的多元同质性
+# https://www.rdocumentation.org/packages/vegan/versions/2.4-2/topics/betadisper
+(env.MHV <- betadisper(env.pars2.d1, gr))
+anova(env.MHV)
+# https://www.rdocumentation.org/packages/vegan/versions/2.4-2/topics/anova.cca
+permutest(env.MHV)  # 置换检验
+```
+
+> 组内协方差不齐; 对变量进行对数转换
+
+```{r}
+# 对数转换变量 ele & bod
+env.pars3 <- cbind(log(env2$ele), env2$oxy, log(env2$bod))
+colnames(env.pars3) <- c("ele.ln", "oxy", "bod.ln") 
+rownames(env.pars3) <- rownames(env2)
+# https://www.rdocumentation.org/packages/proxy/versions/0.4-23/topics/dist
+(env.pars3.d1 <- dist(env.pars3)) # 矩阵距离/相似性计算
+# 群体分散的多元同质性
+# https://www.rdocumentation.org/packages/vegan/versions/2.4-2/topics/betadisper
+(env.MHV2 <- betadisper(env.pars3.d1, gr))
+# https://www.rdocumentation.org/packages/vegan/versions/2.4-2/topics/anova.cca
+permutest(env.MHV2) # 置换检验
+```
+
+> 组内协方差齐性 ==> 进行后续分析: Wilks's lambda检验
+
+```{r}
+# 初步测试: 各组之间的解释变量均有所不同?
+# Compute Wilk'S lambda test
+# 第一种方法: Wilks.test() of package rrcov, χ2 test
+# https://www.rdocumentation.org/packages/rrcov/versions/1.4-7/topics/Wilks.test
+Wilks.test(env.pars3, gr)
+# 第二种方法: 多元方差分析 manova(), uses an F-test approximation
+# Multivariate Analysis Of Variance
+# https://www.rdocumentation.org/packages/stats/versions/3.6.0/topics/manova
+(lw <-  manova(env.pars3 ~ as.factor(gr)))
+summary(lw, test = "Wilks")
+```
+
+**示例: **计算识别函数, 并对两个对象进行判别 
+(使用非标准化变量)
+
+```{r}
+env.pars3.df <- as.data.frame(env.pars3)
+(spe.lda <- lda(gr ~ ele.ln + oxy + bod.ln, 
+                data = env.pars3.df))
+summary(spe.lda)
+# 展示 3 个变量的组平均值
+spe.lda$means
+# 提取非标准化的识别函数 (matrix C, eq. 11.33 in Legendre and Legendre 2012)
+(C <- spe.lda$scaling)
+# Classification of two new objects (identification)
+# A new object is created with two sites: 
+#     (1) ln(ele) = 6.8, oxygen = 9 and ln(bod) = 0.8 
+# and (2) ln(ele) = 5.5, oxygen = 10 and ln(bod) = 1.0
+newo <- data.frame(c(6.8, 5.5), c(9, 10), c(0.8, 1))
+colnames(newo) <- colnames(env.pars3)
+# https://www.rdocumentation.org/packages/stats/versions/3.6.0/topics/predict
+# 模型预测
+(predict.new <- predict(spe.lda, 
+                        newdata = newo))
+```
+
+**示例: **计算判别函数 
+(使用**标准化**变量)
+
+```{r}
+## Computation of LDA - discrimination functions (on standardized variables)
+env.pars3.sc <- as.data.frame(scale(env.pars3.df))
+# https://www.rdocumentation.org/packages/MASS/versions/7.3-51.4/topics/lda
+# 线性判别分析
+(spe.lda2 <- lda(gr ~ ., 
+                data = env.pars3.sc))
+# 展示对 3 个变量的组平均值
+spe.lda2$means
+# 提取分类功能
+(C2 <- spe.lda2$scaling)
+# 计算典型特征值 - canonical eigenvalues
+spe.lda2$svd^2
+# Position the objects in the space of the canonical variates
+# https://www.rdocumentation.org/packages/stats/versions/3.6.0/topics/predict
+# 模型预测
+(Fp2 <- predict(spe.lda2)$x)
+# 替代方法:  Fp2 <- as.matrix(env.pars3.sc) %*% C2
+# 对象的分类
+# 模型预测 predict
+# https://www.rdocumentation.org/packages/stats/versions/3.6.0/topics/predict
+(spe.class2 <- predict(spe.lda2)$class)
+# 属于该组的后验概率
+# (rounded for easier interpretation)
+(spe.post2 <- round(predict(spe.lda2)$posterior, 2))
+# 列联表 - 先验 prior vs 预测分类 predicted classifications
+(spe.table2 <- table(gr, spe.class2)) 
+# 正确分类的百分比
+# ?diag - 矩阵对角线
+# prop.table - Express Table Entries As Fraction Of Marginal Table
+# 快速表条目作为边际表的分数
+# https://www.rdocumentation.org/packages/base/versions/3.6.0/topics/prop.table
+diag(prop.table(spe.table2, 1))
+# Plot the LDA results using the homemade function plot.lda()
+plot.lda(lda.out = spe.lda2, 
+  groups = gr, 
+  plot.sites = 2, 
+  plot.centroids = 1, 
+  mul.coef = 2.35
+  )
+```
+
+**线性判别分析 - 留一交叉验证**
+
+```{r}
+# LDA with jackknife-based classification (i.e., leave-one-out cross-validation)
+# https://www.rdocumentation.org/packages/MASS/versions/7.3-51.4/topics/lda
+(spe.lda.jac <- 
+  lda(gr ~ ele.ln + oxy + bod.ln, 
+      data = env.pars3.sc, 
+      CV = TRUE))
+summary(spe.lda.jac)
+# 正确分类的数量和比例 - 列联表
+spe.jac.class <- spe.lda.jac$class
+(spe.jac.table <- table(gr, spe.jac.class)) # 列联表
+# 分类成功
+# ?diag - 矩阵对角线
+# prop.table - Express Table Entries As Fraction Of Marginal Table
+# 快速表条目作为边际表的分数
+# https://www.rdocumentation.org/packages/base/versions/3.6.0/topics/prop.table
+diag(prop.table(spe.jac.table, 1))
+```
+
+以上演示仅为示例展示应用. 
+运行具有非标准化解释变量的函数允许对新对象进行分类, 同时产生与标准化变量运行完全相同的区分(判别).
+
+```{r}
+# 不在本书中 -->>
+# 示例数据
+grY <- c(1, 1, 1, 2, 2, 3, 3)
+x1 <- c(1, 2, 2, 8, 8, 8, 9)
+x2 <- c(2, 2, 1, 7, 6, 3, 3)
+X <- as.data.frame(cbind(x1, x2))
+
+# 非标准化识别函数的计算 - Computation of unstandardized identification functions
+(unstand.lda <- lda(grY ~ ., 
+                   data = X))
+# 标准化判别函数的计算 - Computation of standardized discriminant functions
+X.sc <- as.data.frame(scale(X))
+(stand.lda <- lda(grY ~ ., 
+                 data = X.sc))
+# <<--不在本书中 
+```
+
+---
+
+## 6.6 其他的非对称分析(Asymmetric Analyses)
+
+上述介绍的内容中并不包括所有可能的多元分析模型.
+
+### 6.6.1 主响应曲线(Principal Response Curves, PRC)
+
+*https://link.springer.com/article/10.1007/s10452-016-9604-1* 
+*http://edild.github.io/prc1/* 
+*https://www.youtube.com/watch?v=-EOZkJTXn7U* 
+
+通过跟踪试验中对照与处理之间的差异随时间的变化, 分析处理产生的影响. 
+可以图形展示的方式表现群落和物种水平产生的效应. 
+vegan 工具包中 prc() 函数. 
+
+以往的单因素研究思路已经不能完全适应现在的多因素实验设计的群落生态学研究. 
+
+主响应曲线侧重于对照和处理之间的差异.
+
+```{r}
+# 导入数据 (vegan 内置)
+data(pyrifos)
+head(pyrifos)
+
+# 创建时间因子和处理因子 - time (week) & treatment (dose). 
+# 创建附加因子 - "ditch", 表示'围格', 用与测试目的
+week <-
+  gl(11, 12, 
+     labels = c(-4, -1, 0.1, 1, 2, 4, 8, 12, 15, 19, 24))
+dose <- 
+  factor(rep(c(0.1, 0, 0, 0.9, 0, 44, 6, 0.1, 44, 0.9, 0, 6), 
+         11))
+ditch <- gl(12, 1, length = 132)
+
+# Modified RDA - 调整过的冗余分析
+# ?prc - Principal Response Curves, PRC 主响应曲线 / vegan 工具包
+# 冗余分析的特例
+(mod <- prc(pyrifos, dose, week))
+summary(mod)
+
+# PRC plot; 仅报告了具有大的总（对数转换）丰度的物种
+(logabu <- colSums(pyrifos))
+class(logabu) # 向量
+plot(mod, select = logabu > 200)
+```
+
+```{r}
+# 统计检验
+# 因子 ditches 随机化; 时间序列, 仅对第一轴感兴趣
+ctrl <- 
+  how(plots = Plots(strata = ditch, type = "free"), 
+      within = Within(type = "series"), 
+      nperm = 999)
+anova(mod, 
+      permutations = ctrl, 
+      first = TRUE)
+```
+
+### 6.6.2 协对应分析(Co-correspondence Analysis, CoCA)
+
+协对应分析是基于对应分析发展的一种分析方法, 对相同位点的两个群落进行同时排序. 
+不对称分析的形式可允许通过一个群落预测另一个. 
+这种方法填补了一个分析空白: 生态学家通过多种不同类型的环境变量数据的均值(或者采用反向校正和预测的方法)来解释群落数据, 通过生物指标物种或群落来估算环境变量的价值. 
+
+(在对称的分析模式中, 两个群落之间没有解释和被解释的关系)
+
+cocorresp 分析包, 既可以进行对称分析(Symmetric), 又可以进行非对称分析( asymmetric). 
+
+```{r}
+data(bryophyte)
+data(vascular)
+# method = "predictive" 默认
+# method = c("predictive", "symmetric") 预测 & 对称
+# https://www.rdocumentation.org/packages/cocorresp/versions/0.4-0/topics/coca
+# 拟合共对应分析模型 - 共对应分析(Co-correspondence Analysis, CoCA)
+(carp.pred <- coca(bryophyte ~ ., 
+                   data = vascular))
+# 留一交叉验证 - Leave-one-out cross-validation
+# 预测性共对应分析的交叉验证
+# https://www.rdocumentation.org/packages/cocorresp/versions/0.4-0/topics/crossval
+crossval(bryophyte, vascular)
+# 置换检验 - Permutation test
+(carp.perm <- permutest(carp.pred, 
+                        permutations = 99))
+# 改装(refit) - 只有两个重要的轴
+(carp.pred <- coca(bryophyte ~ ., 
+                   data = vascular, 
+                   n.axes = 2))
+# 提取信息- -位点得分 & 物种符合 species loadings
+# https://www.rdocumentation.org/packages/cocorresp/versions/0.4-0/topics/loadings
+# loadings - 从拟合的对象中提取物种负荷
+carp.scores <- scores(carp.pred)
+load.bryo <- carp.pred$loadings$Y
+load.plant <- carp.pred$loadings$X
+```
+
+```{r}
+# ?plot.predcoca  
+# https://www.rdocumentation.org/packages/cocorresp/versions/0.4-0/topics/plot.predcoca
+# 绘制响应值和预测值的双序图(该部分结果来自预测性协同对应分析, co-correspondence analysis)
+par(mfrow = c(1, 2))
+plot(carp.pred, 
+  type = "none", 
+  main = "Bryophytes", 
+  xlim = c(-2, 3), 
+  ylim = c(-3, 2)
+  )
+points(carp.scores$sites$X, 
+       pch = 16, 
+       cex = 0.5)
+text(load.bryo, 
+  labels = rownames(load.bryo), 
+  cex = 0.7, 
+  col = "red"
+  ) 
+plot(carp.pred, 
+  type = "none", 
+  main = "Vascular plants", 
+  xlim = c(-2, 3), 
+  ylim = c(-3, 2)
+  )
+points(carp.scores$sites$X, 
+       pch = 16, 
+       cex = 0.5)
+text(load.plant, 
+  labels = rownames(load.plant), 
+  cex = 0.7, 
+  col = "blue"
+  ) 
+# 未避免分析包中函数的使用冲突, 接触 cocorresp 分析包的调用
+# Detach package cocorresp to avoid conflicts with ade4:
+detach("package:cocorresp", unload = TRUE)
+# 或者
+unloadNamespace("cocorresp")
+```
+
+---
+
+## 6.7 两个(或者多个数据集)的对称分析(Symmetric Analysis)
+
+对称分析, 意味着两个或者多个矩阵在分析过程中扮演相同的角色, 它们之间既不依赖也不相互解释. 
+对称和非对称排序方法的选择取决于是要进行相关性分析(对称)还是要进行回归分析(非对称). 
+相关性分析需要更多的描述性或者解释性信息, 当模型中没有嵌入单向因果假设时亦可适用; 然而, 回归性分析具有更多的推断性判断, 通过解释性变量之间的线性组合来解释响应变量的变化. 
+两种分析方法源于不同的分析目的, 不应该相互对立而存在. 
+
+在生态学研究中, 存在三种对称性分析方法: 1-> 典型相关分析 canonical correlation analysis (CCorA), 2-> 共惯性分析 co-inertia analysis (CoIA), 3-> 多因子分析 multiple factor analysis (MFA).
+
+---
+
+## 6.8 典型相关分析(Canonical Correlation Analysis, CCorA)
+
+### 6.8.1 简介
+
+CCorA 由两个数据表计算而来, 该方法的目的是表示沿典型轴的观测值, 该观测值可以最大化两个表之间的相关性; 该方法通过最大限度地利用两组变量之间的协方差矩阵()来表示两组变量之间的 组内离散度. 
+两组变量必须是定量的, 而且是呈多元正态分布的; 两个数据矩阵中的变量总量必须小于 n-1. 
+在 CCorA 分析中, 还可以检验两个多元数据集的线性独立性假设. 
+
+RDA 和 CCA 两种分析方法的使用使得 CCorA 在生态学研究使用较少, 原因在于多数的生态学问题会优先采用不对称排序的方式从处理(控制)-反应假设的角度来进行描述的. 
+
+CCorA 更适合进行探索性分析或者探索两组变量可能相互影响的案例(这种问题多见于真实的生态问题中), 比如两组竞争性类群的研究, 还有群落定植过程中土壤-植被之间相互关系的长期研究. 
+(在每个数据表中的物种数量都小于 n-1 的情况下进行 CCorA 才有可能). 
+
+### 6.8.2 使用 CCorA() 进行典型相关分析(Canonical Correlation Analysis) 
+
+研究两个完整的解释性变量子集之间的相关关系. CCorA 分析中会自动对数据进行标准化. 使用 vegan 工具包中的 CCorA() 函数. 
+
+```{r}
+# 数据预处理 - 转换使变量分布近似对称(transformations to make variable distributions approximately symmetrical)
+envchem2 <- envchem
+envchem2$pho <- log(envchem$pho)
+envchem2$nit <- sqrt(envchem$nit)
+envchem2$amm <- log1p(envchem$amm)
+envchem2$bod <- log(envchem$bod)
+envtopo2 <- envtopo
+envtopo2$ele <- log(envtopo$ele)
+envtopo2$slo <- log(envtopo$slo)
+envtopo2$dis <- sqrt(envtopo$dis)
+
+# 对标准化的变量进行典型相关分析 CCorA 
+# https://www.rdocumentation.org/packages/vegan/versions/2.4-2/topics/CCorA
+# CCorA, Canonical Correlation Analysis 典型相关分析
+(chem.topo.ccora <- 
+  CCorA(envchem2, envtopo2, 
+        stand.Y = TRUE, 
+        stand.X = TRUE, 
+        permutations = how(nperm = 999))) # 置换检验
+
+biplot(chem.topo.ccora, 
+       plot.type = "biplot")
+```
+
+---
+
+## 6.9 共惯性分析(Co-inertia Analysis, CoIA)
+
+### 6.9.1 简介
+
+CoIA 是 CCorA() 的一种替代方法(同属于对称性分析方法, 只做变量之间的相关性, 不做变量之间的相互解释), 对于两个或者多个数据集之间的分析更加灵活.  
+
+CoIA 分析的使用: 1-> 计算两个数据集中变量交叉的协方差矩阵, 协方差的平方和 视为 总 co-inertia. 计算特征值和特征向量的矩阵. 特征值代表 总co-inertia 的某一部分. 
+2-> 将两个原始数据表的对象和变量投影到共惯量轴上; 通过图的形式上, 比较两个数据表在共惯量空间中的投影. 
+
+CoIA 需要输入 位点-变量 类型的矩阵数据. 
+
+### 6.9.2 使用 ade4 分析包的 coinertia() 进行共惯性分析(Co-inertia Analysis)
+
+由于原处的技术设计原因, 在使用 ade4 工具包进行 coinertia() 分析之前, 首先使用 dudi.pca() 函数进行 PCA 预分析, 或者使用 dudi.pco() 函数进行 PCoA 预分析.
+
+> 两个不同的矩阵变量之间的连线, 表示相关关系, 连线越短则相关性越高 (对称性分析, 不作变量之间的解释, 仅作变量之间的关联)
+
+```{r}
+# 使用 ade4 中的函数进行主成分分析
+dudi.chem <- dudi.pca(envchem2, 
+         scale = TRUE, 
+         scannf = FALSE)
+dudi.topo <- dudi.pca(envtopo2, 
+         scale = TRUE, 
+         scannf = FALSE)
+# 特征值的累积相对变化
+cumsum(dudi.chem$eig / sum(dudi.chem$eig))
+# 特征值的累积相对变化
+cumsum(dudi.topo$eig / sum(dudi.topo$eig))
+
+# 行 权重是否相等 ?
+all.equal(dudi.chem$lw, dudi.topo$lw)
+
+# 共惯性分析 - Co-inertia analysis
+# https://www.rdocumentation.org/packages/cocorresp/versions/0.4-0/topics/coinertia
+# coinertia 对两个表进行双惯性分析
+coia.chem.topo <- coinertia(dudi.chem, dudi.topo, 
+            scannf = FALSE, 
+            nf = 2)
+summary(coia.chem.topo)
+
+# 第一个特征值的相对变化 - Relative variation on first eigenvalue
+coia.chem.topo$eig[1] / sum(coia.chem.topo$eig)
+
+# 置换检验 - Permutation test 
+# 置换检验的类
+randtest(coia.chem.topo, 
+         nrepet = 999)
+
+plot(coia.chem.topo)
+```
+
+>  RV coefficient 是总惯量除以两个数据表格单独排序的两个总惯量的积的平方根, 可视为 X 和 Y 的 Pearson 相关系数. 
+
+---
+
+## 6.10 多因素分析(Multiple Factor Analysis, MFA)
+
+### 6.10.1 简介
+
+MFA 是另一种**对称分析**方法(基于两个以上的数据集), 该方法侧重的还是相关性分析, 不涉及对数据集中的任何因果推断的假设分析. 
+分析的数据变量必须属于相同的数据类型(要么是定量, 要么是定性). 
+如果所有的变量都是定量的, 那么 MFA 分析基本上就是应用于每一个自己加权的整组变量的主成分分析(PCA). 
+**(注, 该处不要与 多元对应分析 multiple correspondence analysis, MCA 相混淆, MCA 分析中针对 单一矩阵中的定量变量进行分析)**. 
+
+MFA 分析步骤: -1> 对定量变量数据(中心化, 最适为标准化)进行 PCA 分析, -2> 重组已加权的数据, 将结果数据集进行 全局PCA 分析, -3> 将变量的不同子集投影到全局结果中, 评估对象和变量的共有结构和差异. 
+
+计算: ade4 工具包中的 mfa() 函数, 或者 FactoMineR 工具包中的 MFA() *(该方法的优点更多)*. 
+
+MFA的分析方法可以扩展到层次数据结构中, 进而形成等级多因素分析(Hierarchical Multiple Factor Analysis, HMFA), 可用于探索高山森林生态系统中植被+土壤+动物+腐殖质之间的结构关系. 
+HMFA 的原理是变量最低级层次开始计算每一个级别的MFA, 计算结果被更高一级的层次计算所使用, 其中根据组的数量进行新的加权. 可使用 FactoMineR 工具包中的 HMFA() 进行相应的计算. 
+
+### 6.10.2 使用 FactoMineR 分析包进行多因素分析(MFA)
+
+```{r}
+# 对变量的 3 个分组进行多因素分 
+# 重新整合 3 个表 (Hellinger-transformed species, physiographic variables, chemical variables) - 物种 & 地形变量 & 化学变量
+tab3 <- data.frame(spe.hel, envtopo, envchem)
+dim(tab3)
+# 每个分组中的变量数量
+(grn <- c(ncol(spe), ncol(envtopo), ncol(envchem)))
+
+# 关闭之前的图形窗口
+graphics.off()
+# 多因素分析计算, 绘制图形
+# MFA 多因素分析
+# https://www.rdocumentation.org/packages/FactoMineR/versions/1.41/topics/MFA
+(t3.mfa <- MFA(
+ tab3,
+ group = grn,
+ type = c("c", "s", "s"),
+ ncp = 2,
+ name.group = c("Fish community", "Physiography", "Water quality"),
+ graph = T
+ ))
+# 多因素分析计算, 不绘制图形
+(t3.mfa <- MFA(
+ tab3,
+ group = grn,
+ type = c("c", "s", "s"),
+ ncp = 2,
+ name.group = c("Fish community", "Physiography", "Water quality"),
+ graph = FALSE
+ ))
+```
+
+```{r}
+summary(t3.mfa)
+t3.mfa$ind
+```
+
+```{r}
+plot(t3.mfa,
+     choix = "axes",
+     habillage = "group",
+     shadowtext = TRUE)
+plot(
+  t3.mfa,
+  choix = "ind",
+  partial = "all",
+  habillage = "group")
+plot(t3.mfa,
+     choix = "var",
+     habillage = "group",
+     shadowtext = TRUE)
+plot(t3.mfa, choix = "group")
+```
+
+```{r}
+# RV coefficients with tests (p-values above the diagonal of 
+# the matrix)
+rvp <- t3.mfa$group$RV
+rvp[1, 2] <- coeffRV(spe.hel, scale(envtopo))$p.value
+rvp[1, 3] <- coeffRV(spe.hel, scale(envchem))$p.value
+rvp[2, 3] <- coeffRV(scale(envtopo), scale(envchem))$p.value
+round(rvp[-4, -4], 6)
+```
+
+```{r}
+# 特征值, 碎石图和破碎棒模型 - Eigenvalues, scree plot and broken stick model
+ev <- t3.mfa$eig[, 1]
+names(ev) <- paste("MFA", 1 : length(ev))
+# ?screestick
+screestick(ev, 
+           las = 2)
+# 替代性绘图
+# 只绘制显著的变量 (相关性)
+# 选择最特征的的变量
+aa <- dimdesc(t3.mfa, 
+              axes = 1:2, 
+              proba = 0.0001)
+# 绘图
+varsig <- 
+  t3.mfa$quanti.var$cor[unique(c(rownames(aa$Dim.1$quanti), 
+              rownames(aa$Dim.2$quanti))), ]
+plot(varsig[, 1:2], 
+  asp = 1, 
+  type = "n", 
+  xlim = c(-1, 1),
+  ylim = c(-1, 1)
+  )
+abline(h = 0, 
+       lty = 3)
+abline(v = 0, 
+       lty = 3)
+symbols(0, 
+        0, 
+        circles = 1, 
+        inches = FALSE, 
+        add = TRUE)
+arrows(0, 
+       0, 
+       varsig[, 1], 
+       varsig[, 2], 
+       length = 0.08, 
+       angle = 20)
+
+for (v in 1 : nrow(varsig)) {
+  if (abs(varsig[v, 1]) > abs(varsig[v, 2])) {
+    if (varsig[v, 1] >=  0) 
+      pos <- 4
+    else 
+      pos <- 2
+    }
+  else {
+    if (varsig[v, 2] >=  0) 
+      pos <- 3
+    else 
+      pos <- 1 
+    }
+  text(varsig[v, 1], 
+       varsig[v, 2], 
+       labels = rownames(varsig)[v], 
+       pos = pos)
+  }
+```
+
+---
+
+## 6.11 关联物种特征和环境
+
+生态位理论会预测已适应 环境的定植的 物种的生态和行为特征. 
+功能生态学主要研究物种特征和环境之间的相互关系. 
+这种研究方法, 由于要检验假设, 因此面临方法学上的挑战, 必须通过适合的方法评估物种特征与环境特征之间的关系, 如物种的有无或丰度所导致的群落结构特征与环境之间的相互关系. 
+
+下文将介绍两种解决上述问题的方法: -1> RLQ, -2> fourth-corner methods. 
+这两种方法具有互补的特性: RLQ 是一种排序方法, 允许三种数据表组合的数据结构的可视化, 但只是一种简单的全局检验; fourth-corner methods 是一系列个体特征与环境相互关系的统计检验, 不考虑个体特征与环境变量之间的协方差, 同时没有关于位点和物种的输出结果. 
+
+本书中介绍了一些提高两种方法互补性的调整: 整体数据由三种矩阵组成, -1> 矩阵A(或者矩阵L) -- 物种有无或者丰度数据 (n 个位点, p 个物种) , -2> 矩阵B(或者矩阵Q) -- 生物学或者行为特征数据 (p 个物种, s 个生物学特征或者行为特征), -3> 矩阵C(或者矩阵R) -- 栖息地特征数据 (n 个位点, m 个栖息地特征).
+
+> 主要目的是为了研究物种特征和环境之间的相互关系. 
+
+RLQ 方法是分析由矩阵L连接起来的矩阵R和矩阵Q (矩阵L在此处起到了链接作用), s*m 矩阵的交叉特征和环境变量 是第四个矩阵(也成为 矩阵D, 第四角)
+
+### 6.11.1 四角法分析(The Fourth-Corner Method)
+
+该方法的原理在于: -1> 估计矩阵D的参数, -2> 检验参数的显著性(差异性), 在六种置换模型中选择最适合的一种.
+
+Model 1: environmental control over individual species. 
+Model 2: environmental control over species assemblages. 
+Model 3: lottery. 
+Model 4: random species attributes. 
+Model 5: permute rows and columns. 
+Model 6: this is actually a combination of models 2 and 4. 
+
+### 6.11.2 物种功能属性与环境因子关系分析( RLQ Analysis)
+
+RLQ 分析方法是共惯量(co-inertia analysis, CoIA)分析的一个扩展. 
+
+### 6.11.3 在 R 中的应用
+
+该部分数据的科研背景: 阿尔卑斯山上的植物性状对积雪融化梯度的响应. 
+主要的科学问题是: 根据植物物种的功能特征评估, 积雪的持续时间及其所有后果如何影响高山草原? 
+
+> 结果图的解读是**重点!!!**
+
+```{r}
+data(aravo)
+dim(aravo$spe)
+dim(aravo$traits)
+dim(aravo$env)
+
+# 初步分析: CA, Hill-Smith and PCA
+afcL.aravo <- dudi.coa(aravo$spe, scannf = FALSE)
+acpR.aravo <- dudi.hillsmith(aravo$env, 
+                 row.w = afcL.aravo$lw,
+                 scannf = FALSE)
+acpQ.aravo <- dudi.pca(aravo$traits, 
+                 row.w = afcL.aravo$cw,
+                 scannf = FALSE)
+
+# RLQ analysis
+rlq.aravo <- rlq(
+                 dudiR = acpR.aravo, 
+                 dudiL = afcL.aravo, 
+                 dudiQ = acpQ.aravo,
+                 scannf = FALSE)
+plot(rlq.aravo)
+# Traits by environment crossed table
+rlq.aravo$tab
+# 单一绘图拥挤, 逐个绘制
+s.label(rlq.aravo$lR, 
+  plabels.boxes.draw = FALSE, 
+  ppoints.alpha = 0,
+  psub.text = "a",
+  psub.cex = 2, 
+  psub.position = "topleft"
+  )
+s.label(rlq.aravo$lQ, 
+  plabels.boxes.draw = FALSE, 
+  ppoints.alpha = 0,
+  psub.text = "b",
+  psub.cex = 2, 
+  psub.position = "topleft"
+  )
+s.arrow(rlq.aravo$l1,
+  psub.text = "c",
+  psub.cex = 2, 
+  psub.position = "topleft"
+  )
+s.arrow(rlq.aravo$c1,
+  psub.text = "d",
+  psub.cex = 2, 
+  psub.position = "topleft"
+  )
+
+# 全局检验 - Global test
+# 置换检验的类
+# https://www.rdocumentation.org/packages/ade4/versions/1.7-13/topics/randtest
+randtest(rlq.aravo, 
+         nrepet = 999, 
+         modeltype = 6)
+
+# 四象限分析方法 - Fourth-corner analysis 
+fourth.aravo <- fourthcorner(
+                      tabR = aravo$env, 
+                      tabL = aravo$spe, 
+                      tabQ = aravo$traits,
+                      modeltype = 6,
+                      p.adjust.method.G = "none", 
+                      p.adjust.method.D = "none", 
+                      nrepet = 999)
+# 使用 FDR 进行多重检验校正
+fourth.aravo.adj <- p.adjust.4thcorner(
+                      fourth.aravo,
+                      p.adjust.method.G = "fdr", 
+                      p.adjust.method.D = "fdr", 
+                      p.adjust.D = "global") 
+# 绘制显著性关联
+plot(fourth.aravo.adj, 
+     alpha = 0.05, 
+     stat = "D2")
+```
+
+```{r}
+# Biplot combining RLQ and fourth-corner results
+plot(fourth.aravo.adj, 
+  x.rlq = rlq.aravo, 
+  alpha = 0.05, 
+  stat = "D2", 
+  type = "biplot"
+  )
+```
+
+```{r}
+summary(fishtraits)
+rownames(fishtraits)
+names(spe)
+names(fishtraits)
+(tra <- fishtraits[ , 6:15])
+
+# 初步分析: CA, Hill-Smith and PCA
+afcL.doubs <- dudi.coa(spe, scannf = FALSE)
+acpR.doubs <- dudi.hillsmith(env3,
+                             row.w = afcL.doubs$lw,
+                             scannf = FALSE)
+acpQ.doubs <- dudi.pca(tra, 
+                       row.w = afcL.doubs$cw,
+                       scannf = FALSE)
+
+# RLQ analysis
+rlq.doubs <- rlq(
+  dudiR = acpR.doubs, 
+  dudiL = afcL.doubs, 
+  dudiQ = acpQ.doubs,
+  scannf = FALSE)
+plot(rlq.doubs)
+# 环境交叉表的特征 - Traits by environment crossed table
+rlq.doubs$tab
+
+
+# 单一绘图拥挤, 逐个绘制
+s.label(rlq.doubs$lR, 
+        plabels.boxes.draw = FALSE, 
+        ppoints.alpha = 0,
+        psub.text = "a",
+        psub.cex = 2, 
+        psub.position = "topleft"
+        )
+s.label(rlq.doubs$lQ, 
+        plabels.boxes.draw = FALSE, 
+        ppoints.alpha = 0,
+        psub.text = "b",
+        psub.cex = 2, 
+        psub.position = "topleft"
+        )
+s.arrow(rlq.doubs$l1,
+        psub.text = "c",
+        psub.cex = 2, 
+        psub.position = "topleft"
+        )
+s.arrow(rlq.doubs$c1,
+        psub.text = "d",
+        psub.cex = 2, 
+        psub.position = "topleft"
+        )
+
+# 全局检测 - Global test
+# randtest - 置换检验的类
+# https://www.rdocumentation.org/packages/ade4/versions/1.7-13/topics/randtest
+randtest(rlq.doubs, 
+         nrepet = 999, 
+         modeltype = 6)
+
+# 四象限分析 - Fourth-corner analysis
+# ?fourthcorner
+# https://www.rdocumentation.org/packages/ade4/versions/1.7-13/topics/fourthcorner
+# 对丰度数据或者二元'有-无'数据进行四象限分析
+(fourth.doubs2 <- fourthcorner(
+  tabR = env3,
+  tabL = spe,
+  tabQ = tra,
+  modeltype = 2,
+  p.adjust.method.G = "fdr",
+  p.adjust.method.D = "fdr",
+  nrepet = 4999 # 置换检验
+  ))
+
+summary(fourth.doubs2)
+
+fourth.doubs <- fourthcorner(
+  tabR = env2, 
+  tabL = spe, 
+  tabQ = tra,
+  modeltype = 6,
+  p.adjust.method.G = "none", 
+  p.adjust.method.D = "none", 
+  nrepet = 4999 # 置换检验
+  )
+
+# 使用 FDR 进行多重检验校正 
+(fourth.doubs.adj <- p.adjust.4thcorner(
+  fourth.doubs,
+  p.adjust.method.G = "fdr", 
+  p.adjust.method.D = "fdr", 
+  p.adjust.D = "global"))
+
+summary(fourth.doubs.adj)
+
+plot(fourth.doubs.adj, 
+     alpha = 0.05, 
+     stat = "D2")
+plot(fourth.doubs2, 
+     stat = "D2")
+plot(fourth.doubs2, 
+     stat = "G")
+```
+
+```{r}
+# Biplot combining RLQ and fourth-corner results
+plot(fourth.doubs.adj, 
+     x.rlq = rlq.doubs, 
+     alpha = 0.05, 
+     stat = "D2", 
+     type = "biplot"
+     )
+plot(fourth.doubs2,
+     x.rlq = rlq.doubs,
+     alpha = 0.05,
+     stat = "D2",
+     type = "biplot"
+     )
+```
+
+---
+
+## 6.12 结论
+
+排序, 查看生态数据信息的一种方式, 同时也是在涉及多个数据矩阵的多环境变量中揭示,解释,检验和模拟生态关系的有力的方法家族. 
+
+>本书汇总了作者认为最重要且最有用的方法. 
+
+Name, acronym | Use (examples) | R functions(packages) | Data; implementation; limitations
+- | - | - | - 
+A. Asymmetric analyses -- 非对称分析 |  |  |  
+ Redundancy analysis, RDA | Predict Y with X (Variation partitioning) | rda{vegan} / varpart{vegan} | All types; species data with prior transformation; m < (n-1). Linear model.  
+ Canonical correspondence analysis, CCA | Predict Y with X | cca {vegan} | Y: species abundances; X: all types; m < (n-1); unimodal response to latent variables.  
+ Linear discriminant analysis, LDA | Explain classification with quantitative variables | lda{MASS} | Y: classification; X: quantitative variables. Linear model.  
+ Principal response curves, PRC | Model community response through time in controlled experiments | prc{vegan} | Y: community data; factor “treatment”; factor “time”.  
+ Co-correspondence analysis (asymmetricform), CoCA | Predict one community on the basis of another | coca{cocorresp} | Y: data for community 1; X: data for community 2; both at the same sites. Unimodal response to latent variables
+B. Symmetric analyses -- 对称分析 |  |  |  
+ Co-correspondence analysis (symmetric form), CoCA | Optimized comparison of two communities (descriptive approach) | coca{cocorresp} | Y1: data for community 1; Y2: data for community 2; both at the same sites. Unimodal response to latent variables  
+ Canonical correlation analysis, CCorA | Common structures of two data matrices. | CCorA{vegan} | Two matrices of quantitative data. Linear model.  
+ Co-inertia analysis, CoIA | Common structures of two or more data matrices. | coinertia{ade4} | Very general and flexible; many types of data and ordination methods.  
+ Multiple factor analysis, MFA | Common structures of two or more data matrices. | mfa{ade4} / MFA{FactoMineR} | Simultaneous ordination of 2 or more weighted tables. Mathematical type must be homogeneous within each table.  
+ RLQ analysis, RLQ | Species traits related to environmental variables | rlq{ade4} | 3 tables: species-by-sites, sites-by-environment; species-by-traits  
+ Fourth-corner analysis | Species traits related to environmental variables | fourthcorner, fourthcorner2{ade4} | 3 tables: species-by-sites, sites-by-environment; species-by-traits  
+
+---
+
+</font>

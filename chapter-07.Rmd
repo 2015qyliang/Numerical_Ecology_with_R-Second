@@ -1,0 +1,1443 @@
+<font face="微软雅黑">
+
+---
+
+# **第七章：生态数据的空间分析**
+
+---
+
+本章内容简介：
+
+- 7.1 目标
+- 7.2 空间结构与空间分析简介
+- 7.3 多变量趋势面分析(Multivariate Trend-Surface Analysis)
+- 7.4 基于特征向量的空间变量与空间模型(Eigenvector-Based Spatial Variables and Spatial Modelling)
+- 7.5 另一种空间结构的观察方法: 多尺度排序(Multiscale Ordination, MSO)
+- 7.6 多元变量方差分析中的无重复时空交互检验(Space-Time Interaction Test in Multivariate ANOVA, Without Replicates)
+
+---
+
+## 7.1 目标
+
+生态学数据的空间分析是一个非常复杂且重要的研究板块. 
+本章仅作为一个入门级别的导引, 为能够了解更多关于空间分析在R中的具体应用方法, 可以参考 [Bivand于2013年的研究成果](https://www.springer.com/gp/book/9781461476177). 
+
+- 学习如何计算空间相关性测度并绘制空间相关图
+- 学习如何构建来自位点坐标和位点之间联系的空间描述
+- 识别, 检验和解释尺度依赖型的空间结构
+- 结合空间分析和方差分解
+- 通过计算解释性和剩余排序分数的函数来评估典范排序中的空间结构
+
+---
+
+## 7.2 空间结构与空间分析简介
+
+### 7.2.1 简介
+
+空间分析在生态数据分析中扮演着重要的角色. 
+有生命体征的群落在多个尺度上都有空间结构, 这些结构是一些过程发生之后的表现(结果). 
+Beta 多样性就是群落组成上的空间差异, 很多研究表明多种因子(比如饮食, 相互作用关系, 生态位的差异性, 物理化学因素, 气候因素等等; 生物因素和非生物因素)可以解释群落组成上的空间差异性. 
+横向尺度地比较分析, 纵向尺度(比如时间维度)上比较分析. 
+
+生态学数据是多种空间和多种非空间结构上的组合:
+
+- 每个响应变量的总体均值(物种);
+- *如果整个取样区域受到一个复合的过程影响, 且这个过程影响范围大于取样区, 总体平均会随着梯度发生变化, 导致趋势的存在*
+- *区域尺度的空间结构: 如果各种不同的(生物/非生物因素)生态过程对群落的影响发生在比整个取样区域小的尺度上, 将产生可识别的空间结构*
+- *局部确定但无法识别的空间结构, 可能是因为取样尺度不够小, 导致无法识别微尺度斑块*
+- *随机噪音(误差): 方差的残差(随机)组分. 该部分由每个取样点本身的局部效应引起*
+
+> 空间分析的主要目的是区分上面这些空间结构的来源并进行建模分析. 
+
+### 7.2.2 诱导空间依赖与空间自相关(Induced Spatial Dependence and Spatial Autocorrelation)
+
+*响应变量矩阵Y的空间结构可以有两个主要的来源: 由外部(环境)因子控制的空间街哦过和来自响应变量本身的空间结构. *
+*第一种称之为 诱导性空间依赖, 第二种称之为空间自相关.* 
+
+*如果潜在的生物学过程影响范围大于区域区域, 空间自相关也有可能产生梯度假象. *
+
+*目前还没有分辨真假梯度的统计方法, 只能依赖生物学假设去推断: 在某些情况下, 可以假设产生空间相关的生态过程是否也能够产生空间自相关. 在其他情况下, 可以通过比较当前研究区域尺度上的过程与更大区域尺度的过程去分辨真假梯度. *
+
+*空间相关用来度量这样一个事实: 空间接近的两个点之间的值比随机抽取的两个点之间的值更为相似或者相异.  *
+这种由真正的自相关或者空间依赖引起的空间结构对统计检验有不利的影响. 
+
+对于具有空间相关的响应度量, 如果已知样方的位置和生物学过程, 至少在某种程度上可以通过其他样方的值预测目标样方的值. 
+这种相互关系意味着样方值之间彼此不是随机独立, 这种情况违背了样方独立性的统计检验. (即, 新的样本没有带来新的自由度)
+
+因此在分析具有空间相关的数据时, 参数检验的自由度往往被高估, 导致检验的结果偏向"自由"的一边: 即导致零假设经常被错误地拒绝. 
+
+### 7.2.3 空间尺度(Spatial Scale)
+
+在本文中, 尺度包括取样设计和空间分析的几种属性.
+
+取样设计有三个属性属于空间尺度范畴:
+
+- 取样单元大小
+- 取样区间(取样间隔)
+- 取样程度(取样范围)
+
+取样设计的三个属性会影响可识别和可度量的空间结构的类型和大小. 
+-1> 取样单元整合了发生在取样单元内的空间结构: 导致无法识别等于或者小于取样单元的空间结构; -2> 取样间隔决定能够被识别的最小空间结构; -3> 研究区域的取样程度是可测空间的格局大小的上限. 
+因此如何正确匹配三个取样设计属性与被验证的假设和被研究系统的特征非常重要. 
+
+研究对象的生态背景决定如何最优化取样单元大小,取样间隔和取样范围. 
+最优化的取样单元大小应与研究对象的单位匹配(如动植物个体, 植被的斑块等等). 
+取样间隔应于研究对象的平均距离相匹配. 
+取样范围应尽量包含所有研究生态过程的所有区域. 
+
+在生态学研究中, 小尺度是指微小的空间范围, 大尺度是指大的空间范围. 
+由于这种概念容易与地理学中的尺度产生混淆, 因此该处使用宽尺度(broad scale)和微尺度(fine scale)两种等同的概念. 
+
+生态学过程发生在不同的尺度上, 导致复杂的,多尺度的生态格局. 
+确定格局的生态尺度和寻找与生态格局相关的生态过程是当前生态学研究中的重要目标. 
+
+> 因此, 研究人员必须依赖适合的取样设计和强大的分析工具来进行科学研究 -- 事半功倍
+
+### 7.2.4 空间异质性(Spatial Heterogeneity)
+
+生态过程或者生态格局在区域间的变化称之为空间异质性. 
+空间分析中的很多方法斗殴致力于度量空间异质性的强度和广度, 同时检验空间相关是否存在. 
+空间相关性检验, 不仅可验证"数据中不存在的空间相关"这样的零假设, 同时可以直接获得空间相关信息, 并在概念和统计模型中使用这些信息. 
+
+构建结构函数, 是研究与样方间距离有关的空间异质性的常用方法. 
+县官途, 变异函数图, 周期图等均属于结构函数. 
+
+
+### 7.2.5 空间相关或相关函数与空间相关图(Spatial Correlation or Autocorrelation Functions and Spatial Correlograms)
+
+相关图是空间相关系数沿距离等级的变化图. 
+相关图结合统计检验可以评估空间相关结构的范围和类型. 
+
+一个典型的空间相关系数变化现象: 在很短的距离内为正值, 随着距离增加逐渐下降到负值, 当距离达到某一点则变为不显著; 当距离超过不显著的阈值之后, 所有的样方对之间可以视为空间独立.
+
+空间相关图可以展示任何类型的空间相关(诱导性空间依赖,空间自相关等). 
+
+```{r}
+# 解决警告信息的显示问题
+# Warning: Input string not available in this locale
+Sys.setlocale('LC_ALL','C')
+
+# 导入分析包
+# ade4 https://www.rdocumentation.org/packages/ade4/versions/1.7-13
+# 生态型数据分析(多变量数据分析): 环境科学中的探索分析和 Euclidean 方法
+# vegan https://www.rdocumentation.org/packages/vegan/versions/2.4-2
+# 群落生态分析包: 排序方法, 多样性分析等
+# ape https://www.rdocumentation.org/packages/ape/versions/5.3
+# 系统发育与进化分析
+# adegraphics https://www.rdocumentation.org/packages/adegraphics/versions/1.0-15
+# 表示多变量数据的图形功能,  'ade4' 的重新集成
+# adespatial https://www.rdocumentation.org/packages/adespatial/versions/0.3-4
+# 多元多尺度空间分析
+# spdep 空间依赖性: 加权方案, 统计, 模型
+# https://www.rdocumentation.org/packages/spdep/versions/1.1-2
+# adegraphics 用于表示多变量数据的图形功能, 它是'ade4'包中可用功能的完全重新实现
+# https://www.rdocumentation.org/packages/adegraphics/versions/1.0-15
+library(ape)
+library(spdep)
+library(ade4)
+library(adegraphics)
+library(adespatial)
+library(vegan)
+
+# 导入分析脚本 & 数据集
+source("Functions/plot.links.R")
+source("Functions/sr.value.R")
+source("Functions/quickMEM.R")
+source("Functions/scalog.R")
+load("Data/mite.RData")
+
+# 数据变换
+mite.h <- decostand (mite, "hellinger")
+# scale() 对矩阵相似对象进行缩放或者居中
+# https://www.rdocumentation.org/packages/base/versions/3.6.0/topics/scale
+# 默认 center = T, 减去列平均值然后 centered
+mite.xy.c <- scale(mite.xy, center = TRUE, scale = FALSE)
+```
+
+```{r}
+# 单变量空间相关图 - Univariate spatial correlogram (based on Moran's I)
+# 绘制PCOA图, 并添加与差异阈值以下的值对应的线条
+# https://github.com/JoeyBernhardt/NumericalEcology/blob/master/plot.links.R
+plot.links(mite.xy, thresh = 0.7)
+# https://www.rdocumentation.org/packages/spdep/versions/1.1-2/topics/dnearneigh
+# 基于欧式距离(Euclidean distance)确定邻近关系
+nb1 <- dnearneigh(as.matrix(mite.xy), 0, 0.7)
+summary(nb1)
+
+# 基质密度的相关图 - Correlogram of substrate density
+# sp.correlogram 空间相关图
+# https://www.rdocumentation.org/packages/spdep/versions/1.1-2/topics/sp.correlogram
+subs.dens <- mite.env[ ,1]
+subs.correlog <- 
+  sp.correlogram(nb1, 
+                 subs.dens, 
+                 order = 14, 
+                 method = "I", 
+       zero.policy = TRUE)
+print(subs.correlog, p.adj.method = "holm")
+plot(subs.correlog)
+```
+
+多变量的空间相关可以通过 Mantel 相关图进行评估和检验, 即计算样方相异矩阵与样方距离等级矩阵的标准化的Mantel相关系数; 样方等级矩阵中, 样方对之间的距离属于设定距离等级时赋予值为 0, 否则赋予 1.
+
+```{r}
+# 螨虫数据集的 Mantel 相关图(correlogram)
+# 首先去除物种数据; see Sect. 7.3
+mite.h.det <- resid(lm(as.matrix(mite.h) ~ ., data = mite.xy))
+mite.h.D1 <- dist(mite.h.det) # 计算距离矩阵
+# mantel.correlog 计算多变量 Mantel 相关图
+# https://www.rdocumentation.org/packages/vegan/versions/2.4-2/topics/mantel.correlog
+(mite.correlog <- 
+  mantel.correlog(mite.h.D1, 
+                  XY = mite.xy, 
+                  nperm = 999))
+summary(mite.correlog)
+
+# 分类的数量
+mite.correlog$n.class # or: mite.correlog[2]
+# 断点 - Break points
+mite.correlog$break.pts # or: mite.correlog[3]
+# 绘制 Mantel 相关图(correlogram)
+plot(mite.correlog)
+```
+
+### 7.2.6 空间相关性存在的检验: 条件(Testing for the Presence of Spatial Correlation: Conditions)
+
+空间相关系数可以检验显著性, 但必须符合相关性分析的条件. 
+如果采用置换检验, 数据的正态性要求可放宽. 
+为检验空间相关系数的显著性, 还必须符合"二阶稳定"的要求. 
+
+二阶稳定, 是指变量的平均值和空间协方差在整个研究区域不变, 且方差是有限. 换句话, 即使用相同的空间相关函数足以描述研究区域所有部分的空间变化. 
+
+对于存在明显趋势的数据(即, 真梯度), 空间相关系数显著性无法检验. 对于从一个空间结构明显不同的区域获得的变量, 应使用不同的空间相关系数建模. 
+
+单一趋势的数据通常可以通过样方地理坐标的一阶或者高阶函数实现去趋势. 
+
+二阶稳定的放宽模式(也称为内在假设), 是指在整个研究区域所有距离为 d 的两点差值的平均值为 0 且存在不变和有限的方差. 
+
+如果具备这些条件可以计算和查看相关图, 但不能检验空间相关系数的显著性. 
+
+### 7.2.7 空间结构建模(Modelling Spatial Structures)
+
+建模导向也是空间分析的一种. 
+模拟的空间结构可以被假设与解释变量有关, 也可以帮助产生这样的新假设: 究竟哪些过程这样的空间结构. 
+
+任何尺度多有可能存在空间结构. 
+**识别不同尺度和分别模拟对应的空间结构是生态学家长期追求的目标**. 
+
+趋势面分析只能提取非常简单的空间结构, 因为原始的多项式非常复杂且高度相关, 在实际应用中一般只限用到三阶多项式. 
+邻体矩阵主坐标分析(PCNM)和其他基于特征根的空间函数是空间分析方法的突破.
+
+---
+
+## 7.3 多变量趋势面分析(Multivariate Trend-Surface Analysis)
+
+### 7.3.1 简介
+
+简单回归仅能模拟线性趋势, 线性趋势可以通过样带收集的数据与X坐标的回归进行拟合, 而平面趋势也可以通过相同的方法进行拟合. 
+
+一种常用的曲线结构的建模方式是增加坐标变量的多项式作为解释变量. 
+二阶和三阶项都是常用的多项式. 
+
+通过 RDA 或者 CCA 可以将趋势面分析用于多元数据分析, 分析的结果是一组独立的空间模型(每个典型轴代表一个模型), 可以使用前向选择保留只含有显著成分的模型. 
+
+### 7.3.2 趋势面分析的实际应用(In practice)
+
+趋势面分析最重要的应用是去趋势. 
+一般先检验数据的空间线性趋势, 如果趋势显著, 对数据进行去趋势处理, 即使用 X_Y 坐标对变量进行回归分析, 保留残差, 使用 lm() 函数可以很容易的获取回归的残差. 
+
+```{r}
+# 简单模型 - 方形 & 定期采样表面 Simple models on a square, regularly sampled surface
+# https://www.rdocumentation.org/packages/base/versions/3.6.0/topics/expand.grid
+# expand.grid - 从因子变量的所有组合创建数据框
+xygrid <- expand.grid(1:10, 1:10)
+plot(xygrid)
+
+# 质心化 - 中心化处理矩阵(数据框)数据 - Centring
+# scale() 对矩阵相似对象进行缩放或者居中
+# https://www.rdocumentation.org/packages/base/versions/3.6.0/topics/scale
+# 默认 center = T, 减去列平均值然后 centered
+# center = F, 减去列平均值
+(xygrid.c <- scale(xygrid, scale = FALSE))
+
+X <- xygrid.c[ ,1]
+Y <- xygrid.c[ ,2]
+XY <- X + Y
+XY2 <- X ^ 2  +  Y ^ 2
+XY3 <- X ^ 2 - X * Y - Y ^ 2
+XY4 <- X + Y  +  X ^ 2  +  X * Y  +  Y ^ 2
+XY5 <- X ^ 3  +  Y ^ 3
+XY6 <- X ^ 3  +  X ^ 2 * Y  +  X * Y ^ 2  +  Y ^ 3
+XY7 <- X  +  Y  +  X ^ 2  +  X * Y  +  Y ^ 2  +  X ^ 3 +  X ^ 2 * Y  +  X * Y ^ 2  +  Y ^ 3
+xy3deg <- cbind(X, Y, XY, XY2, XY3, XY4, XY5, XY6, XY7)
+
+# 散点图来表示变量值
+s.value(xygrid, xy3deg, symbol = "circle")
+```
+
+```{r}
+## --- 对螨虫数据集进行趋势面分析 --- 
+# 先前居中的X-Y坐标上 计算原始(非正交)三次多项式函数 - on the previously centred X-Y coordinates
+mite.poly <- poly(as.matrix(mite.xy.c), 
+                  degree = 3, 
+                  raw = TRUE)
+colnames(mite.poly) <- 
+    c("X", "X2", "X3", "Y", "XY", "X2Y", "Y2", "XY2", "Y3")
+
+# 对所有 9 个多项式进行冗余分析
+(mite.trend.rda <- rda(mite.h ~ ., 
+                       data = as.data.frame(mite.poly)))
+
+# 计算调整的 R方
+# https://www.rdocumentation.org/packages/vegan/versions/2.4-2/topics/RsquareAdj
+(R2adj.poly <- RsquareAdj(mite.trend.rda)$adj.r.squared)
+
+# 使用 地理坐标的三项正交多项式 进行冗余分析 
+# RDA using a third-degree orthogonal polynomial of the geographic coordinates
+mite.poly.ortho <- poly(as.matrix(mite.xy), 
+                        degree = 3)
+colnames(mite.poly.ortho) <- 
+    c("X", "X2", "X3", "Y", "XY", "X2Y", "Y2", "XY2", "Y3")
+(mite.trend.rda.ortho <- 
+  rda(mite.h ~ ., 
+      data = as.data.frame(mite.poly.ortho)))
+# 计算调整的 R方
+# https://www.rdocumentation.org/packages/vegan/versions/2.4-2/topics/RsquareAdj
+(R2adj.poly2 <- RsquareAdj(mite.trend.rda.ortho)$adj.r.squared)
+
+# 前向选择 - Forward selection using Blanchet et al. (2008a) 
+# 双停准则 - double stopping criterion
+# https://www.rdocumentation.org/packages/adespatial/versions/0.3-4/topics/forward.sel
+# 在简化模型下使用置换进行多元变量数据集的正向选择
+# Forward Selection With Multivariate Y Using Permutation Under Reducel Model
+(mite.trend.fwd <- 
+  forward.sel(mite.h, mite.poly.ortho, adjR2thresh = R2adj.poly2))
+
+(mite.trend.rda2 <- rda(mite.h ~ ., 
+          data = as.data.frame(mite.poly)[ ,mite.trend.fwd[ ,2]]))
+
+# 全部检验
+anova(mite.trend.rda2)
+# 检验所有典范轴 - canonic axis
+anova(mite.trend.rda2, by = "axis")
+
+# 质心化 - 中心化处理矩阵(数据框)数据 - Centring
+# scale() 对矩阵相似对象进行缩放或者居中
+# https://www.rdocumentation.org/packages/base/versions/3.6.0/topics/scale
+# 默认 center = T, 减去列平均值然后 centered
+# center = F, 减去列平均值
+mite.trend.fit <- 
+  scores(mite.trend.rda2, 
+         choices = 1:4, 
+         display = "lc", 
+         scaling = 1)
+# 散点图来表示变量值
+s.value(mite.xy, mite.trend.fit, symbol = "circle")
+```
+
+---
+
+## 7.4 基于特征向量的空间变量与空间模型(Eigenvector-Based Spatial Variables and Spatial Modelling)
+
+### 7.4.1 简介
+
+趋势面分析是一种非常粗放的空间建模方法. 
+生态过程和生态数据的多尺度属性需要寻求在所有尺度上都能够对空间结构进行识别和建模. 换言之, 需要在宽尺度(整个取样区域)至微尺度(取样间隔的倍数)都能够对空间结构进行建模. 
+
+为能在典范排序中实现, 必须构建能够模拟所有尺度的空间结构的变量. 
+邻体矩阵主坐标分析(principal coordinates of neighbour matrices, PCNM)衍生出.
+
+> PCNM 目前多被称为 distance-based MEM, or dbMEM. Moran's Eigenvector map  
+
+### 7.4.2 基于距离的 Moran 特征向量图(Distance-Based Moran's Eigenvector Maps, dbMEM) 和 相邻矩阵主坐标分析(Principal Coordinates of Neighbour Matrices, PCNM)
+
+#### 7.4.2.1 引言
+
+PCNM 计算步骤:
+
+- 构建样方之间的欧式(地理)距离矩阵;
+- 消减距离矩阵规模, 只保留一定规模的邻体之间的距离;
+- 计算消减距离矩阵的主坐标分析(PCoA);
+- 在大部分研究中, 保留具有正空间相关(Moran指数 大于 E)的特征向量;
+- 使用保留的特征向量作为空间解释向量, 与响应变量进行多元回归或 RDA 分析;
+
+PCNM 可以获得很多比取样间隔更宽尺度的正交(线性独立)空间变量; 其次, 通过大量的数据模拟演示, PCNM 可以对任何类型的空间结构进行建模. 
+
+PCNM 可以用于任何取样设计. 
+规则取样的空间变量更容易解读, 如果是不规则的取样设计, 为了保证所有点都能被连接, 阈值有时会比较大. 
+大的阈值, 意味着微空间结构的丢失; 
+因此, 对于不规则取样, 理想的阈值应在保证所有点都能连接的条件下选择尽可能小的距离.
+
+在保证满足所有点都能被连接的而要求下, 如果选择到的阈值很大, -1> 增加有限的虚拟补充点去减少阈值距离, -2> 计算 PCNM 变量, -3> 从 PCNM 变量矩阵中剔除虚拟补充点. 
+添加虚拟补充点的措施可以使小的空间结构得以展示, 但会导致 PCNM 的变量不再相互正交. 如果添加的补充点比例很小, 偏离正交性的程度不会太明显. 
+
+传统的 PCNM 中, 所有正特征根都具有特征函数. 
+
+在标准的MEM分析内, Moran指数是特征根的线性函数, 但在PCNM分析中特征根与空间相关系数并没有简单的关系. 
+因此, 在所有的PCNM分析中, 最好及时计算 Moran指数 (PCNM() 可自动计算 Moran指数).
+
+#### 7.4.2.2 常规采样设计的 dbMEM 变量 (Regular Sampling Designs)
+
+```{r}
+# 1. 一维采样
+# One-dimensional sampling: 具有100个等间距点的横断面 - transect with 100 equispaced points. 
+# 相邻点之间的距离是 1. 
+# dbmem() 自动计算阈值
+
+# 生成样点带 - Generate transect points
+tr100 <- 1 : 100
+
+# 创建 dbMEM 本征函数(eigenfunctions) with Moran's I 对应空间正相关(positive spatial correlation): 
+# 参数MEM.autocor = "positive" 默认
+# https://www.rdocumentation.org/packages/adespatial/versions/0.3-4/topics/dbmem
+# 空间本征函数
+tr100.dbmem.tmp <- dbmem(tr100, 
+                         silent = FALSE) # 是否显示计算过程
+tr100.dbmem <- as.data.frame(tr100.dbmem.tmp)
+# 展示特征值 - eigenvalues
+attributes(tr100.dbmem.tmp)$values
+# 统计正相关特征值的数量
+length(attributes(tr100.dbmem.tmp)$values)
+
+# 绘制一些 dbMEM 变量 modelling 空间正相关(positive spatial correlation) along a transect (Fig. 7.3).
+par(mfrow = c(2, 4))
+somedbmem <- c(1, 2, 4, 8, 15, 20, 30, 40)
+for(i in 1:length(somedbmem)) {
+  plot(tr100.dbmem[ ,somedbmem[i]], 
+       type = "l", 
+       xlab = "X coordinate", 
+       ylab = c("dbMEM", somedbmem[i]))
+  }
+
+# 2. 二维采样
+# Two-dimensional sampling: 等间距点的网格, 点之间的最小距离等于1
+# grid of equispaced points with smallest distance between points equal to 1 (Fig. 7.4).
+
+# 生成网格点坐标 - Generate grid point coordinates
+# https://www.rdocumentation.org/packages/base/versions/3.6.0/topics/expand.grid
+# expand.grid - 从因子变量的所有组合创建数据框
+xygrid2 <- expand.grid(1:20, 1:20)
+
+# 创建 dbMEM 本征函数(eigenfunctions) with Moran's I 
+# https://www.rdocumentation.org/packages/adespatial/versions/0.3-4/topics/dbmem
+# 空间本征函数
+xygrid2.dbmem.tmp <- dbmem(xygrid2)
+xygrid2.dbmem <- as.data.frame(xygrid2.dbmem.tmp)
+# 计数特征值数量
+length(attributes(xygrid2.dbmem.tmp)$values)
+
+somedbmem2 <- c(1, 2, 5, 10, 20, 40, 80, 120, 189)
+# 散点图来表示变量值
+s.value(xygrid2, xygrid2.dbmem[ ,somedbmem2], 
+  method = "color", 
+  symbol = "circle", 
+  ppoints.cex = 0.5
+  )
+```
+
+#### 7.4.2.3 甲螨数据集的基于距离的 Moran 特征向量图分析(Distance-Based Moran's Eigenvector Maps, dbMEM)
+
+不规则取样, PCNM 变量不再呈现规律性变化, 有时会使尺度的评估变得很困难. 
+
+```{r}
+# 螨虫数据集是否具有线性相关趋势? 
+anova(rda(mite.h, mite.xy))  # Result: significant trend
+# 线性去除螨虫数据 - linearly detrended mite data
+# 计算残差
+mite.h.det <- resid(lm(as.matrix(mite.h) ~ ., data = mite.xy))
+
+## 第一步. 
+# 构建 dbMEN 变量矩阵
+# 创建 dbMEM 本征函数(eigenfunctions) with Moran's I 对应空间正相关(positive spatial correlation): 
+# 参数MEM.autocor = "positive" 默认
+# https://www.rdocumentation.org/packages/adespatial/versions/0.3-4/topics/dbmem
+# 空间本征函数
+mite.dbmem.tmp <- dbmem(mite.xy, 
+                        silent = FALSE) # 不显示计算过程
+mite.dbmem <- as.data.frame(mite.dbmem.tmp)
+# 使用上面的截断距离 - Truncation distance used above:
+# https://www.rdocumentation.org/packages/adespatial/versions/0.3-4/topics/give.thresh
+# 基于距离矩阵计算最小生成树的最大距离
+(thr <- give.thresh(dist(mite.xy)))
+
+# 统计特征值
+attributes(mite.dbmem.tmp)$values
+length(attributes(mite.dbmem.tmp)$values)
+
+## 第二步. 
+# 对'去势 - detrended'已数据变换(Hellinger-transformed)的螨虫数据集进行全局 dbMEN 分析
+(mite.dbmem.rda <- rda(mite.h.det ~ ., mite.dbmem))
+anova(mite.dbmem.rda)
+
+## 第三步. 
+# 因为 R-square 是显著性的, 因此计算调整后的 R2 并对dbMEN 变量进行正向选择
+(mite.R2a <- RsquareAdj(mite.dbmem.rda)$adj.r.squared)
+(mite.dbmem.fwd <- forward.sel(mite.h.det, as.matrix(mite.dbmem), 
+  adjR2thresh = mite.R2a))
+(nb.sig.dbmem <- nrow(mite.dbmem.fwd)) # 显著的数量
+# 按照升序筛选显著性
+(dbmem.sign <- sort(mite.dbmem.fwd[ ,2]))
+# 将显著性的 dbMEN 存入新对象
+dbmem.red <- mite.dbmem[ ,c(dbmem.sign)]
+
+## 第四步. 
+# 对 8 个显著性的 dbMEN 变量进行 dbMEN 分析
+# 正向选择之后的调整的 R方: R2adj = 0.2418
+(mite.dbmem.rda2 <- rda(mite.h.det ~ ., data = dbmem.red))
+# https://www.rdocumentation.org/packages/vegan/versions/2.4-2/topics/RsquareAdj
+(mite.fwd.R2a <- RsquareAdj(mite.dbmem.rda2)$adj.r.squared)
+anova(mite.dbmem.rda2)
+(axes.test <- anova(mite.dbmem.rda2, by = "axis"))
+# 显著性轴的数量
+(nb.ax <- length(which(axes.test[ ,ncol(axes.test)] <=  0.05)))
+
+## 第五步. 
+# 绘制显著性的典范轴 - canonical axes
+# 质心化 - 中心化处理矩阵(数据框)数据 - Centring
+# scale() 对矩阵相似对象进行缩放或者居中
+# https://www.rdocumentation.org/packages/base/versions/3.6.0/topics/scale
+# 默认 center = T, 减去列平均值然后 centered
+# center = F, 减去列平均值
+mite.rda2.axes <- 
+  scores(mite.dbmem.rda2, 
+         choices = c(1:nb.ax), 
+         display = "lc", 
+         scaling = 1)
+ 
+par(mfrow = c(1,nb.ax))
+# sr.value() 为自备函数
+for(i in 1:nb.ax) {
+    sr.value(mite.xy, mite.rda2.axes[ ,i], 
+             sub = paste("RDA",i), 
+             csub = 2)
+  }
+```
+
+```{r}
+# 解释空间变化: 
+# 使用Shapiro-Wilk残差正态性检验 - 对环境变量的显著性的典范轴进行回归
+mite.rda2.axis1.env <- lm(mite.rda2.axes[ ,1] ~ ., data = mite.env)
+# resid 计算残差
+# https://www.rdocumentation.org/packages/stats/versions/3.5.2/topics/shapiro.test
+# Shapiro-Wilk Normality Test - 正态性检验
+shapiro.test(resid(mite.rda2.axis1.env))
+summary(mite.rda2.axis1.env)
+
+mite.rda2.axis2.env <- lm(mite.rda2.axes[ ,2] ~ ., data = mite.env)
+# resid 计算残差
+# https://www.rdocumentation.org/packages/stats/versions/3.5.2/topics/shapiro.test
+# Shapiro-Wilk Normality Test - 正态性检验
+shapiro.test(resid(mite.rda2.axis2.env))
+summary(mite.rda2.axis2.env)
+
+# 根据置换的 p-value, 第三轴可能不重要. 
+# 在本示例中, 以下 3 行可能会报错
+mite.rda2.axis3.env <- lm(mite.rda2.axes[ ,2] ~ ., data = mite.env)
+# resid 计算残差
+# https://www.rdocumentation.org/packages/stats/versions/3.5.2/topics/shapiro.test
+# Shapiro-Wilk Normality Test - 正态性检验
+shapiro.test(resid(mite.rda2.axis3.env))
+summary(mite.rda2.axis3.env)
+
+# 绘制由所有 dbMEM 本征函数解释的 方差的尺度图 - Scalogram 
+# scalog() 自备函数
+scalog(mite.dbmem.rda)
+
+# 绘制 8 个显著性的 dbMEN 变量的地图
+# 使用自备函数 sr.value()
+par(mfrow = c(2, 4))
+for(i in 1 : ncol(dbmem.red)) {
+    sr.value(mite.xy, 
+             dbmem.red[ ,i], 
+             # sub = paste("dbMEM",i), 
+             sub = paste("dbMEM",dbmem.sign[i]), 
+             csub = 2)
+  }
+# 散点图来表示变量值
+s.value(mite.xy, dbmem.red)
+```
+
+```{r}
+## 对螨虫数据集的 dbMEN 分析 - 大规模 broad scale
+(mite.dbmem.broad <- 
+  rda(mite.h.det ~ ., data = mite.dbmem[ ,c(1,3,4)]))
+anova(mite.dbmem.broad)
+(axes.broad <- anova(mite.dbmem.broad, by = "axis"))
+# 显著性轴的数量
+(nb.ax.broad <- 
+  length(which(axes.broad[ , ncol(axes.broad)] <=  0.05)))
+
+# 绘制显著性的典范轴 - canonical axes
+# 质心化 - 中心化处理矩阵(数据框)数据 - Centring
+# scale() 对矩阵相似对象进行缩放或者居中
+# https://www.rdocumentation.org/packages/base/versions/3.6.0/topics/scale
+# 默认 center = T, 减去列平均值然后 centered
+# center = F, 减去列平均值
+mite.dbmembroad.axes <- 
+  scores(mite.dbmem.broad, 
+         choices = c(1,2), 
+         display = "lc", 
+         scaling = 1)
+
+par(mfrow = c(1, 2))
+# 使用自备函数 sr.value() - 绘图
+sr.value(mite.xy, mite.dbmembroad.axes[ ,1])
+sr.value(mite.xy, mite.dbmembroad.axes[ ,2])
+
+# 解释广义的空间变化 - broad-scaled spatial variation: 两个显著性的空间典范轴(spatial canonical axes)对环境变量的回归
+mite.dbmembroad.ax1.env <-   lm(mite.dbmembroad.axes[ ,1] ~ ., data = mite.env)
+summary(mite.dbmembroad.ax1.env)
+mite.dbmembroad.ax2.env <-  lm(mite.dbmembroad.axes[ ,2] ~ ., data = mite.env)
+summary(mite.dbmembroad.ax2.env)
+
+## 对螨虫数据集的 dbMEN 分析 - 中等规模 medium scale
+(mite.dbmem.med <-  rda(mite.h.det ~ ., data = mite.dbmem[ ,c(6,7,10,11)]))
+anova(mite.dbmem.med)
+(axes.med <- anova(mite.dbmem.med, by = "axis"))
+# 统计显著性轴的数量
+(nb.ax.med <- length(which(axes.med[ ,ncol(axes.med)] <=  0.05)))
+
+# 绘制显著性的典范轴 - canonical axes
+# 质心化 - 中心化处理矩阵(数据框)数据 - Centring
+# scale() 对矩阵相似对象进行缩放或者居中
+# https://www.rdocumentation.org/packages/base/versions/3.6.0/topics/scale
+# 默认 center = T, 减去列平均值然后 centered
+# center = F, 减去列平均值
+mite.dbmemmed.axes <-  
+  scores(mite.dbmem.med, 
+         choices = c(1,2), 
+         display = "lc", 
+         scaling = 1)
+ 
+par(mfrow = c(1, 2))
+# 使用自备函数 sr.value() - 绘图
+sr.value(mite.xy, mite.dbmemmed.axes[ ,1])
+sr.value(mite.xy, mite.dbmemmed.axes[ ,2])
+
+# 解释中等尺度的空间变化：两个显著性的空间规范轴对环境变量的回归Interpreting the medium-scaled spatial variation: regression of the two significant spatial canonical axes on the environmental variables
+mite.dbmemmed.ax1.env <-  lm(mite.dbmemmed.axes[ ,1] ~ ., data = mite.env)
+summary(mite.dbmemmed.ax1.env)
+mite.dbmemmed.ax2.env <-   lm(mite.dbmemmed.axes[ ,2] ~ ., data = mite.env)
+summary(mite.dbmemmed.ax2.env)
+
+## 对螨虫数据集的 dbMEN 分析 - 精细规模 fine scale
+(mite.dbmem.fine <-  rda(mite.h.det ~ ., data = as.data.frame(mite.dbmem[ ,20])))
+anova(mite.dbmem.fine)
+#>>> 分析就此停止, 冗余分析的结果没有显著性
+```
+
+#### 7.4.2.4 Hassle-Free dbMEM Analysis: 函数 quickMEM()
+
+- 一步到位. 
+
+quickMEM() 运行整套 PCNM 分析: 检验数据的趋势性, 如果趋势显著, 进行去趋势处理; 构建PCNM变量和检验RDA全模型显著性; 对正空间相关性的PCNM变量进行前向选择; 运行保留的PCNM变量的RDA分析并检验典型轴的显著性; 输出RDA结果(包括PCNM变量组)和绘制显著典型轴的空间地图. 
+
+```{r}
+mite.dbmem.quick <- quickMEM(mite.h, mite.xy)
+summary(mite.dbmem.quick)
+# 特征值
+mite.dbmem.quick[[2]]  # OR mite.dbmem.quick$eigenvalues
+# 前向选择的结果
+mite.dbmem.quick[[3]]  # OR mite.dbmem.quick$fwd.sel
+
+plot(mite.dbmem.quick$RDA, scaling = 2)
+# 质心化 - 中心化处理矩阵(数据框)数据 - Centring
+# scale() 对矩阵相似对象进行缩放或者居中
+# https://www.rdocumentation.org/packages/base/versions/3.6.0/topics/scale
+# 默认 center = T, 减去列平均值然后 centered
+# center = F, 减去列平均值
+sp.scores2 <- 
+  scores(mite.dbmem.quick$RDA, 
+         choices = 1:2, 
+         scaling = 2, 
+         display = "sp")
+arrows(0, 0, 
+  sp.scores2[ ,1] * 0.9, 
+  sp.scores2[ ,2] * 0.9, 
+  length = 0, 
+  lty = 1, 
+  col = "red")
+```
+
+#### 7.4.2.5 结合基于距离的 Moran 特征向量图分析 & 方差分解(Variation Partitioning)
+
+方差分解可以用于评估环境变量与所有尺度的空间变量对响应变量的解释程度. 
+方差分解的函数 varpart() 只能识别数值型变量(非因子), 因此, 计算时必须重新编码, 使之成为二元变量. 
+
+变差分解的目的是量化各种不同因素单独或者共同解释响应变量变差的比例, 其中线性趋势可以视为产生方差的一部分来源. 
+线性趋势可以发生在响应变量, 也可以发生在解释变量. 
+因此, 不建议在方差分解之前对响应变量进行去趋势处理, 但需要检验线性趋势的显著性, 如果趋势显著, 方差分解过程中应该考虑线性趋势的影响. 
+
+```{r}
+# 1. 检验趋势 - Test trend
+mite.XY.rda <- rda(mite.h, mite.xy)
+anova(mite.XY.rda)
+
+# 2. 检验环境变量的前向选择 - Test and forward selection of the environmental variables
+# 将环境变量3到5重新编码为虚拟二进制变量
+# https://www.rdocumentation.org/packages/stats/versions/3.6.0/topics/model.matrix
+substrate <- model.matrix( ~ mite.env[ ,3])[ ,-1]
+shrubs <- model.matrix( ~ mite.env[ ,4])[ ,-1]
+topography <- model.matrix( ~ mite.env[ ,5])[ ,-1]
+mite.env2 <- cbind(mite.env[ ,1:2], substrate, shrubs, topography)
+colnames(mite.env2) <- 
+  c("SubsDens", "WatrCont", "Interface", "Litter", "Sphagn1",
+    "Sphagn2", "Sphagn3", "Sphagn4", "Shrubs_Many", "Shrubs_None", 
+    "topography")
+# 环境变量的前向选择
+# https://www.rdocumentation.org/packages/vegan/versions/2.4-2/topics/cca
+mite.env.rda <- rda(mite.h ~., mite.env2)
+# https://www.rdocumentation.org/packages/vegan/versions/2.4-2/topics/RsquareAdj
+(mite.env.R2a <- RsquareAdj(mite.env.rda)$adj.r.squared)
+# https://www.rdocumentation.org/packages/adespatial/versions/0.3-4/topics/forward.sel
+# 在缩减模式(reduced model)下通过残差的置换进行前向选择
+mite.env.fwd <- 
+  forward.sel(mite.h, mite.env2,
+              adjR2thresh = mite.env.R2a, 
+              nperm = 9999)
+env.sign <- sort(mite.env.fwd$order)
+env.red <- mite.env2[ ,c(env.sign)]
+colnames(env.red)
+
+# 3. dbMEN 变量的检验和前向选择
+# 对'去势'后的螨虫数据集进行全局 dbMEN 分析
+mite.det.dbmem.rda <- rda(mite.h.det ~., mite.dbmem)
+anova(mite.det.dbmem.rda)
+# 因为分析结果呈现显著性, 所以计算调整后的R方并进行 dbMEN 变量的前向选择
+(mite.det.dbmem.R2a <- 
+  RsquareAdj(mite.det.dbmem.rda)$adj.r.squared)
+(mite.det.dbmem.fwd <- 
+  forward.sel(mite.h.det, 
+              as.matrix(mite.dbmem), 
+    adjR2thresh = mite.det.dbmem.R2a))
+# 统计显著的 dbMEN 数量
+(nb.sig.dbmem <- nrow(mite.det.dbmem.fwd))
+# 升序筛选并识别显著的 dbMEN 结果
+(dbmem.sign <- sort(mite.det.dbmem.fwd$order))
+# 存储显著性结果
+dbmem.red <- mite.dbmem[ ,c(dbmem.sign)]
+
+# 4. 任意(Arbitrarily)将显著性的 dbMEM 划分为广泛和精细的规模
+# 大规模 - Broad scale: dbMEM 1, 3, 4, 6, 7
+dbmem.broad <- dbmem.red[ , 1 : 5]
+# 精细规模 - Fine scale: dbMEM 10, 11, 20
+dbmem.fine <- dbmem.red[ , 6 : 8]
+
+## 5. Mite - environment - trend - dbMEM  方差分解(variation partitioning)
+# varpart() 方差分解
+# https://www.rdocumentation.org/packages/vegan/versions/2.4-2/topics/varpart
+(mite.varpart <- 
+  varpart(mite.h, env.red, mite.xy, dbmem.broad, dbmem.fine))
+
+# https://www.rdocumentation.org/packages/vegan/versions/2.4-2/topics/varpart
+# par(mfrow = c(1,2))
+showvarparts(4, bg = c("red", "blue", "yellow", "green"))
+plot(mite.varpart, 
+     digits = 2, 
+     bg = c("red", "blue", "yellow", "green")
+     ) 
+```
+
+```{r}
+# 检测独特分数(unique fractions) [a], [b], [c], [d]
+# Fraction [a], pure environmental
+anova(
+  rda(mite.h, env.red, cbind(mite.xy, dbmem.broad, dbmem.fine))
+  )
+# Fraction [b], pure trend
+anova(
+  rda(mite.h, mite.xy, cbind(env.red, dbmem.broad, dbmem.fine))
+  )
+# Fraction [c], pure broad scale spatial
+anova(rda
+  (mite.h, dbmem.broad, cbind(env.red, mite.xy, dbmem.fine))
+  )
+# Fraction [d], pure fine scale spatial
+anova(
+  rda(mite.h, dbmem.fine, cbind(env.red, mite.xy, dbmem.broad))
+  )
+```
+
+### 7.4.3 更广泛背景下的Moran 特征向量图分析方法(MEM): 地理距离以外的权重(Weights Other than Geographic Distances)
+
+#### 7.4.3.1 简介
+
+MEM 方法可以产生 n-1 个带正特征根或负特征根的空间变量, 即得到更大范围内模拟正负空间相关的空间变量. 
+MEM 特征向量会使 Moran 指数最大化, 而特征根等于 Moran 指数乘以一个常数. 
+因此, 数据空间结构按照这样一种方式提取: 轴首先展示正的自相关结构(正相关程度递减), 然后哦展示负的自相关结构(负相关程度递增). 
+
+MEM 运算过程首先需要定义描述样方之间关系的两个矩阵: -1> 二元连接矩阵B: 定义样方对之间是否连接(连接为1, 不连接为0); -2> 权重矩阵A: 定义连接的强度. 
+最终的空间权重矩阵W是矩阵B和A的Hadamard积(即相同位置项的乘积). 
+
+#### 7.4.3.2 甲螨数据集的广义 MEM 分析 ( Moran 特征向量图 )
+
+```{r}
+## '去势'螨虫数据集的 Moran 特征向量图分析(MEM)
+
+# 选择最优空间加权矩阵 - Selection of an optimal spatial weighting matrix
+
+# 1. Search based on Delaunay triangulation.
+# http://mathworld.wolfram.com/DelaunayTriangulation.html
+# https://en.wikipedia.org/wiki/Delaunay_triangulation
+# 将 mite.h.det 作为响应数据, 将 mite.del 作为 Delaunay triangulation 数据
+# 非加权矩阵(binary weights only): 
+# 1 - 易于沟通 means connected (easy communication), 
+# 0 - 不可沟通 - not connected (无交流的可能 - no exchange  possible). 
+# 函数 test.W() 选择 Moran 特征向量图分析中的变量, 构建 Delaunay triangulation 分析的基础
+
+# Delaunay triangulation 数据集 & 模型选择
+# https://www.rdocumentation.org/packages/spdep/versions/1.1-2/topics/tri2nb
+# 三个对象的邻近列表
+# 将二维坐标矩阵转换为类 'nb' 的邻近列表
+(mite.del <- tri2nb(mite.xy)) 
+# https://www.rdocumentation.org/packages/adespatial/versions/0.3-4/topics/test.W
+# test.W - 计算和测试空间加权矩阵特征向量的函数
+mite.del.res <- 
+  test.W(mite.h.det, 
+         mite.del, 
+         MEM.autocor = "positive")
+# 汇总最优模型的结果
+summary(mite.del.res$best)
+# 未调整的 R方 - with the smallest AICc value
+(R2.del <- 
+  mite.del.res$best$AIC$R2[which.min(mite.del.res$best$AIC$AICc)])
+# 调整的 R方 - with the smallest AICc value
+# https://www.rdocumentation.org/search?q=RsquareAdj&latest=
+RsquareAdj(
+  R2.del, 
+  n = nrow(mite.h.det), 
+  m = which.min(mite.del.res$best$AIC$AICc)
+  )
+
+# 2. 通过距离对 Delaunay triangulation 进行加权.
+# 距离最大值是 1, 提升效力至 - y. 
+# 进行数据转换之后, 接近 1 的表示易于交换(通信), 接近 0 的表示难于通信交流.
+f2 <- function(D, dmax, y) { 
+  1 - (D/dmax)^y 
+  }
+
+# 获取链接中最大的欧式距离(Euclidean distance)
+# 该链接属于 Delaunay triangulation
+max.d1 <- max(unlist(nbdists(mite.del, as.matrix(mite.xy)))) 
+# 效力 - Power y 设置的范围 2 ~ 10
+# https://www.rdocumentation.org/packages/adespatial/versions/0.3-4/topics/test.W
+# test.W - 计算和测试空间加权矩阵特征向量的函数
+mite.del.f2 <- 
+  test.W(mite.h.det, mite.del, 
+         MEM.autocor = "positive", 
+         f = f2, 
+         y = 2:10, 
+         dmax = max.d1, 
+         xy = as.matrix(mite.xy))
+# 最优模型的未调整 R方
+(R2.delW <- 
+  mite.del.f2$best$AIC$R2[which.min(mite.del.f2$best$AIC$AICc)])
+# 最优模型的调整的R方
+# https://www.rdocumentation.org/search?q=RsquareAdj&latest=
+RsquareAdj(
+  R2.delW, 
+  n = nrow(mite.h.det), 
+  m = which.min(mite.del.f2$best$AIC$AICc)
+  )
+
+# 3a. 基于距离连接矩阵（点周围半径）
+# Connectivity matrix based on a distance (radius around points)
+# 基于去趋势螨数据的多变量变异函数评估相关距离，具有20个距离等级
+# variogmultiv() - 计算多元经验变异函数
+# https://www.rdocumentation.org/packages/adespatial/versions/0.0-4/topics/variogmultiv
+(mite.vario <- variogmultiv(mite.h.det, 
+                            mite.xy, 
+                            nclass = 20))# 距离类别数
+plot(
+  mite.vario$d, 
+  mite.vario$var, 
+  ty = 'b', 
+  pch = 20, 
+  xlab = "Distance", 
+  ylab = "C(distance)"
+  )
+# 构建 10 个邻近矩阵 (class nb) 
+# 10 个阈值距离的向量
+# https://www.rdocumentation.org/packages/adespatial/versions/0.3-4/topics/give.thresh
+# give.thresh - 基于距离矩阵计算最小生成树的最大距离
+(thresh10 <- seq(give.thresh(dist(mite.xy)), 4, le = 10))
+# 创建 10 个邻近矩阵
+# 每个矩阵包含长度小于或等于阈值的所有连接
+# https://www.rdocumentation.org/packages/base/versions/3.6.0/topics/lapply
+list10nb <- 
+  lapply(thresh10, # 在列表或向量上应用函数
+         dnearneigh, 
+         x = as.matrix(mite.xy), 
+         d1 = 0)
+# 显示第一个邻域矩阵的'摘录'(excerpt )
+# nb2listw & listw2mat - 该函数为具有所选编码方案的空间权重的邻近列表生成权重矩阵
+# https://www.rdocumentation.org/packages/spdep/versions/1.1-2/topics/nb2mat
+print(
+  listw2mat(nb2listw(list10nb[[1]], style = "B"))[1:10,1:10], 
+  digits = 1
+  )
+# https://www.rdocumentation.org/packages/adespatial/versions/0.3-4/topics/test.W
+# test.W - 计算和测试空间加权矩阵特征向量的函数
+# 连接没有权重信息
+mite.thresh.res <- 
+  lapply(list10nb, # 返回的是一个列表
+    function(x) test.W(x, 
+                       Y = mite.h.det, 
+                       MEM.autocor = "positive")
+    )
+# Lowest AICc, best model, threshold distance of 最优模型
+mite.thresh.minAIC <- 
+  sapply(mite.thresh.res, # 返回的是一个向量或者矩阵
+         function(x) min(x$best$AIC$AICc, 
+                         na.rm = TRUE))
+# Smallest AICc (best model among the 10)
+min(mite.thresh.minAIC)
+# Number of the model among the 10
+which.min(mite.thresh.minAIC)
+# 截断阈值(距离) - Truncation threshold (distance)
+thresh10[which.min(mite.thresh.minAIC)]
+
+# 3b. 分析操作的另一种操作: 通过距离的幂的补充加权的连接, 1-(d/dmax)^y. 
+# 进行数据转换之后, 接近 1 的表示易于交换(通信), 接近 0 的表示难于通信交流.
+# https://www.rdocumentation.org/packages/adespatial/versions/0.3-4/topics/test.W
+# test.W - 计算和测试空间加权矩阵特征向量的函数
+# nbdists - 空间连接距离测度 - Spatial Link Distance Measures
+# https://www.rdocumentation.org/packages/spdep/versions/1.1-2/topics/nbdists
+mite.thresh.f2 <- 
+  lapply(list10nb, # 返回一个列表
+         function(x) test.W(x, Y = mite.h.det, 
+         MEM.autocor = "positive", 
+         f = f2, 
+         y = 2:10, 
+         dmax = max(unlist(nbdists(x, as.matrix(mite.xy)))), 
+         xy = as.matrix(mite.xy)))
+# Lowest AIC, best model
+mite.f2.minAIC <- 
+  sapply(mite.thresh.f2,  # 返回的是一个向量或者矩阵
+         function(x) min(x$best$AIC$AICc, na.rm = TRUE))
+# Smallest AICc (best model among the 10)
+min(mite.f2.minAIC)
+# Number of the model among the 10
+(nb.bestmod <- which.min(mite.f2.minAIC))
+# Actual dmax of best model
+(dmax.best <- mite.thresh.f2[nb.bestmod][[1]]$all[1,2])
+
+# 提取 MEN 模型信息 - Moran 特征向量图分析
+mite.MEM.champ <- 
+  unlist(mite.thresh.f2[which.min(mite.f2.minAIC)], 
+         recursive = FALSE)
+summary(mite.MEM.champ)
+# Number of MEM variables in best model
+(nvars.best <- which.min(mite.MEM.champ$best$AIC$AICc))
+mite.MEM.champ$best$AIC$ord
+# 选择最优模型中的 MEM (Moran 特征向量图分析) 变量
+MEMid <- mite.MEM.champ$best$AIC$ord[1:nvars.best]
+sort(MEMid)
+MEM.all <- mite.MEM.champ$best$MEM
+MEM.select <- mite.MEM.champ$best$MEM[ , sort(c(MEMid))]
+colnames(MEM.select) <- sort(MEMid)
+# 最优模型的未调整的 R方
+R2.MEMbest <- mite.MEM.champ$best$AIC$R2[nvars.best]
+# 最优模型的调整的 R方
+# https://www.rdocumentation.org/packages/vegan/versions/2.4-2/topics/RsquareAdj
+RsquareAdj(R2.MEMbest, nrow(mite.h.det), length(MEMid))
+# plot.links() 自备函数, 可绘制连接
+plot.links(mite.xy, thresh = dmax.best)
+
+# 约束性的冗余分析
+# https://www.rdocumentation.org/packages/vegan/versions/2.4-2/topics/cca
+(mite.MEM.rda <- rda(mite.h.det~., as.data.frame(MEM.select)))
+(mite.MEM.R2a <- RsquareAdj(mite.MEM.rda)$adj.r.squared)
+anova(mite.MEM.rda)
+(axes.MEM.test <- anova(mite.MEM.rda, by = "axis"))
+# 显著性轴的数量
+(nb.ax <- 
+  length(which(axes.MEM.test[ ,ncol(axes.MEM.test)] <=  0.05)))
+
+# 绘制显著性的典范轴 - canonical axis
+# 质心化 - 中心化处理矩阵(数据框)数据 - Centring
+# scale() 对矩阵相似对象进行缩放或者居中
+# https://www.rdocumentation.org/packages/base/versions/3.6.0/topics/scale
+# 默认 center = T, 减去列平均值然后 centered
+# center = F, 减去列平均值
+mite.MEM.axes <- 
+  scores(mite.MEM.rda, 
+         choices = 1:nb.ax, 
+         display = "lc", 
+         scaling = 1)
+
+if(nb.ax <=  2) {
+  par(mfrow = c(1,2))
+  } else { 
+  par(mfrow = c(2,2))
+  } 
+
+for(i in 1:ncol(mite.MEM.axes)) {
+  sr.value(mite.xy, mite.MEM.axes[ ,i])
+  }
+
+# 绘制显著性的 MEM 变量(Moran 特征向量图分析)
+if(ncol(MEM.select) <=  6) {
+  par(mfrow = c(2,3))
+  }  else  {
+    par(mfrow = c(3,3)) 
+  }
+
+for(i in 1:ncol(MEM.select)) {
+ sr.value(mite.xy, 
+          MEM.select[ ,i], 
+          sub = sort(MEMid)[i], 
+          csub = 2)
+  }
+# 计算 the retained MEM & dbMEM variables 之间的相关性
+cor(MEM.select, dbmem.red) # 计算相关关系 & 方差 & 协方差
+```
+
+#### 7.4.3.3 其他类型的连通矩阵 
+
+```{r}
+# 连通性递减顺序的连接矩阵的示例
+# 所有这些邻域矩阵都存储在 objects of class nb Delaunay triangulation (如前文示例所述)
+mite.del <- tri2nb(mite.xy) 
+# Gabriel graph
+# https://www.rdocumentation.org/packages/spdep/versions/1.1-2/topics/graphneigh
+# graph2nb - 基于图的空间权重
+mite.gab <- graph2nb(gabrielneigh(as.matrix(mite.xy)), sym = TRUE)
+# Relative neighbourhood
+mite.rel <- graph2nb(relativeneigh(as.matrix(mite.xy)), sym = TRUE)
+# Minimum spanning tree
+# https://www.rdocumentation.org/packages/adespatial/versions/0.3-4/topics/mst.nb
+# mst.nb - 基于最小生成树计算邻域的函数
+mite.mst <- mst.nb(dist(mite.xy))
+
+# 绘制连通矩阵
+# par(mfrow = c(2,2))
+plot(mite.del, mite.xy, col = "red", pch = 20, cex = 1)
+title(main = "Delaunay triangulation ")
+plot(mite.gab, mite.xy, col = "purple", pch = 20, cex = 1)
+title(main = "Gabriel graph")
+plot(mite.rel, mite.xy, col = "dark green", pch = 20, cex = 1)
+title(main = "Relative neighbourhood")
+plot(mite.mst, mite.xy, col = "brown", pch = 20, cex = 1)
+title(main = "Minimum spanning tree")
+
+# 编辑连接
+# 1. 交互 - Interactive:
+plot(mite.del, mite.xy, col = "red", pch = 20, cex = 2)
+title(main = "Delaunay triangulation")
+# 交互性删除
+# https://www.rdocumentation.org/packages/spdep/versions/1.1-2/topics/edit.nb
+# 邻近列表的交互式编辑
+mite.del2 <- edit.nb(mite.del, mite.xy)
+
+# 2. 也可以通过命令行进行删改 
+# nb2mat - 邻近列表的空间权重矩阵
+# https://www.rdocumentation.org/packages/spdep/versions/1.1-2/topics/nb2mat
+mite.del.mat <- nb2mat(mite.del, style = "B")
+# 移除连接关系
+mite.del.mat[23,35] <- 0
+mite.del.mat[35,23] <- 0
+# 数据类型的反向转换 Back-conversion
+# neig - 邻域图
+# https://www.rdocumentation.org/packages/ade4/versions/1.7-13/topics/neig
+mite.del3 <- neig2nb(neig(mat01 = mite.del.mat))
+ 
+plot(mite.del3, mite.xy)
+
+# Delaunay triangulation: 数据的核心邻近的列表 ?
+mite.del[[23]]      # 编辑之前
+mite.del2[[23]]     # 交互编辑之后
+mite.del3[[23]]     # 命令行编辑之后
+
+# 基于距离的连通矩阵(点周围半径)
+# 使用相同的截断距离(truncation distance) dmin 作为 dbMEM 示例 (1.011187).
+dmin = 1.011187
+# https://www.rdocumentation.org/packages/spdep/versions/1.1-2/topics/dnearneigh
+# Neighbourhood Contiguity By Distance - 邻里邻接距离
+mite.thresh4 <- dnearneigh(as.matrix(mite.xy), 0, dmin * 4)
+# Display some values
+# Spatial Weights Matrices For Neighbours Lists - 邻近列表的空间权重矩阵
+# https://www.rdocumentation.org/packages/spdep/versions/1.1-2/topics/nb2mat
+nb2mat(mite.thresh4)[1:10,1:10]
+
+# 使用更短的距离 (1 * dmin, 2 * dmin)
+# https://www.rdocumentation.org/packages/spdep/versions/1.1-2/topics/dnearneigh
+# Neighbourhood Contiguity By Distance - 邻里邻接距离
+mite.thresh1 <- dnearneigh(as.matrix(mite.xy), 0, dmin * 1)
+mite.thresh2 <- dnearneigh(as.matrix(mite.xy), 0, dmin * 2)
+# 使用长一点的距离
+mite.thresh8 <- dnearneigh(as.matrix(mite.xy), 0, dmin * 8)
+
+# par(mfrow = c(1,2))
+plot(mite.thresh1, mite.xy, col = "red", pch = 20, cex = 0.8)
+title(main = "1 * dmin")
+plot(mite.thresh4, mite.xy, col = "red", pch = 20, cex = 0.8)
+title(main = "4 * dmin")
+
+# 对象之间的转换 - a "nb" object into a "listw" object
+# https://www.rdocumentation.org/packages/spdep/versions/1.1-2/topics/nb2listw
+# nb2listw - 邻近列表的空间权重
+mite.thresh4.lw <- nb2listw(mite.thresh4, style = "B")
+# listw2mat - 邻近列表的空间权重
+# https://www.rdocumentation.org/packages/spdep/versions/1.1-2/topics/nb2mat
+print(listw2mat(mite.thresh4.lw)[1:10,1:10], digits = 1)
+
+# Creation of a spatial weighting matrix W = Hadamard product of  B and A.
+# Replace "1" by Euclidean distances in the connectivity matrix
+mite.thresh4.d1 <- nbdists(mite.thresh4, as.matrix(mite.xy))
+# Weights as function of inverse distance
+mite.inv.dist <- 
+  lapply(mite.thresh4.d1, # 
+         function(x) 1-x/max(dist(mite.xy))
+        )
+# Creation of spatial weighting matrix W. Argument "B" stands for "binary" but concerns the links themselves, not their weights
+# https://www.rdocumentation.org/packages/spdep/versions/1.1-2/topics/nb2listw
+# nb2listw - 邻近列表的空间权重
+mite.invdist.lw <- 
+  nb2listw(mite.thresh4, 
+           glist = mite.inv.dist, 
+           style = "B")
+# listw2mat - 邻近列表的空间权重
+# https://www.rdocumentation.org/packages/spdep/versions/1.1-2/topics/nb2mat
+print(listw2mat(mite.invdist.lw)[1:10,1:10], digits = 2)
+
+# 计算 Moran 特征向量图分析的向量 (from an object of class listw)
+# https://www.rdocumentation.org/packages/adespatial/versions/0.3-4/topics/scores.listw
+# scores.listw - Compute And Manage Moran's Eigenvector Maps (MEM)
+mite.invdist.MEM <- scores.listw(mite.invdist.lw)
+summary(mite.invdist.MEM)
+attributes(mite.invdist.MEM)$values
+ 
+barplot(attributes(mite.invdist.MEM)$values)
+
+# Store all MEM vectors in new object
+mite.invdist.MEM.vec <- as.matrix(mite.invdist.MEM)
+
+# Test of Moran's I of each eigenvector - 特征向量
+mite.MEM.Moran <- 
+  moran.randtest(mite.invdist.MEM.vec, 
+                 mite.invdist.lw, 
+                 999)
+
+# MEM with significant spatial correlation
+which(mite.MEM.Moran$pvalue <=  0.05)
+length(which(mite.MEM.Moran$pvalue <=  0.05))
+
+# MEM with 正空间相关
+MEM.Moran.pos <- 
+  which(mite.MEM.Moran$obs > -1/(nrow(mite.invdist.MEM.vec)-1))
+mite.invdist.MEM.pos <- mite.invdist.MEM.vec[ ,MEM.Moran.pos]
+# MEM with positive *and significant* spatial correlation - 两种筛选标准
+mite.invdist.MEM.pos.sig <- 
+  mite.invdist.MEM.pos[ ,which(mite.MEM.Moran$pvalue <=  0.05)]
+# 绘制类型 - I 的数据信息
+plot(attributes(mite.invdist.MEM)$values, 
+     mite.MEM.Moran$obs, 
+     ylab = "Moran's I", 
+     xlab = "Eigenvalues"
+     )
+text(0, 
+     0.55, 
+     paste("Correlation = ", 
+           cor(mite.MEM.Moran$obs, attributes(mite.invdist.MEM)$values)
+           )
+     )
+```
+
+### 7.4.4 如何选择应用正空间相关的 MEM 或者负空间相关的 MEM 
+
+> 由上面的空间建模案例生成的 PCNM 变量和 MEM 变量中, 有些是模拟正空间相关, 有些是模拟负空间相关. 于是问题也随之产生: 应该将所有显著的空间变量都作为解释变量进行下一步的典范排序或者多元回归分析? 还是只选正空间相关变量? 
+
+> 这个问题没有明确的答案. 从生态学的角度讲, 自然界连续变化的过程往往呈现正空间相关的现象, 因此一般情况下正空间相关更受关注. 另一方面, 经验论, 显著的负空间相关往往与局部的偶然数据结构有关, 在变差分解过程中它们属于纯的空间组分, 即与生物的相互作用有关. 如果对负空间相关感兴趣, 所有的特征向量都应该考虑进入下一步的分析. 
+
+### 7.4.5 非对称的特征向量图(Asymmetric Eigenvector Maps, AEM): 方向性很重要时(When Directionality Matters)
+
+#### 7.4.5.1 简介
+
+PCNM 和 MEN 是模拟物理过程产生的无方向性的响应空间结构(如群落). 
+**换言之, 任何位置的点对周围的影响不具有方向性.** 分析过程中遗漏的方向性结构信息.
+
+然而, 在某些情况下, 必须考虑方向性. 
+比如河流的上下游, 特殊区域的物理过程具有地理不对称性, 即一个点对另一个点的影响一般是从上游到下游的方向, 但鱼类从下游到上游的洄游方向则相反. 
+
+方向性过程可能会让数据产生趋势, 所以数据的趋势不一定在非对称特征向量图(Asymmetric Eigenvector Maps modelling method, AEM)分析之前提取, 数据的趋势分析应属于 AEM 分析的一部分.
+
+AEM 分析是专为具有方向性的因果关系的物理过程驱动群落的分析而设计的. 
+这种空间结构与简单的生态梯度不同, 生态梯度是指生态因子具有空间结构, 但同时不排除群落本身也可以在任何方向有相互作用. 
+**因此, 对于生态梯度, PCNM和MEM可能会更适用. **
+
+#### 7.4.5.2 非对称的特征向量图(Asymmetric Eigenvector Maps, AEM)分析方法的原理与应用
+
+```{r}
+# 编码 - 河流 arborescence 数据集; See Legendre and Legendre (2012, p. 889).
+node1 <- c(1, 0, 0, 0, 0, 0, 0, 0)
+n2lk6 <- c(0, 1, 0, 0, 0, 0, 0, 0)
+n3lk3 <- c(1, 0, 1, 0, 0, 0, 0, 0)
+n4lk2 <- c(1, 0, 0, 1, 0, 0, 0, 0)
+node5 <- c(0, 1, 0, 0, 1, 0, 0, 0)
+n6lk1 <- c(1, 0, 0, 1, 0, 1, 0, 0)
+ln7k4 <- c(0, 1, 0, 0, 1, 0, 1, 0)
+n8lk5 <- c(0, 1, 0, 0, 1, 0, 0, 1)
+arbor <- rbind(node1, n2lk6, n3lk3, n4lk2, node5, 
+               n6lk1, ln7k4, n8lk5)
+
+# 构建非对称的特征向量图(Asymmetric Eigenvector Maps, AEM)
+(arbor.aem <- aem(binary.mat = arbor))
+arbor.aem.vec <- arbor.aem$vectors
+
+# AEM特征函数也可以通过奇异值分解(svd())直接获得, 这是函数aem（）所做的:
+# 质心化 - 中心化处理矩阵(数据框)数据 - Centring
+# scale() 对矩阵相似对象进行缩放或者居中
+# https://www.rdocumentation.org/packages/base/versions/3.6.0/topics/scale
+# 默认 center = T, 减去列平均值然后 centered
+# center = F, 减去列平均值
+arbor.c <- scale(arbor, 
+                 center = TRUE, 
+                 scale = FALSE)
+# https://www.rdocumentation.org/packages/base/versions/3.6.0/topics/svd
+# svd() - 矩阵的奇异值分解 - Singular Value Decomposition Of A Matrix
+arbor.svd <- svd(arbor.c)
+# 奇异值 of the construction above
+arbor.svd$d[1:7]
+# AEM 本征函数 eigenfunctions of the construction above
+arbor.svd$u[ ,1:7]
+
+# ---->>>在本书中绘制===========
+# 非对称的特征向量图(Asymmetric Eigenvector Maps, AEM)
+# 图中位点的坐标
+xx <- c(2.75, 2, 3.5, 1, 2, 3.5, 2, 3, 4)
+yy <- c(1,2,2,3,3,3,4,4,4)
+data.xy <- data.frame(xx,yy)
+rownames(data.xy) <-
+  c("N0", "N1", "N2", "N3", "N4", "N5", "N6", "N7", "N8")
+arbor.points <- 
+  rbind(rep(0,7), arbor.svd$u[ ,1:7]) # With node 0 added
+# 改变显著值 of AEM 5
+arbor.points[ ,5] <- -arbor.points[ ,5]
+par(mfrow = c(3,3))
+for(i in 1:7) {
+  sr.value(data.xy, 
+         arbor.points[ ,i], 
+         method = "greylevel", 
+         csize = 1, 
+         clegend = 0, 
+         grid = FALSE, 
+         include.origin = FALSE, 
+         addaxes = FALSE, 
+         sub = paste("AEM",i), 
+         csub = 2)
+  }
+# <<<--- 本书中的相关章节结束 ===========
+```
+
+```{r}
+# 采样设计编码：10个跨河断面，每个断面4个陷阱。 边缘加权与反平方距离成比例。
+# X-Y coordinates
+# # 生成网格点坐标 - Generate grid point coordinates
+# https://www.rdocumentation.org/packages/base/versions/3.6.0/topics/expand.grid
+# expand.grid - 从因子变量的所有组合创建数据框
+xy <- cbind(1:40, expand.grid(1:4, 1:10))
+# Object of class nb (spdep) containing links of chess type "queen"
+# https://www.rdocumentation.org/packages/spdep/versions/1.1-2/topics/cell2nb
+# cell2nb - 生成网格单元的邻近列表
+nb <- cell2nb(4, 10, "queen")
+# Site-by-edges matrix  (produces a fictitious object "0") with automatic plot of the site-by-edges matrix
+# aem.build.binary - 构建Site-by-edges二进制矩阵
+# https://www.rdocumentation.org/packages/adespatial/versions/0.3-4/topics/aem.build.binary
+edge.mat <- aem.build.binary(nb, xy)
+D1.mat <- as.matrix(dist(xy)) # 欧式距离 Euclidean distances
+# Extract the edges, remove the ones directly linked to site 0
+edges.b <- edge.mat$edges[-1:-4,]
+# 创建向量
+length.edge <- vector(length = nrow(edges.b))
+for(i in 1:nrow(edges.b)) {
+  length.edge[i] <- D1.mat[edges.b[i,1], edges.b[i,2]]
+  }
+# Weighting of edges based on inverse squared distance
+# 基于反平方距离的边的加权
+weight.vec <- 1-(length.edge/max(length.edge))^2
+# 构造 AEM 特征函数 from edge.mat, of class build.binary
+# 非对称的特征向量图(Asymmetric Eigenvector Maps, AEM)
+example.AEM <- 
+  aem(aem.build.binary = edge.mat, 
+      weight = weight.vec, 
+      rm.link0 = TRUE)
+
+example.AEM$values
+ex.AEM.vec <- example.AEM$vectors
+# 创建 5 个虚拟物种
+# 两个随机分布的物种
+# trunc - 模拟截断分布
+sp12 <- matrix(trunc(rnorm(80,5,2),0),40)
+# 一种物种仅限于溪流的上半部分
+sp3 <- c(trunc(rnorm(20,8,2.5),0), rep(0,20))
+# 一个物种仅限于横断面的左半部分
+sp4 <- t(matrix(c(trunc(rnorm(20,8,3),0), rep(0,20)),10))
+sp4 <- as.vector(sp4)
+# 一种物种仅限于4个左上部位
+sp5 <- c(4,7,0,0,3,8, rep(0,34))
+# 创建物种矩阵
+sp <- cbind(sp12, sp3, sp4, sp5)
+colnames(sp) <- c("sp1", "sp2", "sp3", "sp4", "sp5")
+
+# Global AEM analysis with 20 first AEM variables (for computation of R2a)
+# 具有20个第一个AEM变量的全局AEM分析（用于计算R2a）
+# https://www.rdocumentation.org/packages/vegan/versions/2.4-2/topics/cca
+AEM.20 <- rda(sp ~ ., 
+              as.data.frame(ex.AEM.vec[ ,1:20]))
+# https://www.rdocumentation.org/packages/vegan/versions/2.4-2/topics/RsquareAdj
+(R2a.AEM <- RsquareAdj(AEM.20)$adj.r.squared)
+# 非对称的特征向量图(Asymmetric Eigenvector Maps, AEM)变量的前向选择
+# https://www.rdocumentation.org/packages/adespatial/versions/0.3-4/topics/forward.sel
+# 通过简化模型下的残差置换进行前向选择
+AEM.fwd <- forward.sel(sp, 
+                       ex.AEM.vec)
+# AEM.fwd <- forward.sel(sp, 
+#                        ex.AEM.vec,
+#                        adjR2thresh = R2a.AEM)
+# R2a.AEM - 为负值, 运行报错; 官网给的该参数可以为负值...相互矛盾, 问题在何处?
+(AEM.sign <- sort(AEM.fwd[ ,2]))
+# 保存显著性的结果
+AEM.sign.vec <- ex.AEM.vec[ ,c(AEM.sign)]
+# RDA with signif. AEM - 冗余分析
+# https://www.rdocumentation.org/packages/vegan/versions/2.4-2/topics/cca
+(sp.AEMsign.rda <- rda(sp ~ ., 
+                       data = as.data.frame(AEM.sign.vec)))
+anova(sp.AEMsign.rda)
+(AEM.rda.axes.test <- anova(sp.AEMsign.rda, 
+                            by = "axis"))
+# 显著性轴的数量
+(nb.ax.AEM <- length(which(AEM.rda.axes.test[ ,4] <=  0.05)))
+# 调整的 R方
+RsquareAdj(sp.AEMsign.rda)
+
+# 绘制显著性的典范轴 - canonical axis
+# 质心化 - 中心化处理矩阵(数据框)数据 - Centring
+# scale() 对矩阵相似对象进行缩放或者居中
+# https://www.rdocumentation.org/packages/base/versions/3.6.0/topics/scale
+# 默认 center = T, 减去列平均值然后 centered
+# center = F, 减去列平均值
+AEM.rda.axes <- 
+  scores(sp.AEMsign.rda, 
+         choices = c(1,2), 
+         display = "lc", 
+         scaling = 1)
+ 
+par(mfrow = c(1,nb.ax.AEM))
+for(i in 1:nb.ax.AEM) sr.value(xy[ ,c(2,3)], AEM.rda.axes[ ,i])
+```
+
+---
+
+## 7.5 另一种空间结构的观察方法: 多尺度排序(Multiscale Ordination, MSO)
+
+### 7.5.1 多尺度排序(Multiscale Ordination, MSO)方法的基本原理
+
+Wagner 引入统计学方法中的设计诊断工具, 将排序结果划分给不同的距离等级, 然后区分诱导性空间依赖于空间自相关, 并使用变异函数检验重要的统计假设, 例如残差的独立性和稳定性. 
+
+多尺度排序(Multiscale Ordination, MSO)的计算步骤:
+
+- 对物种数据进行RDA分析, 解释变量类型不限, 如环境变量,空间变量等; RDA分析不仅可以提供拟合值矩阵和其特征向量, 也可以提供残差矩阵和其特征向量; 
+- 通过由拟合值矩阵计算得到的变异函数矩阵, 获得残差排序轴的空间方差图; 
+- 通过由残差矩阵计算得到变异函数矩阵, 获得残差排序轴的空间方差图; 
+- 绘制被解释方差和残差方差的变异函数图, 置换检验可以用于检验距离等级内空间相关的显著性; 
+
+变异函数矩阵是包含距离等级和方差-协方差矩阵的三维数组. 
+每个矩阵的对角线量化所对应距离等级对于数据总方差的贡献. 
+MSO 通过计算约束排序拟合值的变异函数矩阵, 从而是空间结构分解. 
+将变异函数矩阵乘以典型特征向量将获得每个特征值的空间分解. 
+残差的空间分解也可利用相同的方式进行. 
+
+### 7.5.2 多尺度排序(Multiscale Ordination, MSO)方法在甲螨数据集探索性分析中的应用
+
+```{r}
+## 多尺度排序(Multiscale Ordination, MSO) vs 环境冗余分析 RDA -- 螨虫数据集
+# https://www.rdocumentation.org/packages/vegan/versions/2.4-2/topics/cca
+# https://www.rdocumentation.org/packages/vegan/versions/2.4-0/topics/mso
+# 执行和显示空间分割CCA或RDA结果
+# Functions For Performing And Displaying A Spatial Partitioning Of Cca Or Rda Results
+mite.undet.env.rda <- rda(mite.h~., mite.env2)
+(mite.env.rda.mso <- 
+  mso(mite.undet.env.rda, 
+      mite.xy, 
+      grain = dmin, 
+      perm = 999))
+msoplot(mite.env.rda.mso, 
+        alpha = 0.05/7)
+
+# MSO of the undetrended mite data vs environment RDA, controlling  for MEM
+mite.undet.env.MEM <- 
+  rda(mite.h, 
+      mite.env2, 
+      as.data.frame(MEM.select))
+(mite.env.MEM.mso <- 
+  mso(mite.undet.env.MEM, 
+      mite.xy, 
+      grain = dmin, 
+      perm = 999))
+msoplot(mite.env.MEM.mso, 
+        alpha = 0.05/7) 
+```
+
+### 7.5.3 多尺度排序(Multiscale Ordination, MSO)方法在甲螨数据集和环境数据集中的应用
+
+```{r}
+# 对'去势'螨虫数据和环境数据进行多尺度排序分析(Multiscale Ordination, MSO)
+# resid() - 提取模型残差
+# Detrend 螨虫数据 on Y coordinate - 去势
+mite.h.det2 <- resid(lm(as.matrix(mite.h) ~ mite.xy[ ,2]))
+# Detrend 环境数据 on Y coordinate - 去势
+env2.det <- as.data.frame(
+                    resid(lm(as.matrix(mite.env2) ~ mite.xy[ ,2])))
+# RDA & MSO
+mitedet.envdet.rda <- rda(mite.h.det2 ~., env2.det)
+(miteenvdet.rda.mso <- 
+  mso(mitedet.envdet.rda, 
+      mite.xy, 
+      grain = dmin, 
+      perm = 999))
+msoplot(miteenvdet.rda.mso, alpha = 0.05/7)
+
+# MSO of the detrended mite data vs detrended environment RDA, controlling for MEM
+mite.det.env.MEM <- 
+  rda(mite.h.det2, 
+      env2.det, 
+      as.data.frame(MEM.select))
+(mite.env.MEM.mso <- 
+  mso(mite.det.env.MEM, 
+      mite.xy, 
+      grain = dmin, 
+      perm = 999))
+msoplot(mite.env.MEM.mso, alpha = 0.05/7)
+```
+
+---
+
+## 7.6 多元变量方差分析中的无重复时空交互检验(Space-Time Interaction Test in Multivariate ANOVA, Without Replicates)
+
+### 7.6.2 使用 sti() 函数进行时空交互检验
+
+```{r}
+# 导入 adespatial 包中的内置数据集 
+data(trichoptera)
+names(trichoptera) # 物种代码
+tricho.hel <- decostand(trichoptera[ ,-c(1,2)], "hel") # 数据变换
+
+# 时空交互分析 - sti analysis
+# https://www.rdocumentation.org/packages/adespatial/versions/0.3-4/topics/stimodels
+# stimodels() - 使用无重复 ANOVA 方法进行时空交互分析 - Space-Time Interaction
+stimodels(tricho.hel, 
+          S = 22, # 空间点数
+          Ti = 10, # 时间数量
+          model = "5") # 线性时空模型
+
+# https://www.rdocumentation.org/packages/adespatial/versions/0.3-4/topics/stimodels
+# 使用 quicksti() 快速的进行时空交互分析(Space-Time Interaction Test)
+quicksti(tricho.hel, 
+         S = 22, # 空间点数
+         Ti = 10) # 时间数量
+```
+
+---
+
+</font>

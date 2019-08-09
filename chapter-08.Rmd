@@ -1,0 +1,784 @@
+<font face="微软雅黑">
+
+---
+
+# **第八章：群落多样性分析**
+
+---
+
+本章内容简介：
+
+- 8.1 目标
+- 8.2 关于多样性的介绍
+- 8.3 与空间相关的多样性: Alpha, Beta and Gamma 多样性
+- 8.4 β-多样性(Beta Diversity)
+- 8.5 群落的功能性多样性 & 功能性组成 & 系统进化多样性 
+- 8.6 结论
+
+---
+
+## 8.1 目标
+
+- 获取生态学中多样性的基本概念
+- 通过多种方式计算 α-物种多样性
+- 探索 β-多样性 的概念
+- 将 β-多样性 划分为局部和物种贡献
+- 将 β-多样性 划分为替换、丰富度差异和嵌套
+- 简要介绍功能多样性的概念
+
+---
+
+## 8.2 关于多样性的介绍
+
+### 8.2.1 简介
+
+基于分类学多样性研究群落水平的物种多样性. 
+[Biodiversity & Human Well-being](https://www.greenfacts.org/en/biodiversity/l-3/1-define-biodiversity.htm) 
+[Biodiversity](https://en.wikipedia.org/wiki/Biodiversity) 
+[Ecosystem biodiversity](https://www.khanacademy.org/science/high-school-biology/hs-ecology/hs-community-ecology/v/ecosystem-biodiversity) 
+[Microbial Diversity](https://pdfs.semanticscholar.org/f2d9/70d4ca8a5069cf95df1da44322dcaa01353a.pdf) 
+[MICROBIAL DIVERSITY - book](http://downloads.lww.com/wolterskluwer_vitalstream_com/sample-content/9781605476735_engelkirk/samples/chapter04.pdf) 
+
+### 8.2.2 简单数字统计的物种多样性
+
+#### 8.2.2.1 物种的丰富度与稀疏性(Species Richness & Rarefaction)
+
+#### 8.2.2.2 物种丰度多样性的组成: 丰富度与均匀度(Species Abundance Diversity Components: Richness and Evenness)
+
+### 8.2.3 分类学多样性指标的实际应用(Taxonomic Diversity Indices)
+
+#### 8.2.3.1 河流数据集中鱼类群落的物种多样性指标(Species Diversity Indices)
+
+```{r}
+# 解决警告信息的显示问题
+# Warning: Input string not available in this locale
+Sys.setlocale('LC_ALL','C')
+
+# 导入分析包
+# ade4 https://www.rdocumentation.org/packages/ade4/versions/1.7-13
+# 生态型数据分析(多变量数据分析): 环境科学中的探索分析和 Euclidean 方法
+# vegan https://www.rdocumentation.org/packages/vegan/versions/2.4-2
+# 群落生态分析包: 排序方法, 多样性分析等
+# adegraphics https://www.rdocumentation.org/packages/adegraphics/versions/1.0-15
+# 表示多变量数据的图形功能,  'ade4' 的重新集成
+# adespatial https://www.rdocumentation.org/packages/adespatial/versions/0.3-4
+# 多元多尺度空间分析
+# vegetarian https://www.rdocumentation.org/packages/vegetarian/versions/1.2/topics/vegetarian-package
+# 计算微生物群落数据的多样性
+# FD https://www.rdocumentation.org/packages/FD/versions/1.0-12
+# 从多种特征评估功能多样性 - functional diversity
+# taxize https://www.rdocumentation.org/packages/taxize/versions/0.9.7/topics/taxize-package
+# 在线获取物种 分类学信息
+library(ade4)
+library(adegraphics)
+library(adespatial)
+library(vegan)
+library(vegetarian)
+library(ggplot2)
+library(FD)
+library(taxize)
+
+# 导入分析脚本和数据
+source("Functions/panelutils.R")
+source("Functions/Rao.R")
+load("Data/Doubs.RData") 
+load("Data/mite.RData")
+
+spe <- spe[-8, ]
+env <- env[-8, ]
+spa <- spa[-8, ]
+```
+
+```{r}
+# Alpha 物种多样性
+# ?diversity
+
+# 计算鱼类群落的 Alpha 物种多样性
+(N0 <- rowSums(spe > 0))  # Species richness
+(N0 <- specnumber(spe))  # Species richness (alternate)
+(H <- diversity(spe))  # Shannon entropy (base e)
+(Hb2 <- diversity(spe, base = 2)) # Shannon entropy (base 2)
+(N1 <- exp(H))  # Shannon diversity (base e) (number of abundant species)
+(N1b2 <- 2^Hb2)   # Shannon diversity (base 2)
+(N2 <- diversity(spe, "inv"))  # Simpson diversity (number of dominant species)
+(J <- H / log(N0))  # Pielou evenness
+(E10 <- N1 / N0)  # Shannon evenness (Hill's ratio)
+(E20 <- N2 / N0)  # Simpson evenness (Hill's ratio)
+(div <- data.frame(N0, H, Hb2, N1, N1b2, N2, E10, E20, J))
+
+# 计算多样性指标之间的相关性
+# ?cor
+cor(div) 
+# 绘制两两相关图
+pairs(div[-1, ], 
+      lower.panel = panel.smooth, 
+      upper.panel = panel.cor,
+      diag.panel = panel.hist, main = "Pearson Correlation Matrix"
+      )
+```
+
+#### 8.2.3.2 甲螨群落的稀疏性分析(Rarefaction Analysis)
+
+```{r}
+# 稀疏性分析
+# 物种的数量
+(mite.nbsp <- specnumber(mite)) # Species richness (alternate)
+mite.nbsp[mite.nbsp == min(mite.nbsp)] # 提取物种丰富度的最小值
+mite.nbsp[mite.nbsp == max(mite.nbsp)] # 提取物种丰富度的最大值
+range(mite.nbsp) # 物种丰度的变化范围
+(mite.abund <- rowSums(mite)) # Species richness
+range(mite.abund) # 总丰富度的变化范围
+mite.abund[mite.nbsp == min(mite.nbsp)] # 提取物种丰富度的最小值
+mite.abund[mite.nbsp == max(mite.nbsp)] # 提取物种丰富度的最大值
+mite.nbsp[mite.abund == min(mite.abund)] # 提取物种丰富度的最小值
+mite.nbsp[mite.abund == max(mite.abund)] # 提取物种丰富度的最大值
+
+mite.rare80 <- rarefy(mite, sample = 80) # 甲螨数据集稀释成 80 个个体(样本)
+# 比较排序结果 - 观察值与稀释值
+sort(mite.nbsp)
+sort(round(mite.rare80))
+# Sites with estimated species richness
+mite.rare80[mite.rare80 == min(mite.rare80)] # 稀释后的预估的物种丰富度最小值
+mite.rare80[mite.rare80 == max(mite.rare80)] # 稀释后的预估的物种丰富度最小值
+# Observed core with predicted species richness ??
+mite[which(mite.rare80 == min(mite.rare80)),]
+mite[which(mite.rare80 == max(mite.rare80)),]
+
+# 稀释曲线 - Rarefaction curve
+rarecurve(
+  mite[-67,],  # 注意数据集
+  step = 1, 
+  sample = 80, 
+  xlab = "Number of individuals (Sample Size)", 
+  ylab = "Species",
+  label = TRUE, 
+  col = "blue"
+  )
+
+rarecurve(
+  mite,  # 注意数据集
+  step = 1,
+  sample = 80,
+  xlab = "Number of individuals (Sample Size)",
+  ylab = "Species",
+  label = TRUE,
+  col = "blue"
+  )
+```
+
+---
+
+## 8.3 与空间相关的多样性: Alpha, Beta and Gamma 多样性
+
+---
+
+## 8.4 β-多样性(Beta Diversity)
+
+### 8.4.1 简单数字统计的β-多样性
+
+```{r}
+# Beta diversity, LCBD and SCBD of the fish data
+
+# Gamma richness & 预期的物种池(expected species pool)
+# ?specpool 估计物种库中外推的物种丰富度，或未观测物种的数量
+# https://www.rdocumentation.org/packages/vegan/versions/2.4-2/topics/specpool
+(gobs <- ncol(spe))
+(gthe <- specpool(spe))
+
+# 乘法分区 - Multiplicative partitioning of **Hill numbers** (Jost 2006, 2007)
+# ?d
+# Mean alpha species richness
+d(spe, lev = "alpha", q = 0)
+# Mean alpha Shannon diversity
+d(spe, lev = "alpha", q = 1)
+# Mean alpha Simpson diversity
+d(spe, lev = "alpha", q = 2, boot = TRUE)
+# 倍增 ? Multiplicative beta species richness
+d(spe, lev = "beta", q = 0)
+# 倍增 ? Multiplicative beta Shannon diversity
+d(spe, lev = "beta", q = 1)
+# 倍增 ? Multiplicative beta Simpson diversity
+d(spe, lev = "beta", q = 2, boot = TRUE)
+# Gamma species richness
+d(spe, lev = "gamma", q = 0)
+# Gamma Shannon diversity
+d(spe, lev = "gamma", q = 1)
+# Gamma Simpson diversity
+d(spe, lev = "gamma", q = 2, boot = TRUE)
+```
+
+```{r}
+# 绘图 - multiplicative beta diversity vs order
+mbeta <- data.frame(order = 0:20, beta = NA, se = NA)
+for (i in 1:nrow(mbeta)) {
+  out <- d(spe, lev = "beta", q = mbeta$order[i], boot = TRUE)
+  mbeta$beta[i] <- out$D.Value
+  mbeta$se[i] <- out$StdErr
+  }
+
+mbeta
+ 
+ggplot(mbeta, aes(order, beta)) +
+  geom_point() +
+  geom_line() +
+  geom_errorbar(
+     aes(order, beta, ymin = beta - se, ymax = beta + se),
+     width = 0.2) + labs(y = "Multiplicative beta diversity", 
+                         x = "Order of the diversity measure")
+```
+
+```{r}
+# MacArthur's homogeneity 同质化 measure (MacArthur 1965)
+# https://pdfs.semanticscholar.org/88c4/67e65b42eff088d19354632f41df6ca5804d.pdf
+# https://rdrr.io/cran/vegetarian/man/M.homog.html
+hom <- data.frame(order = 0:20, homogeneity = NA, se = NA)
+for (i in 1:nrow(hom)) {
+  out <- M.homog(spe, q = hom$order[i], std = TRUE, boot = TRUE)
+  hom$homogeneity[i] <- out$M
+  hom$se[i] <- out$StdErr
+  }
+
+hom
+ 
+ggplot(hom, aes(order, homogeneity)) +
+  geom_point() +
+  geom_line() +
+  geom_errorbar(
+     aes(order, 
+           homogeneity, 
+           ymin = homogeneity - se, 
+           ymax = homogeneity + se),
+         width = 0.2) + labs(y = "MacArthur's homogeneity measure",
+                             x = "Order of the diversity measure")
+```
+
+### 8.4.2 将 β-多样性作为群落组成表中的变量: SCBD & LCBD 指标
+
+#### 8.4.2.1 简介
+
+#### 8.4.2.2 计算 β-多样性
+
+#### 8.4.2.3 关于β-多样性的相异性度量的性质(Properties of Dissimilarity Measures with Respect to Beta Diversity)
+
+#### 8.4.2.4 β-多样性的局部贡献(Local Contributions to Beta Diversity, LCBD)
+
+#### 8.4.2.5 β-多样性的物种贡献(Species Contributions to Beta Diversity, SCBD)
+
+#### 8.4.2.6 使用 adespatial 分析包中的 beta.div() 函数计算 LCBD & SCBD 
+
+```{r}
+# 对经过数据变化的群落物种数据进行 beta.div 统计
+# https://www.rdocumentation.org/packages/adespatial/versions/0.3-4/topics/beta.div
+# beta.div() 计算总β差异的估计值作为社区数据矩阵Y中的总方差
+spe.beta <- beta.div(spe, method = "hellinger", nperm = 9999) 
+summary(spe.beta)
+spe.beta$beta  # SSTotal and BDTotal
+# species contributions to beta diversity (SCBD indices)
+# local contributions of the sites to beta diversity (LCBD indices)
+# Which species have a SCBD larger than the mean SCBD?
+spe.beta$SCBD[spe.beta$SCBD >= mean(spe.beta$SCBD)]
+```
+
+```{r}
+### 不在本书中 --->>> ###
+# 绘制 species with large SCBD
+# species contributions to beta diversity (SCBD indices)
+par(mfrow = c(2,3))
+plot(spa, 
+     asp = 1, 
+     cex.axis = 0.8, 
+     col = "brown", 
+     cex = spe$Satr, 
+     main = "Brown trout", 
+     xlab = "x coordinate (km)", 
+     ylab = "y coordinate (km)"
+     )
+lines(spa, col = "light blue")
+plot(spa, 
+     asp = 1, 
+     cex.axis = 0.8, 
+     col = "brown", 
+     cex = spe$Phph, 
+     main = "Eurasian minnow", 
+     xlab = "x coordinate (km)", 
+     ylab = "y coordinate (km)"
+     )
+lines(spa, col = "light blue")
+plot(spa, 
+     asp = 1, 
+     cex.axis = 0.8, 
+     col = "brown", 
+     cex = spe$Babl, 
+     main = "Stone loach", 
+     xlab = "x coordinate (km)", 
+     ylab = "y coordinate (km)"
+     )
+lines(spa, col = "light blue")
+plot(spa, 
+     asp = 1, 
+     cex.axis = 0.8, 
+     col = "brown", 
+     cex = spe$Ruru, 
+     main = "Roach", 
+     xlab = "x coordinate (km)", 
+     ylab = "y coordinate (km)"
+     )
+lines(spa, col = "light blue")
+plot(spa, 
+     asp = 1, 
+     cex.axis = 0.8, 
+     col = "brown", 
+     cex = spe$Alal, 
+     main = "Bleak", 
+     xlab = "x coordinate (km)", 
+     ylab = "y coordinate (km)"
+     )
+lines(spa, col = "light blue")
+### <<<--- 不在本书中 ###
+```
+
+```{r}
+# local contributions of the sites to beta diversity (LCBD indices)
+spe.beta$LCBD
+# p-values
+spe.beta$p.LCBD
+# Holm correction - p-value 校正
+p.adjust(spe.beta$p.LCBD, "holm")
+# 位点 - 显著性的 Holm-corrected LCBD value
+row.names(spe[which(p.adjust(spe.beta$p.LCBD, "holm") <= 0.05),])
+# 在地图上进行绘制
+plot(spa, 
+     asp = 1, 
+     cex.axis = 0.8, 
+     pch = 21, 
+     col = "white", 
+     bg = "brown", 
+     cex = spe.beta$LCBD * 70, 
+     main = "LCBD values", 
+     xlab = "x coordinate (km)", 
+     ylab = "y coordinate (km)"
+     )
+lines(spa, col = "light blue")
+text(85, 11, "***", cex = 1.2, col = "red")
+text(80, 92, "***", cex = 1.2, col = "red")
+```
+
+
+### 8.4.3 将β-多样性分解成替换 & 丰富度差异 & 嵌套组成(Replacement, Richness Difference and Nestedness Components)
+
+#### 8.4.3.1 Podani 指数(Podani Family of Indices)
+
+#### 8.4.3.2 Baselga 指数(Baselga Family of Indices)
+
+#### 8.4.3.3 嵌套介绍(Flavours of Nestedness)
+
+#### 8.4.3.4 使用 adespatial 分析包中的 beta.div.comp() 函数计算替换 & 丰富度差异 & 嵌套组成(Replacement & Richness Difference & Nestedness)
+
+```{r}
+# Jaccard-based Podani indices (presence-absence data)
+# https://www.rdocumentation.org/packages/adespatial/versions/0.3-4/topics/beta.div.comp
+# 分解
+fish.pod.j <- beta.div.comp(spe, coef = "J", quant = FALSE)
+summary(fish.pod.j)
+fish.pod.j$part
+# 提取丰富度差异矩阵 - Extraction of the richness difference matrix
+fish.rich <- as.matrix(fish.pod.j$rich)
+# 绘制丰富度差异 with respect to site 30
+fish.rich.30 <- fish.rich[29, ][-29]
+site.names <- seq(1, 29)[-8]
+plot(site.names, 
+  fish.rich.30, 
+  type = "n", 
+  xaxp = c(1, 29, 28),
+  main = "Doubs fish data: richness difference with respect to site 30", 
+  xlab = "Site number", 
+  ylab = "Richness difference"
+  )
+lines(site.names, fish.rich.30, pch = 24, col = "red")
+points(
+  site.names, 
+  fish.rich.30, 
+  pch = 24, 
+  cex = 1.5, 
+  col = "white", 
+  bg = "red"
+  )
+text(3, 0.85, "Upstream", cex = 1, col = "red")
+text(27, 0.85, "Downstream", cex = 1, col = "red")
+```
+
+```{r}
+# 提取替代矩阵 - Extraction of the replacement matrix
+fish.repl <- as.matrix(fish.pod.j$repl)
+# 提取相异矩阵 - Jaccard dissimilarity Dj matrix
+fish.jac <- as.matrix(fish.pod.j$D)
+# 绘图
+# 首先，提取方差相异矩阵的子对角线
+fish.repl.neigh <- diag(fish.repl[-1, ]) # Replacement
+fish.rich.neigh <- diag(fish.rich[-1, ]) # Richness difference
+fish.jac.neigh <- diag(fish.jac[-1, ]) # Jaccard Dj index
+absc <- c(2:7, 9:30) # Abscissa
+label.pairs <- c("1-2", "2-3", "3-4", "4-5", "5-6", "6-7", " ", 
+  "7-9", "9-10", "10-11", "11-12", "12-13", "13-14", "14-15", 
+  "15-16", "16-17", "17-18", "18-19", "19-20", "20-21", "21-22", 
+  "22-23", "23-24", "24-25", "25-26", "26-27", "27-28", "28-29", 
+  "29-30")
+plot(
+  absc, 
+  fish.jac.neigh, 
+  type = "n", 
+  xaxt = "n",
+  main = "Replacement - Richness difference - Jaccard - nearest neighbours",  
+  xlab = "Site pairs", 
+  ylab = "Podani's indices"
+  )
+axis(side = 1, 2:30, labels = label.pairs, las = 2, cex.axis = 0.9)
+lines(absc, fish.jac.neigh, col = "black")
+points(
+  absc, 
+  fish.jac.neigh, 
+  pch = 21, 
+  cex = 2, 
+  col = "black", 
+  bg = "black"
+  )
+lines(absc, fish.repl.neigh, col = "blue")
+points(
+  absc, 
+  fish.repl.neigh, 
+  pch = 22, 
+  cex = 2, 
+  col = "white", 
+  bg = "blue"
+  )
+lines(absc, fish.rich.neigh, col = "red")
+points(
+  absc, 
+  fish.rich.neigh, 
+  pch = 24, 
+  cex = 2, 
+  col = "white", 
+  bg = "red"
+  )
+legend(
+  "top", 
+  c("Jaccard D", "Replacement", "Richness difference"), 
+  pch = c(16, 15, 17), 
+  col = c("black", "blue", "red")
+  )
+```
+
+```{r}
+# 三角绘图 - Triangular plots
+# https://www.rdocumentation.org/packages/adespatial/versions/0.3-4/topics/beta.div.comp
+# 分解
+# Jaccard
+fish.pod.J <- beta.div.comp(spe, coef = "J", quant = FALSE)
+# Sorensen
+fish.pod.S <- beta.div.comp(spe, coef = "S", quant = FALSE)
+# Ruzicka
+fish.pod.qJ <- beta.div.comp(spe, coef = "J", quant = TRUE)
+# Percentage difference - 百分比差异
+fish.pod.qS <- beta.div.comp(spe, coef = "S", quant = TRUE)
+# 创建数据框
+fish.pod.J.3 <- cbind((1 - fish.pod.J$D),
+                      fish.pod.J$repl,
+                      fish.pod.J$rich)
+colnames(fish.pod.J.3) <- c("Similarity", "Repl", "RichDiff")
+fish.pod.S.3 <- cbind((1 - fish.pod.S$D),
+                      fish.pod.S$repl,
+                      fish.pod.S$rich)
+colnames(fish.pod.S.3) <- c("Similarity", "Repl", "RichDiff")
+fish.pod.qJ.3 <- cbind((1 - fish.pod.qJ$D),
+                       fish.pod.qJ$repl,
+                       fish.pod.qJ$rich)
+colnames(fish.pod.qJ.3) <- c("Similarity", "Repl", "AbDiff")
+fish.pod.qS.3 <- cbind((1 - fish.pod.qS$D),
+                       fish.pod.qS$repl,
+                       fish.pod.qS$rich)
+colnames(fish.pod.qS.3) <- c("Similarity", "Repl", "AbDiff")
+
+# par(mfrow = c(2, 2))
+triangle.plot(
+  as.data.frame(fish.pod.J.3[, c(3, 1, 2)]),
+  show = FALSE,
+  labeltriangle = FALSE,
+  addmean = TRUE
+  )
+text(-0.45, 
+     0.5, 
+     "RichDiff", 
+     cex = 1.5)
+text(0.4, 
+     0.5, 
+     "Repl", 
+     cex = 1.5)
+text(0, 
+     -0.6, 
+     "Jaccard similarity", 
+     cex = 1.5)
+triangle.plot(
+  as.data.frame(fish.pod.S.3[, c(3, 1, 2)]),
+  show = FALSE,
+  labeltriangle = FALSE,
+  addmean = TRUE
+  )
+text(-0.45, 
+     0.5, 
+     "RichDiff", 
+     cex = 1.5)
+text(0.4, 
+     0.5, 
+     "Repl", 
+     cex = 1.5)
+text(0, 
+     -0.6, 
+     "Sørensen similarity", 
+     cex = 1.5)
+
+triangle.plot(
+  as.data.frame(fish.pod.qJ.3[, c(3, 1, 2)]),
+  show = FALSE,
+  labeltriangle = FALSE,
+  addmean = TRUE
+  )
+text(-0.45, 
+     0.5, 
+     "AbDiff", 
+     cex = 1.5)
+text(0.4, 
+     0.5, 
+     "Repl", 
+     cex = 1.5)
+text(0, 
+     -0.6, 
+     "S = 1 – Ružička D", 
+     cex = 1.5)
+triangle.plot(
+  as.data.frame(fish.pod.qS.3[, c(3, 1, 2)]),
+  show = FALSE,
+  labeltriangle = FALSE,
+  addmean = TRUE
+  )
+text(-0.45, 
+     0.5, 
+     "AbDiff", 
+     cex = 1.5)
+text(0.4, 
+     0.5, 
+     "Repl", 
+     cex = 1.5)
+text(0, 
+     -0.6, 
+     "S = 1 – Percentage difference", 
+     cex = 1.5)
+# 显示平均点的数值
+colMeans(fish.pod.J.3[, c(3, 1, 2)])
+colMeans(fish.pod.S.3[, c(3, 1, 2)])
+colMeans(fish.pod.qJ.3[, c(3, 1, 2)])
+colMeans(fish.pod.qS.3[, c(3, 1, 2)])
+```
+
+#### 8.4.3.5 解释性替代与丰富度差异(Explaining Replacement and Richness Difference)
+
+```{r}
+# Replacement
+# https://www.rdocumentation.org/packages/vegan/versions/2.4-2/topics/capscale
+# [Partial] Distance-Based Redundancy Analysis
+# [偏]基于距离的冗余分析
+repl.dbrda <- dbrda(fish.repl ~ ., 
+                    data = env, 
+                    add = "cailliez")
+anova(repl.dbrda)
+RsquareAdj(repl.dbrda)
+
+# Richness difference
+# https://www.rdocumentation.org/packages/vegan/versions/2.4-2/topics/capscale
+# [Partial] Distance-Based Redundancy Analysis
+# [偏]基于距离的冗余分析
+rich.dbrda <- dbrda(fish.rich ~ ., 
+                    data = env, 
+                    add = "cailliez")
+anova(rich.dbrda)
+RsquareAdj(rich.dbrda)
+
+plot(
+  rich.dbrda,
+  scaling = 1,
+  display = c("lc", "cn"),
+  main = "Richness difference explained by environmental variables"
+  )
+```
+
+---
+
+## 8.5 群落的功能性多样性 & 功能性组成 & 系统进化多样性
+
+### 8.5.1 α-功能多样性(Alpha Functional Diversity)
+
+```{r}
+summary(fishtraits)
+rownames(fishtraits)
+names(spe)
+names(fishtraits)
+(tra <- fishtraits[ , 6:15])
+```
+
+```{r}
+# 群落加权平均特征值 - Community-weighted mean trait values (CWMs)
+# 功能性组成 - https://www.rdocumentation.org/packages/FD/versions/1.0-12/topics/functcomp
+functcomp(tra,
+          as.matrix(spe),
+          CWM.type = "all")
+```
+
+### 8.5.2 β 分类学 & 系统发育学 & 功能性多样性(Beta Taxonomic, Phylogenetic and Functional Diversities)
+
+```{r}
+# 基于简化系统发育分类的距离矩阵
+# 从物种列表中检索层次分类
+splist <- as.character(fishtraits$LatinName)
+# Database ncbi - less reliable than GBIF
+spcla <- classification(splist, db = "ncbi") 
+# spcla <- classification(splist, db = "gbif") # 会报错
+
+# 计算距离矩阵和系统发育树
+# https://www.rdocumentation.org/packages/taxize/versions/0.9.7/topics/class2tree
+# 将分类列表转换成树
+tr <- class2tree(spcla)
+tr$classification
+tr$distmat
+# 将树转换为共生矩阵，约束在0和1之间
+phylo.d <- cophenetic(tr$phylo) / 100
+# 使用物种编码代替物种名 - Replace full species names by name codes
+rownames(phylo.d) <- names(spe)
+colnames(phylo.d) <- names(spe)
+
+# 功能相异矩阵 - Functional dissimilarity matrix (Gower dissimilarity)
+# https://www.rdocumentation.org/packages/FD/versions/1.0-12/topics/gowdis
+# 产生相异矩阵
+trait.d <- gowdis(tra, asym.bin = 5:10)
+# 绘制树形图
+trait.gw <- hclust(trait.d, "ward.D2")
+# par(mfrow = c(1, 2))
+plot(tr)
+text(0.1, 27.5, "a", cex = 1.8)
+plot(trait.gw, 
+     hang = -1, 
+     main = "")
+text(26, 1.045, "b", cex = 1.8)
+
+# 添加分区 of TD, FD and PD (de Bello et al. 2010)
+spe.rao <- Rao(
+  sample = t(spe),
+  dfunc = trait.d, # 可选的功能相异矩阵 - optional functional dissimilarity matrix
+  dphyl = phylo.d, # 可选的系统发育距离矩阵 - optional phylogenetic distance matrix
+  weight = FALSE,
+  Jost = TRUE,
+  structure = NULL
+  )
+names(spe.rao)
+
+# 物种多样性 - Species diversity (Simpson)
+names(spe.rao$TD)
+# Mean alpha Simpson diversity
+spe.rao$TD$Mean_Alpha
+# Gamma Simpson diversity
+spe.rao$TD$Gamma
+# Additive beta Simpson diversity
+spe.rao$TD$Beta_add
+spe.rao$TD$Gamma - spe.rao$TD$Mean_Alpha
+# Beta diversity expressed as percentage of gamma
+spe.rao$TD$Beta_prop
+spe.rao$TD$Beta_add / spe.rao$TD$Gamma
+# Multiplicative beta Simpson diversity
+spe.rao$TD$Gamma / spe.rao$TD$Mean_Alpha
+
+# 系统多样性 - Phylogenetic diversity (Rao)
+names(spe.rao$PD)
+# Mean alpha Rao phylogenetic diversity
+spe.rao$PD$Mean_Alpha
+# Gamma Rao phylogenetic diversity
+spe.rao$PD$Gamma
+# Additive beta Rao phylogenetic diversity
+spe.rao$PD$Beta_add
+spe.rao$PD$Gamma - spe.rao$PD$Mean_Alpha
+# Beta phylogenetic diversity expressed as percentage of gamma
+spe.rao$PD$Beta_prop
+spe.rao$PD$Beta_add / spe.rao$PD$Gamma
+# Multiplicative beta Rao phylogenetic diversity
+spe.rao$PD$Gamma / spe.rao$PD$Mean_Alpha
+
+# 功能多样性 - Functional diversity (Rao)
+names(spe.rao$FD)
+# Mean alpha Rao functional diversity
+spe.rao$FD$Mean_Alpha
+# Gamma Rao functional diversity
+spe.rao$FD$Gamma
+# Additive beta Rao functional diversity
+spe.rao$FD$Beta_add
+spe.rao$FD$Gamma - spe.rao$FD$Mean_Alpha
+# Beta functional diversity expressed as percentage of gamma
+spe.rao$FD$Beta_prop
+spe.rao$FD$Beta_add / spe.rao$FD$Gamma
+# Multiplicative beta Rao functional diversity
+spe.rao$FD$Gamma / spe.rao$FD$Mean_Alpha
+
+# 方差 of alpha TD, PD, FD, 沿河
+spe.rao$TD$Alpha
+spe.rao$PD$Alpha
+spe.rao$FD$Alpha
+
+# par(mfrow = c(2, 2))
+plot(spa, 
+     asp = 1, 
+     cex.axis = 0.8, 
+     pch = 21, 
+     col = "white", 
+     bg = "brown", 
+     cex = spe.rao$TD$Alpha / 4, 
+     main = "Taxonomic diversity", 
+     xlab = "x coordinate (km)", 
+     ylab = "y coordinate (km)"
+     )
+lines(spa, col = "light blue")
+plot(spa, 
+     asp = 1, 
+     cex.axis = 0.8, 
+     pch = 21, 
+     col = "white", 
+     bg = "brown", 
+     cex = spe.rao$PD$Alpha * 1.5, 
+     main = "Phylogenetic diversity", 
+     xlab = "x coordinate (km)", 
+     ylab = "y coordinate (km)"
+     )
+lines(spa, col = "light blue")
+plot(spa, 
+     asp = 1, 
+     cex.axis = 0.8, 
+     pch = 21, 
+     col = "white", 
+     bg = "brown", 
+     cex = spe.rao$FD$Alpha * 2.5, 
+     main = "Functional diversity", 
+     xlab = "x coordinate (km)", 
+     ylab = "y coordinate (km)"
+     )
+lines(spa, col = "light blue")
+
+# 添加 Rao-based 多样性指标
+div$alphaTD <- spe.rao$TD$Alpha
+div$alphaPD <- spe.rao$PD$Alpha
+div$alphaFD <- spe.rao$FD$Alpha
+
+# Save the div data frame as a CSV file
+# write.csv(div, file = "diversity.csv", quote = FALSE)
+
+# Save the species classification as a CSV file
+# write.csv(tr$classification, file = "classification.csv", quote = FALSE)
+```
+
+---
+
+</font>
