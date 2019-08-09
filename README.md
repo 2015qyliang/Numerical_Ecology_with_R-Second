@@ -2,15 +2,15 @@
 
 ## 目录
 
-- [前言](Preface.md)
-- [第一章：绪论](chapter-01.md)
-- [第二章：探索性数据分析](chapter-02.md)
-- [第三章：关联方法与关联矩阵](chapter-03.md)
-- [第四章：聚类分析](chapter-04.md)
-- [第五章：非约束性排序](chapter-05.md)
-- [第六章：典型排序](chapter-06.md)
-- [第七章：生态数据的空间分析](chapter-07.md)
-- [第八章：群落多样性分析](chapter-08.md)
+- [前言]
+- [第一章：绪论]
+- [第二章：探索性数据分析](./Rmdscripts/chapter-02.html)
+- [第三章：关联方法与关联矩阵](./Rmdscripts/chapter-03.html)
+- [第四章：聚类分析](./Rmdscripts/chapter-04.html)
+- [第五章：非约束性排序](./Rmdscripts/chapter-05.html)
+- [第六章：典型排序](./Rmdscripts/chapter-06.html)
+- [第七章：生态数据的空间分析](./Rmdscripts/chapter-07.html)
+- [第八章：群落多样性分析](./Rmdscripts/chapter-08.html)
 
 ### 译者：梁其云
 
