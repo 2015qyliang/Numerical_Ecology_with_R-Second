@@ -2,8 +2,8 @@
 
 ## 目录
 
-- [前言]
-- [第一章：绪论]
+- 前言
+- 第一章：绪论
 - [第二章：探索性数据分析](./Rmdscripts/chapter-02.html)
 - [第三章：关联方法与关联矩阵](./Rmdscripts/chapter-03.html)
 - [第四章：聚类分析](./Rmdscripts/chapter-04.html)
